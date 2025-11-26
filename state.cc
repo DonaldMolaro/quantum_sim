@@ -205,35 +205,6 @@ double State::compute_probability_of_0(int j) const
 // Accessor for observation
 const QuantumState& State::get_state() const { return state_; }
 
-/*
-void State::display() const
-{
-  std::cout << "\nQuantum State (N=" << num_qubits_ << "): \n";
-        
-  // Output Bitstrings (The Keys)
-  std::cout << "{ ";
-  for (const auto& pair : state_) {
-    std::cout << bitstring_to_string(pair.first, num_qubits_) << " ";
-  }
-  std::cout << "}\n";
-
-  // Output Amplitudes (The Values)
-  std::cout << "{ ";
-  for (const auto& pair : state_) {
-    std::cout << complex_to_string(pair.second) << " ";
-  }
-  std::cout << "}\n";
-
-  // Display Classical Registers (if applicable)
-  if (!cbits_.empty()) {
-    std::cout << "Classical Register: [";
-    for (size_t i = 0; i < cbits_.size(); ++i) {
-      std::cout << cbits_[i] << (i == cbits_.size() - 1 ? "" : ", ");
-    }
-    std::cout << "]\n";
-  }
-}
-*/
 /**
  * @brief Measures the jth qubit, collapses the state, and stores the result.
  * 
