@@ -100,6 +100,11 @@ public:
   bool is_initialized() const { return true; };
   int get_num_qubits() const { return num_qubits_; };
   std::vector<int> get_cbits() const { return cbits_; }
+  /*
+   */
+  State& apply_U0_perp();
+  State& grover_diffusion_Us();
+  State& grover_oracle_Uf(Bitstring solution_w);
 };
 
 

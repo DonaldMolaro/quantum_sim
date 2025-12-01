@@ -75,7 +75,9 @@ State& State::grover_oracle_Uf(Bitstring solution_w)
     // apply a -1 phase shift (negation).
     if (current_b == solution_w) {
       // Uf|w> = -|w>
-      current_a *= -1.0; 
+      std::cout << "Grover Oracle hit at " << current_b << " fliping  " << current_a << " to ";
+      current_a *= -1.0;
+      std::cout << current_a << "\n";
                 
       // If we assume a function f(x) that returns 1 only for x=w:
       // Uf|x> = (-1)^f(x) |x>. If f(x)=1, phase is -1.

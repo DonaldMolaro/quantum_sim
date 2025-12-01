@@ -6,6 +6,8 @@
 #include "state.hh"
 #include "shell.hh"
 
+extern void run_grover_search(State *s,Bitstring targer_w);
+
 std::vector<std::string> QuantumShell::parse_command(const std::string& line)
 {
   std::vector<std::string> tokens;
@@ -87,6 +89,13 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
 
+  // --- Algorithims ---
+  if (cmd == "GROVER") {
+    int target_w = get_arg(tokens, 1, "GROVER"); // Target Word
+    run_grover_search(state,target_w);
+    return;
+  }
+
   // --- Measurement ---
   if (cmd == "MEASURE") {
     int j = get_arg(tokens, 1, "MEASURE"); // Qubit index
@@ -133,6 +142,7 @@ void QuantumShell::print_help()
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
+  std::cout << "GROVER <t>       : Run Grover's algorithim searching for T\n";
   std::cout << "HELP             : Show this help message.\n";
   std::cout << "QUIT             : Exit the simulator.\n";
   std::cout << "----------------------------------\n";
