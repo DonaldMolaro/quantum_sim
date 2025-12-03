@@ -51,6 +51,10 @@ private:
   QuantumState state_;
   int num_qubits_;
   std::vector<int> cbits_;
+
+  // Accessor for the size of the classical register
+  size_t cbits_size() const { return cbits_.size(); }
+
   // --- Core Functional Operations ---
   // These methods implement the set transformations defining quantum gates.
   /**
@@ -88,7 +92,10 @@ public:
    */
   double compute_probability_of_0(int j) const;
   const QuantumState& get_state() const;
+  
   void display() const;
+  void display_cbits() const;
+  
   /**
    * @brief Measures the jth qubit, collapses the state, and stores the result.
    * 

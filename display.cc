@@ -132,5 +132,48 @@ void State::display() const
   std::cout << "Total Probability Sum: " << std::fixed << std::setprecision(6) << total_probability << "\n";
   // Show classical registers (if desired)
   // Note: Access to cbits_ vector is required here (omitted for brevity)
+  display_cbits();
   std::cout << "======================================================\n";
+}
+
+/**
+ * @brief Displays the classical register content as a bitstring (MSB -> LSB)
+ *        and calculates its corresponding decimal value.
+ *
+ * Assumes cbits holds the LSB (little endian convention).
+ */
+void State::display_cbits() const
+{
+  if (cbits_.empty()) {
+    std::cout << "Classical register is empty.\n";
+    return;
+  }
+
+  // --- 1. Display as Bitstring (MSB -> LSB) ---
+
+  std::string bitstring = "";
+  // Iterate backward to print MSB first (index N-1 to 0)
+  for (int i = cbits_.size() - 1; i >= 0; --i) {
+    bitstring += std::to_string(cbits_[i]);
+  }
+
+  std::cout << "Classical Register Bitstring (MSB -> LSB): " << bitstring << "\n";
+
+  // --- 2. Calculate and Display as Decimal Number ---
+
+  // Use unsigned long long to accommodate large register sizes
+  unsigned long long decimal_value = 0;
+  unsigned long long power_of_two = 1;
+
+  // Iterate forward (index 0 to N-1) to calculate decimal value:
+  // cbits_[j] is the coefficient for 2^j.
+  for (size_t j = 0; j < cbits_.size(); ++j) {
+    if (cbits_[j] == 1) {
+      // If the bit is set, add its corresponding power of 2
+      decimal_value += power_of_two;
+    }
+    // Prepare for the next bit position (2^j+1)
+    power_of_two *= 2;
+  }
+  std::cout << "Classical Register Decimal Number: " << decimal_value << "\n";
 }
