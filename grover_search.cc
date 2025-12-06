@@ -1,3 +1,25 @@
+/*
+ * Impementation of Grover's search algorithm. This is quite frankly
+ * spooky when you figure out what it's doing. This implemenation is
+ * ment to be verbose, printing out what it's doing at every step so
+ * so using it and expecting it to be "fast" is not the point.
+ *
+ * It does "search" the solution space in O(root(N)) time, which for those of us
+ * that are used to O(N) is well, spooky.
+ *
+ * Someday I'll extend the implementaion so that it can find multiple solutions
+ * to the search space, but today is not that day.
+ *
+ * If you want to *understand* what/how Grover's algorithim works go watch this:
+ *
+ * from https://www.youtube.com/@3blue1brown
+ *
+ * https://www.youtube.com/watch?v=RQWpF2Gb-gU&t=7s
+ *
+ * Even if you *think* you understand Grover's algorithim, you should go watch
+ * the video.
+ *
+ */
 #include "state.hh"
 #include <cmath>
 #include <numeric> // For std::accumulate if needed

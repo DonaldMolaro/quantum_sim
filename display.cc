@@ -1,3 +1,14 @@
+/*
+ * So along with "measure" this is probably the most intesting part of the
+ * simulator. This lets someone peek inside the state of a quantum machine
+ * and see what is going on "inside". For Quantum obvious reasons one cannot
+ * do that on a *real* quantum computer but if one is seeking to understand
+ * what/how a quantum machine does what is does this is the intesting bit.
+ *
+ * Now the *actual* implementation of the Qubits is a sparce map, but for the
+ * purposes of understanding the display method prints out everything, which
+ * for me helps.
+ */
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -131,7 +142,6 @@ void State::display() const
   // Show normalization check: sum of probabilities must be 1
   std::cout << "Total Probability Sum: " << std::fixed << std::setprecision(6) << total_probability << "\n";
   // Show classical registers (if desired)
-  // Note: Access to cbits_ vector is required here (omitted for brevity)
   display_cbits();
   std::cout << "======================================================\n";
 }

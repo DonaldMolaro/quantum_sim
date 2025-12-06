@@ -1,3 +1,12 @@
+/*
+ * This is a simple little shell that reads commands and manipulates
+ * the underlying quantum state simulator. It's not bad, it's not great
+ * but with it you can poke at the machine and see what it does.
+ *
+ * Beyond just basic quantum gates it's also able to call an implementation of
+ * Grover's algorithim. Maybe I'll get ambitious and implement a few other
+ * quantum algorithms.
+ */
 #include <vector>
 #include <complex>
 #include <string>

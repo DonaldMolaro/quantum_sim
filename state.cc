@@ -1,3 +1,22 @@
+/*
+ * Quantum state and gates simulation. The main point of this code
+ * is to allow someone to poke away at set of simulated Qubits and see
+ * what happens to the system.
+ *
+ * What is *different* here compared to the "normal" implementaion is
+ * the lack of linear algebra the underlying principals of the quantum
+ * machine are expressed in "map", "reduce_by_key" and "flatmap_and_reduce".
+ *
+ * Using those primatives it is possible to implement enough gates so that
+ * we have a universal set of gates, which we can then simulate quantum
+ * computation on.
+ *
+ * The most "interesting" thing here is the "measrure" method, which measures
+ * the requested Qubit and puts it in a classical "bit", what is interesting here
+ * is to watch the entangled state of the quantum machine gradually collapse
+ * as the quantumness is taken out of it.
+ */
+
 #include <vector>
 #include <complex>
 #include <utility>

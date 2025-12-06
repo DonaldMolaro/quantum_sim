@@ -1,3 +1,9 @@
+/*
+ * This is the implemenation of the functions that Grover's search needs.
+ * If there is something "interesting" here it's the fact that these methods
+ * are unaware of the underlying non-linear algebra implementation.
+ */
+
 #include "state.hh"
 
 /**

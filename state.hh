@@ -1,3 +1,11 @@
+/*
+ * Almost all of the code for this quantum simulator was created by NotebookLM
+ * The paper it is based on is public, and NotebookLM is public so in my opinion
+ * this code should remain public.
+ * 
+ * This contains the "state" of the quantum machine, since this is a simulator
+ * one can "peek" inside and see the state of the Qubits.
+ */
 #include <vector>
 #include <complex>
 #include <utility>

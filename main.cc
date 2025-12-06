@@ -1,3 +1,16 @@
+/* Quantum Simulator *without* linear algebra.
+ *
+ * This is an implementation of an excellent paper by Aws Albarghouhi
+ * Aws gives an implementation in Python, but I think in C++ hence this
+ * implementation.
+ *
+ * If you actually want to *learn* something about quantum computation I
+ * would strong suggest you give this paper a read.
+ *
+ * https://eprint.iacr.org/2025/1091.pdf
+ *
+ * Don - December 2025
+ */
 #include "state.hh"
 #include "shell.hh"
 
@@ -7,20 +20,6 @@ int main()
   qs.run();
   return 0;
 };
-
-/*
-
-extern void run_grover_search(int n_qubits,Bitstring targer_w);
-
-int main()
-{
-  const int N_QUBITS = 4;
-  const Bitstring TARGET_W = 13;
-  run_grover_search(N_QUBITS,TARGET_W);
-  return 0;
-};
-
-*/
 
 
 

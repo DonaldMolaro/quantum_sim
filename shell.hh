@@ -1,3 +1,10 @@
+/*
+ * For learning things which have some "weirdness" involved I like
+ * command line interactive systems. This is a nice little shell wrapped
+ * around the quantum simulator, with it you can poke and prod it and see
+ * how the underlying machine works. In theroy you could write a program in
+ * the shell.
+ */
 #include <vector>
 #include <complex>
 #include <string>
