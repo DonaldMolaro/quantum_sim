@@ -2,7 +2,8 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -O2
 TARGET = quantum_sim
-SOURCES = main.cc state.cc display.cc shell.cc grover.cc grover_search.cc
+SOURCES = main.cc state.cc display.cc shell.cc grover.cc grover_search.cc \
+	swap.cc qft.cc modular_exp.cc helper.cc
 OBJECTS = $(SOURCES:.cc=.o)
 
 # Default target: builds the executable

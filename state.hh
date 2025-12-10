@@ -52,6 +52,10 @@ extern std::string bitstring_to_string(Bitstring b, int N);
 
 /** Converts the ComplexNumber to a readable string (e.g., 0.707 + 0.707i). */
 extern std::string complex_to_string(const ComplexNumber& a);
+Bitstring power_mod(Bitstring base, Bitstring exp, Bitstring mod);
+Bitstring extract_bits(Bitstring b, int start, int end);
+Bitstring replace_bits(Bitstring b, int start, int end, Bitstring new_val);
+void accumulate(Bitstring b, ComplexNumber a);
 
 class State
 {
@@ -98,6 +102,27 @@ public:
    * Computes the probability of measuring 0 for qubit j: 
    * s.filter(λb, a. bj = 0) .map(λb, a. |a|^2) .sum()
    */
+  /**
+   * @brief Applies the SWAP gate between qubit j and qubit k.
+   * This operation swaps the bit values (keys) in the quantum state representation 
+   * but leaves the amplitudes unchanged, mirroring the core (b, a) -> (b', a) map.
+   * 
+   * @param j Index of the first qubit (0-indexed, LSB).
+   * @param k Index of the second qubit.
+   * @return State& Reference to the modified State object.
+   */
+  State& swap(int i, int k);
+  /*
+   * Methods needed for Shor's algorithm.
+   */
+  State& controlled_Rr(int control_j, int target_k, int r);
+  State& controlled_Rr_dag(int control_j, int target_k, int r);
+  State& qft(int start_qubit, int end_qubit);
+  State& iqft(int start_qubit, int end_qubit);
+  State& controlled_modular_exponentiation(int control_qubit, 
+					   int target_start, int target_end, 
+					   Bitstring a, Bitstring N, 
+					   Bitstring power);
   double compute_probability_of_0(int j) const;
   const QuantumState& get_state() const;
   

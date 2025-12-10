@@ -98,6 +98,17 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
 
+  if (cmd == "SWAP") {
+    int j = get_arg(tokens, 1, "SWAP");
+    int k = get_arg(tokens, 2, "SWAP");
+    if (j == -1 || k == -1) return;
+
+    state->swap(j, k); 
+    std::cout << "SWAP(" << j << ", " << k << ") applied.\n";
+    state->display();
+    return;
+  }
+
   // --- Algorithims ---
   if (cmd == "GROVER") {
     int target_w = get_arg(tokens, 1, "GROVER"); // Target Word
@@ -149,6 +160,7 @@ void QuantumShell::print_help()
   std::cout << "S <j>            : S gate on qubit j (Phase).\n";
   std::cout << "T <j>            : T gate on qubit j (Phase).\n";
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
+  std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
   std::cout << "GROVER <t>       : Run Grover's algorithim searching for T\n";
