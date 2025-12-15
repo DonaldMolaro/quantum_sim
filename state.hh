@@ -85,9 +85,33 @@ private:
    * followed by reduction (used specifically for Hadamard).
    */
   void s_flatMap_and_reduce(const std::function<IntermediateState(const Bitstring&, const ComplexNumber&)>& transformation_func);
+  // Helper to find or add a bitstring in the vector representation (O(N) operation)
+  QubitAmplitudePair* find_or_add(QuantumState& state, Bitstring b) {
+    // Find existing bitstring
+    for (auto& pair : state) {
+      if (pair.first == b) {
+	return &pair;
+      }
+    }
+    // Not found, add new entry with zero amplitude
+    state.push_back({b, 0.0});
+    return &state.back();
+    }
+
 public:
   /** Constructor: Initializes the state to the ground state |00...0>. */
-  State(int N, int num_cbits = 0);
+  State(int N, int num_cbits);
+
+  State(int n) : num_qubits_(n) {
+    state_.push_back({0ULL, 1.0});
+  }
+  
+  State(Bitstring initial_state_value = 0)
+  {
+    state_.push_back({initial_state_value, 1.0});
+  }
+
+
   State& x(int j);
   /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
   State& cx(int j_control, int k_target);
@@ -126,7 +150,7 @@ public:
   double compute_probability_of_0(int j) const;
   const QuantumState& get_state() const;
   
-  void display() const;
+  void display(bool sparse = false) const;
   void display_cbits() const;
   
   /**
@@ -140,11 +164,80 @@ public:
   bool is_initialized() const { return true; };
   int get_num_qubits() const { return num_qubits_; };
   std::vector<int> get_cbits() const { return cbits_; }
+  /**
+   * @brief Sets the state to a single basis vector. Clears previous entries.
+   */
+  void set_basis_state(Bitstring b, ComplexNumber a) {
+    state_.clear(); // Clear the vector representation
+    state_.push_back({b, a});
+  }
+    
+  /**
+   * @brief Sets the state from a new vector representation. 
+   * Assumes the input vector already handles amplitude summation/uniqueness.
+   */
+  void set_superposition(const QuantumState& new_state) {
+    state_ = new_state;
+  }
+
+  /**
+   * @brief Retrieves the amplitude associated with a specific bitstring key.
+   * Requires linear search through the vector.
+   */
+  ComplexNumber get_amplitude(Bitstring b) const {
+    for (const auto& pair : state_) {
+      if (pair.first == b) {
+	return pair.second;
+      }
+    }
+    // If the basis state is not explicitly listed, its amplitude is zero (sparse representation).
+    return 0.0; 
+  }
+  /**
+     * Sets the amplitude associated with a specific basis state (bitstring).
+     * If the bitstring already exists, its amplitude is updated.
+     * If it does not exist, a new entry is added.
+     */
+  void set_amplitude(Bitstring b, ComplexNumber a) {
+        
+    // Iterate through the vector to check if the bitstring already exists.
+    for (auto& pair : state_) {
+      if (pair.first == b) {
+	// Found the existing basis state: update the amplitude (the value in the key-value pair)
+	pair.second = a;
+	return;
+      }
+    }
+        
+    // If the loop completes, the bitstring was not found, so add a new entry.
+    // This corresponds to introducing a new basis state to the superposition.
+    state_.push_back({b, a});
+  }
+  /**
+   * @brief Retrieves the value (0 or 1) stored in the classical register 
+   *        at the specified index.
+   * 
+   * This method accesses the result of a measurement stored in a 
+   * classical register [1].
+   * 
+   * @param j The index of the classical bit (0-indexed).
+   * @return int The value of the classical bit (0 or 1).
+   * @throws std::out_of_range if the index j is invalid.
+   */
+  int get_cbit(size_t j) const {
+    // Accesses the indexed classical register for retrieval, analogous to s.cbits[j] [2]
+    // Using .at() ensures bounds checking.
+    if (j < 0 || j >= cbits_.size()) {
+      throw std::out_of_range("Classical bit index out of bounds.");
+    }
+    return cbits_.at(j);
+  }
   /*
    */
   State& apply_U0_perp();
   State& grover_diffusion_Us();
   State& grover_oracle_Uf(Bitstring solution_w);
+  State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);  
 };
 
 

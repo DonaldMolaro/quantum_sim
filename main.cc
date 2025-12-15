@@ -14,11 +14,20 @@
 #include "state.hh"
 #include "shell.hh"
 
+extern void run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);
+
+
 int main()
 {
+
   QuantumShell qs;
   qs.run();
   return 0;
+
+  //Bitstring N = 15;
+  //Bitstring a = 7;
+  //run_shor_algorithm_quantum_part(N,a);
+  
 };
 
 

@@ -81,7 +81,7 @@ double amplitude_to_probability(const ComplexNumber& a) {
 
 // --- State Class Definition (Partial, showing the new method) ---
 
-void State::display() const
+void State::display(bool sparse) const
 {
   const int N = get_num_qubits();
   const unsigned long long N_STATES = 1ULL << N;
@@ -121,20 +121,23 @@ void State::display() const
       amplitude = ComplexNumber(0.0, 0.0);
     }
 
-    double probability = amplitude_to_probability(amplitude);
-    total_probability += probability;
+    if ((amplitude != ComplexNumber(0.0, 0.0)) || (sparse == true))
+      {
+	double probability = amplitude_to_probability(amplitude);
+	total_probability += probability;
             
-    // Format Bitstring (Key)
-    std::cout << std::left << std::setw(BIT_WIDTH) 
-	      << ("|" + bitstring_to_string(j, N) + ">"); 
+	// Format Bitstring (Key)
+	std::cout << std::left << std::setw(BIT_WIDTH) 
+		  << ("|" + bitstring_to_string(j, N) + ">"); 
+	
+	// Format Amplitude (Value)
+	std::cout << std::left << std::setw(AMP_WIDTH) 
+		  << complex_to_string(amplitude, 6);
             
-    // Format Amplitude (Value)
-    std::cout << std::left << std::setw(AMP_WIDTH) 
-	      << complex_to_string(amplitude, 6);
-            
-    // Format Probability (|a|^2)
-    std::cout << std::right << std::setw(PROB_WIDTH) << std::fixed << std::setprecision(6) 
-	      << probability << "\n";
+	// Format Probability (|a|^2)
+	std::cout << std::right << std::setw(PROB_WIDTH) << std::fixed << std::setprecision(6) 
+		  << probability << "\n";
+      }
   }
 
   // --- Print Footer ---
