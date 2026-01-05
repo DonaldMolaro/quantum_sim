@@ -106,7 +106,7 @@ public:
     state_.push_back({0ULL, 1.0});
   }
   
-  State(Bitstring initial_state_value = 0)
+  State(Bitstring initial_state_value, int n) : num_qubits_(n)
   {
     state_.push_back({initial_state_value, 1.0});
   }

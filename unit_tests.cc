@@ -299,61 +299,6 @@ int main_test_qft() {
     return 0;
 }
 
-void assert_amplitude_magnitude(const State& s, Bitstring b, double expected_mag, const std::string& msg) {
-    double actual_mag = std::abs(s.get_amplitude(b));
-    if (std::abs(actual_mag - expected_mag) > EPSILON) {
-        throw std::runtime_error("Amplitude check failed for " + msg + " (Bitstring " + std::to_string(b) + 
-                                 "). Expected magnitude: " + std::to_string(expected_mag) + 
-                                 ", Actual: " + std::to_string(actual_mag));
-    }
-}
-
-void test_shor_quantum_part_n15_a7_r4() {
-    // Test Case: Factor N=15, choosing base a=7. Known period r=4.
-    // Precision: m=5 qubits (2^5 = 32 states).
-    // Expected output indices (x/2^m) = {0/4, 1/4, 2/4, 3/4} in the control register.
-    // Corresponding control register values: {0, 8, 16, 24}.
-    // Total qubits = 5 (control) + 4 (target) = 9
-    State s(5,5);
-    s.display();
-    const Bitstring N = 15;
-    const Bitstring a = 7;
-    const int R = 4;
-    const double expected_mag = 1.0 / std::sqrt(static_cast<double>(R));
-    
-    s.run_shor_algorithm_quantum_part(N, a);
-
-    // Qubits 0-3 (target register) are fixed at |0001> (index 1).
-    // Qubits 4-8 (control register) hold the period information.
-    
-    // Test expected states (x/2^m = s/r)
-    // s=0 -> x=0 -> Bitstring index 1 (000000001)
-    assert_amplitude_magnitude(s, 1ULL, expected_mag, "s=0/r=4 state (|00...01>)");
-    
-    // s=1 -> x=8 -> Bitstring index 1 + (8 << 4) = 129
-    assert_amplitude_magnitude(s, 1ULL | (8ULL << 4), expected_mag, "s=1/r=4 state");
-    
-    // s=2 -> x=16 -> Bitstring index 1 + (16 << 4) = 257
-    assert_amplitude_magnitude(s, 1ULL | (16ULL << 4), expected_mag, "s=2/r=4 state");
-    
-    // s=3 -> x=24 -> Bitstring index 1 + (24 << 4) = 385
-    assert_amplitude_magnitude(s, 1ULL | (24ULL << 4), expected_mag, "s=3/r=4 state");
-
-    // Test a state expected to have near zero amplitude (e.g., index 2, which is |00...02>)
-    assert_amplitude_magnitude(s, 2ULL, 0.0, "state |00...02>");
-    
-    // Test another zero state (e.g., control register 1, target register 1)
-    assert_amplitude_magnitude(s, 1ULL | (1ULL << 4), 0.0, "state x=1/2^m");
-}
-
-void main_shor_tests() {
-    std::cout << "Testing State::run_shor_algorithm_quantum_part (Order Finding):\n";
-    std::cout << "------------------------------------------------------------------\n";
-    
-    run_test("Test 1: N=15, a=7, r=4 (Verification of QPE output concentration)", test_shor_quantum_part_n15_a7_r4);
-    
-    std::cout << "------------------------------------------------------------------\n";
-}
 
 
 extern Bitstring modular_exponentiation(Bitstring a, Bitstring power, Bitstring N);
@@ -411,6 +356,49 @@ void test_mod_exp_shor_period() {
     // Test 7^16 mod 15 = 1 (Used in CME controlled by q8)
     result = modular_exponentiation(7ULL, 16ULL, 15ULL);
     assert_equal(result, 1ULL, "Shor Period Test (7^16 mod 15)");
+}
+
+/*
+To test the **Controlled Modular Exponentiation (CME)** operation with parameters $a=7, P=1$, and $N=15$, we follow the **operational view** where the quantum state is a set of bitstring-amplitude pairs and the operation is a functional transformation.
+
+### Test Parameters and Register Setup
+*   **Total Register:** 7 Qubits (Index 0-6).
+*   **Target Register:** Qubits $q_0$ through $q_3$ (to store values up to $N=15$).
+*   **Control Qubit:** Qubit $q_6$.
+*   **Modular Function:** $U_7^1 |y\rangle = |7^1 \cdot y \pmod{15}\rangle$.
+*/
+
+void test_cme_superposition_7_1_15() {
+  //std::cout << " 1. Create initial state |0000000> " << std::endl;
+  State s(7,1); 
+  //s.display();
+  //std::cout << " 2. Initialize Target Register to |1> (Bitstring 0000001) " << std::endl;
+  //std::cout << "Multiplicative identity is required: y_new = (a^P * 1) mod N " << std::endl;
+  s.x(0); 
+  //s.display();
+  //std::cout << " 3. Put Control Qubit (q6) into Superposition " << std::endl;
+  //std::cout << "State becomes 1/sqrt(2) * (|0000001> + |1000001>)" << std::endl;
+  s.h(6);
+  //s.display();
+
+  //std::cout << " 4. Execute CME: a=7, P=1, N=15, Control=q6, Target=" << std::endl;
+  s.controlled_modular_exponentiation(6, 0, 3, 7, 15, 1);
+  //s.display();
+
+  // 5. Validation Logic
+  // Expected Outcome 1 (Control 0): Identity applies. State remains |0000001> (Decimal 1)
+  // Expected Outcome 2 (Control 1): U applies. 1 * 7 mod 15 = 7. 
+  // Bitstring: |1(q6) 00(q5-q4) 0111(q3-q0)> = Binary 1000111 (Decimal 71)
+    
+  double prob1 = std::norm(s.get_amplitude(1));  // |0000001>
+  double prob2 = std::norm(s.get_amplitude(71)); // |1000111>
+
+    if (std::abs(prob1 - 0.5) < 1e-6 && std::abs(prob2 - 0.5) < 1e-6) {
+        std::cout << "[PASS] CME Superposition Test" << std::endl;
+    } else {
+        std::cout << "[FAIL] CME Superposition Test" << std::endl;
+        s.display(); // Detailed state dump in binary
+    }
 }
 
 void test_mod_exp_large_power() {
@@ -476,11 +464,13 @@ void test_cme_control_on_p1() {
     const Bitstring EXPECTED_TARGET_VAL = 7;
     const Bitstring EXPECTED_B = EXPECTED_TARGET_VAL | (1ULL << CONTROL_QUBIT); // 71
 
-    State s(START_B);
-
+    //std::cout << "START_B (" << bitstring_to_string(START_B,15) << ")" << std::endl;
+    State s(START_B,7);
+    //s.display();
     
     s.controlled_modular_exponentiation(CONTROL_QUBIT, TARGET_START, TARGET_END, A, N, 1);
-
+    
+    //s.display();
 
     
     assert_amplitude_match(s, EXPECTED_B, 1.0, "Control ON P=1: State should shift to |7>");
@@ -496,7 +486,7 @@ void test_cme_control_on_p2() {
     const Bitstring EXPECTED_TARGET_VAL = 4;
     const Bitstring EXPECTED_B = EXPECTED_TARGET_VAL | (1ULL << CONTROL_QUBIT); // 68
 
-    State s(START_B); 
+    State s(START_B,7); 
     
     s.controlled_modular_exponentiation(CONTROL_QUBIT, TARGET_START, TARGET_END, A, N, 2);
 
@@ -547,19 +537,77 @@ void main_all_cme_tests() {
     run_test_cme("Test 2: Control ON, Power=1 (7^1 mod 15 = 7)", test_cme_control_on_p1);
     run_test_cme("Test 3: Control ON, Power=2 (7^2 mod 15 = 4)", test_cme_control_on_p2);
     run_test_cme("Test 4: Superposition Input (Check entanglement)", test_cme_superposition_input);
+    run_test_cme("Test 5: Superposition 7 1 15 (Check entanglement)", test_cme_superposition_7_1_15);
+    
+    std::cout << "------------------------------------------------------------------\n";
+}
+
+void assert_amplitude_magnitude(const State& s, Bitstring b, double expected_mag, const std::string& msg) {
+    double actual_mag = std::abs(s.get_amplitude(b));
+    if (std::abs(actual_mag - expected_mag) > EPSILON) {
+        throw std::runtime_error("Amplitude check failed for " + msg + " (Bitstring " + std::to_string(b) + 
+                                 "). Expected magnitude: " + std::to_string(expected_mag) + 
+                                 ", Actual: " + std::to_string(actual_mag));
+    }
+}
+
+void test_shor_quantum_part_n15_a7_r4() {
+  // Test Case: Factor N=15, choosing base a=7. Known period r=4.
+  // Precision: m=5 qubits (2^5 = 32 states).
+  // Expected output indices (x/2^m) = {0/4, 1/4, 2/4, 3/4} in the control register.
+  // Corresponding control register values: {0, 8, 16, 24}.
+  // Total qubits = 5 (control) + 4 (target) = 9
+
+  const Bitstring N = 15 << 3;
+  const Bitstring a = 7;
+  const int R = 4;
+  const double expected_mag = 1.0 / std::sqrt(static_cast<double>(R));
+
+  State s(N,9);
+    
+  s.display();
+  s.run_shor_algorithm_quantum_part(N, a);
+
+  std::cout << "Qubits 0-3 (target register) are fixed at |0001> (index 1)." << std::endl;
+  std::cout << "Qubits 4-8 (control register) hold the period information." << std::endl;
+  s.display();
+    
+  // Test expected states (x/2^m = s/r)
+  // s=0 -> x=0 -> Bitstring index 1 (000000001)
+  assert_amplitude_magnitude(s, 1ULL, expected_mag, "s=0/r=4 state (|00...01>)");
+    
+  // s=1 -> x=8 -> Bitstring index 1 + (8 << 4) = 129
+  assert_amplitude_magnitude(s, 1ULL | (8ULL << 4), expected_mag, "s=1/r=4 state");
+    
+  // s=2 -> x=16 -> Bitstring index 1 + (16 << 4) = 257
+  assert_amplitude_magnitude(s, 1ULL | (16ULL << 4), expected_mag, "s=2/r=4 state");
+    
+  // s=3 -> x=24 -> Bitstring index 1 + (24 << 4) = 385
+  assert_amplitude_magnitude(s, 1ULL | (24ULL << 4), expected_mag, "s=3/r=4 state");
+
+  // Test a state expected to have near zero amplitude (e.g., index 2, which is |00...02>)
+  assert_amplitude_magnitude(s, 2ULL, 0.0, "state |00...02>");
+    
+  // Test another zero state (e.g., control register 1, target register 1)
+  assert_amplitude_magnitude(s, 1ULL | (1ULL << 4), 0.0, "state x=1/2^m");
+}
+
+void main_shor_tests() {
+    std::cout << "Testing State::run_shor_algorithm_quantum_part (Order Finding):\n";
+    std::cout << "------------------------------------------------------------------\n";
+    
+    run_test("Test 1: N=15, a=7, r=4 (Verification of QPE output concentration)", test_shor_quantum_part_n15_a7_r4);
     
     std::cout << "------------------------------------------------------------------\n";
 }
 
 
-
-
 int main()
 {
-  main_test_controlled_Rr();
-  main_test_controlled_Rr_dag();
-  main_test_qft();
-  main_mod_exp();
-  main_all_cme_tests();
+  //main_test_controlled_Rr();
+  //main_test_controlled_Rr_dag();
+  //main_test_qft();
+  //main_mod_exp();
+  //main_all_cme_tests();
   main_shor_tests();
 }

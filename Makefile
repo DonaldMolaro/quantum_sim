@@ -1,11 +1,14 @@
 # Define variables
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -O2
+CXXDEPFLAGS = -MMD -MP
 TARGETS = quantum_sim unit_tests
 SOURCES = state.cc display.cc shell.cc grover.cc grover_search.cc \
 	swap.cc qft.cc modular_exp.cc helper.cc shor.cc
 OBJECTS = $(SOURCES:.cc=.o)
+DEPS    = $(SOURCES:.cc=.d)
 
+#
 # Default target: builds the executable
 all: $(TARGETS)
 
@@ -20,8 +23,16 @@ unit_tests : unit_tests.o $(OBJECTS)
 # Rule to compile .cc files into .o files (using implicit rule)
 # This rule applies to both main.cc and state.cc
 .cc.o:
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CXXDEPFLAGS) -c $< -o $@
+
+.cc.d:
+	$(CXX) $(CXXDEPFLAGS) $< -o $@
 
 # Cleanup target
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJECTS) $(DEPS) $(TARGET)
+
+-include $(DEPS)
+
+.PHONY: clean
+

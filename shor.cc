@@ -8,7 +8,6 @@
 State& State::run_shor_algorithm_quantum_part(Bitstring N, Bitstring a) {
     
     // --- 1. Determine Qubit Allocation ---
-    
     // N=15 requires n_target=4 qubits (indices 0-3). 
     // The test framework assumed n_control=5 qubits (indices 4-8).
     const int n_target = 4; 
@@ -19,6 +18,14 @@ State& State::run_shor_algorithm_quantum_part(Bitstring N, Bitstring a) {
     const int control_start = n_target; // Index 4
     const int control_end = n_target + n_control - 1; // Index 8
 
+    std::cout << " const int n_target (4) = " << n_target << std::endl; 
+    std::cout << " const int target_start (0) = " << target_start << std::endl;
+    std::cout << " const int target_end (n_target - 1) = " <<  target_end << std::endl; 
+
+    std::cout << " const int n_control = 5; " << std::endl;
+    std::cout << " const int control_start (4) = " << n_target << std::endl; // Index 4
+    std::cout << " const int control_end (8) = " << n_target + n_control - 1 << std::endl; // Index 8
+    
     std::cout << "The state must be initialized to |0>_control |1>_target." << std::endl;
     std::cout << "Assuming the State constructor initialized to |0...0>|0>" << std::endl;
     display();
