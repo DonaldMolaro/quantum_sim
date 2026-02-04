@@ -4,6 +4,7 @@
 quantum_sim
 unit_tests
 grover_test
+libquantum_sim.a
 
 # Editor backups
 *~

@@ -13,6 +13,7 @@
 #include <complex>
 #include <functional>
 #include <map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -115,6 +116,8 @@ public:
   State& t(int j);
   /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
   State& h(int j);
+  /** Phase flip for basis states matching a predicate. */
+  State& phase_flip_if(const std::function<bool(Bitstring)>& predicate);
   /** SWAP gate. */
   State& swap(int i, int k);
   /*
@@ -225,5 +228,6 @@ public:
   State& apply_U0_perp();
   State& grover_diffusion_Us();
   State& grover_oracle_Uf(Bitstring solution_w);
+  State& grover_oracle_Uf_multi(const std::unordered_set<Bitstring>& solutions);
   State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);  
 };

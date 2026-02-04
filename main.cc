@@ -22,10 +22,6 @@ int main()
   qs.run();
   return 0;
 
-  //Bitstring N = 15;
-  //Bitstring a = 7;
-  //run_shor_algorithm_quantum_part(N,a);
-  
 };
 
 

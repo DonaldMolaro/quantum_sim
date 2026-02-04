@@ -94,3 +94,16 @@ State& State::grover_oracle_Uf(Bitstring solution_w)
   std::cout << "Grover Oracle Uf applied. Solution state " << solution_w << " phase negated.\n";
   return *this;
 }
+
+State& State::grover_oracle_Uf_multi(const std::unordered_set<Bitstring>& solutions)
+{
+  for (auto& pair : state_) {
+    Bitstring current_b = pair.first;
+    ComplexNumber& current_a = pair.second;
+    if (solutions.count(current_b)) {
+      current_a *= -1.0;
+    }
+  }
+  std::cout << "Grover Oracle Uf applied to " << solutions.size() << " solution state(s).\n";
+  return *this;
+}

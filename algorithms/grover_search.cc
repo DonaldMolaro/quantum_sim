@@ -23,6 +23,7 @@
 #include "state.hh"
 #include <cmath>
 #include <iostream>
+#include <unordered_set>
 
 // Include Complex, Bitstring, State class definition (assumed from context)
 // Assume State class methods grover_oracle_Uf, grover_diffusion_Us, 
@@ -82,4 +83,51 @@ void run_grover_search(State *s, Bitstring target_w)
   // 4. Final Measurement / Display
   // The probability amplitude of |w〉 should now be boosted near 1.
   s->display(); // Use the display method to show amplitudes and probabilities
+}
+
+void run_grover_search_multi(State *s, const std::vector<Bitstring>& targets)
+{
+  if (targets.empty()) {
+    std::cerr << "No targets provided for Grover multi-search.\n";
+    return;
+  }
+
+  int n_qubits = s->get_num_qubits();
+  if (n_qubits >= 63) {
+    std::cerr << "Grover demo supports up to 62 qubits (got " << n_qubits << ").\n";
+    return;
+  }
+
+  const double N = std::ldexp(1.0, n_qubits);
+  const double PI = std::acos(-1.0);
+  const double M = static_cast<double>(targets.size());
+  const int R = static_cast<int>(std::floor((PI / 4.0) * std::sqrt(N / M)));
+
+  std::cout << "Starting Grover multi-search for " << targets.size()
+            << " solutions in N=" << N << " (n=" << n_qubits << " qubits).\n";
+  std::cout << "Optimal number of Grover iterations: R = " << R << "\n";
+
+  std::unordered_set<Bitstring> target_set;
+  for (Bitstring t : targets) {
+    if (t >= static_cast<Bitstring>(N)) {
+      std::cerr << "Target " << t << " is out of range for N=" << N << ".\n";
+      return;
+    }
+    target_set.insert(t);
+  }
+
+  for (int j = 0; j < n_qubits; ++j) {
+    s->h(j);
+  }
+  std::cout << "State initialized to uniform superposition.\n";
+
+  for (int k = 0; k < R; ++k) {
+    s->display();
+    std::cout << "\n--- Iteration " << k + 1 << " / " << R << " ---\n";
+    s->grover_oracle_Uf_multi(target_set);
+    s->grover_diffusion_Us();
+  }
+
+  std::cout << "\n--- Final State ---\n";
+  s->display();
 }

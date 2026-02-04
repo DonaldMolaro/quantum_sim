@@ -16,6 +16,11 @@
 #include <vector>
 
 extern void run_grover_search(State *s,Bitstring targer_w);
+extern void run_grover_search_multi(State *s, const std::vector<Bitstring>& targets);
+extern void run_latin3_grover_demo(int iterations);
+extern void run_latin3_grover_demo_row0(const int row0[3], int iterations);
+extern void run_latin3_count_row0(const int row0[3]);
+extern void run_latin3_print_all_row0(const int row0[3]);
 extern void run_shor_demo(Bitstring N);
 
 std::vector<std::string> QuantumShell::parse_command(const std::string& line)
@@ -112,8 +117,74 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
   // --- Algorithims ---
   if (cmd == "GROVER") {
-    int target_w = get_arg(tokens, 1, "GROVER"); // Target Word
-    run_grover_search(state,target_w);
+    if (tokens.size() == 2) {
+      int target_w = get_arg(tokens, 1, "GROVER"); // Target Word
+      run_grover_search(state, target_w);
+    } else {
+      std::vector<Bitstring> targets;
+      for (size_t i = 1; i < tokens.size(); ++i) {
+        int t = get_arg(tokens, i, "GROVER");
+        if (t == -1) return;
+        targets.push_back(static_cast<Bitstring>(t));
+      }
+      run_grover_search_multi(state, targets);
+    }
+    return;
+  }
+  if (cmd == "LATIN") {
+    size_t idx = 1;
+    std::string mode = "demo";
+    if (idx < tokens.size()) {
+      if (tokens[idx] == "DEMO" || tokens[idx] == "COUNT" || tokens[idx] == "PRINT-ALL") {
+        mode = tokens[idx];
+        ++idx;
+      }
+    }
+
+    int iters = -1;
+    std::vector<int> row0;
+
+    if (idx < tokens.size()) {
+      int maybe_iters = get_arg(tokens, idx, "LATIN");
+      if (maybe_iters == -1) return;
+      if (mode == "DEMO") {
+        iters = maybe_iters;
+        ++idx;
+      }
+    }
+
+    while (idx < tokens.size()) {
+      int v = get_arg(tokens, idx, "LATIN");
+      if (v == -1) return;
+      row0.push_back(v);
+      ++idx;
+    }
+
+    int row_vals[3] = {0, 1, 2};
+    if (!row0.empty()) {
+      if (row0.size() != 3) {
+        std::cerr << "LATIN row0 must have exactly 3 values.\n";
+        return;
+      }
+      row_vals[0] = row0[0];
+      row_vals[1] = row0[1];
+      row_vals[2] = row0[2];
+    }
+
+    if (mode == "COUNT") {
+      run_latin3_count_row0(row_vals);
+      return;
+    }
+    if (mode == "PRINT-ALL") {
+      run_latin3_print_all_row0(row_vals);
+      return;
+    }
+
+    if (!row0.empty() || iters >= 0) {
+      run_latin3_grover_demo_row0(row_vals, iters);
+    } else {
+      run_latin3_grover_demo(-1);
+    }
     return;
   }
   if (cmd == "SHOR") {
@@ -170,7 +241,17 @@ void QuantumShell::print_help()
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
-  std::cout << "GROVER <t>       : Run Grover's algorithim searching for T\n";
+  std::cout << "GROVER <t...>    : Run Grover's algorithim searching for one or more targets\n";
+  std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
+  std::cout << "LATIN DEMO [iters] [r0 r1 r2]: Demo with custom row0 permutation\n";
+  std::cout << "LATIN COUNT [r0 r1 r2]       : Count solutions for row0 permutation\n";
+  std::cout << "LATIN PRINT-ALL [r0 r1 r2]   : Print all solutions for row0 permutation\n";
+  std::cout << "  Examples:\n";
+  std::cout << "    LATIN\n";
+  std::cout << "    LATIN 8\n";
+  std::cout << "    LATIN DEMO 6 0 2 1\n";
+  std::cout << "    LATIN COUNT 2 0 1\n";
+  std::cout << "    LATIN PRINT-ALL 1 2 0\n";
   std::cout << "SHOR <N>         : Run Shor's algorithm demo to factor N\n";
   std::cout << "HELP             : Show this help message.\n";
   std::cout << "QUIT             : Exit the simulator.\n";

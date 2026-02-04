@@ -198,6 +198,17 @@ State& State::h(int j)
   return *this;
 }
 
+State& State::phase_flip_if(const std::function<bool(Bitstring)>& predicate)
+{
+  s_map([&predicate](const Bitstring& b, const ComplexNumber& a) {
+    if (predicate(b)) {
+      return std::make_pair(b, a * -1.0);
+    }
+    return std::make_pair(b, a);
+  });
+  return *this;
+}
+
     
 // --- Measurement Method ---
 
