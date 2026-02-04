@@ -1,5 +1,6 @@
 /*
- * Almost all of the code for this quantum simulator was created by NotebookLM
+ * Almost all of the code for this quantum simulator was created by NotebookLM,
+ * with subsequent additions and refactors by Codex (OpenAI).
  * The paper it is based on is public, and NotebookLM is public so in my opinion
  * this code should remain public.
  * 

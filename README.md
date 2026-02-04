@@ -5,7 +5,7 @@ This is a quantum computing simulator based on the paper "Quantum Computing with
 
 Aws has an implementation in Python, but this one is in C++.
 
-Much of the code was created by NotebookLM.
+Much of the code was created by NotebookLM, with subsequent additions and refactors by Codex (OpenAI).
 
 ## Build
 
