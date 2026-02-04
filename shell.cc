@@ -16,6 +16,7 @@
 #include "shell.hh"
 
 extern void run_grover_search(State *s,Bitstring targer_w);
+extern void run_shor_demo(Bitstring N);
 
 std::vector<std::string> QuantumShell::parse_command(const std::string& line)
 {
@@ -115,6 +116,12 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     run_grover_search(state,target_w);
     return;
   }
+  if (cmd == "SHOR") {
+    int N = get_arg(tokens, 1, "SHOR");
+    if (N == -1) return;
+    run_shor_demo(static_cast<Bitstring>(N));
+    return;
+  }
 
   // --- Measurement ---
   if (cmd == "MEASURE") {
@@ -164,6 +171,7 @@ void QuantumShell::print_help()
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
   std::cout << "GROVER <t>       : Run Grover's algorithim searching for T\n";
+  std::cout << "SHOR <N>         : Run Shor's algorithm demo to factor N\n";
   std::cout << "HELP             : Show this help message.\n";
   std::cout << "QUIT             : Exit the simulator.\n";
   std::cout << "----------------------------------\n";

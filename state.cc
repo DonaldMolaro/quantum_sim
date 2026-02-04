@@ -67,6 +67,7 @@ Bitstring set_jth_bit(const Bitstring& b, int j, int value) {
     }
 }
 
+
 /**
  * s.map(λb, a. (b', ca)) 
  * Applies a transformation independently to every element.
@@ -199,6 +200,7 @@ State& State::h(int j)
   s_flatMap_and_reduce(h_transformation);
   return *this;
 }
+
     
 // --- Measurement Method ---
 
@@ -296,5 +298,3 @@ State& State::measure(int j, unsigned long cbit_index) {
     }
   return *this;
 }
-
-

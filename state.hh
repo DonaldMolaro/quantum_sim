@@ -6,18 +6,21 @@
  * This contains the "state" of the quantum machine, since this is a simulator
  * one can "peek" inside and see the state of the Qubits.
  */
+#pragma once
 #include <vector>
 #include <complex>
 #include <utility>
 #include <functional>
 #include <cmath>
 #include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <cstdlib> // For std::rand and RAND_MAX
 #include <algorithm> // For std::remove_if
+
 // --- Type Definitions based on Source Material ---
 
 // Amplitude is a complex number (using C++11 std::complex<double>)
@@ -52,10 +55,11 @@ extern std::string bitstring_to_string(Bitstring b, int N);
 
 /** Converts the ComplexNumber to a readable string (e.g., 0.707 + 0.707i). */
 extern std::string complex_to_string(const ComplexNumber& a);
+
 Bitstring power_mod(Bitstring base, Bitstring exp, Bitstring mod);
 Bitstring extract_bits(Bitstring b, int start, int end);
 Bitstring replace_bits(Bitstring b, int start, int end, Bitstring new_val);
-void accumulate(Bitstring b, ComplexNumber a);
+void accumulate(std::map<Bitstring, ComplexNumber>& state_map, Bitstring b, ComplexNumber a);
 
 class State
 {
@@ -90,17 +94,17 @@ private:
     // Find existing bitstring
     for (auto& pair : state) {
       if (pair.first == b) {
-	return &pair;
+        return &pair;
       }
     }
     // Not found, add new entry with zero amplitude
     state.push_back({b, 0.0});
     return &state.back();
-    }
+  }
 
 public:
   /** Constructor: Initializes the state to the ground state |00...0>. */
-  State(int N, int num_cbits);
+  State(int N, int num_cbits = 0);
 
   State(int n) : num_qubits_(n) {
     state_.push_back({0ULL, 1.0});
@@ -111,7 +115,6 @@ public:
     state_.push_back({initial_state_value, 1.0});
   }
 
-
   State& x(int j);
   /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
   State& cx(int j_control, int k_target);
@@ -121,20 +124,7 @@ public:
   State& t(int j);
   /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
   State& h(int j);
-  // --- Measurement Method ---
-  /**
-   * Computes the probability of measuring 0 for qubit j: 
-   * s.filter(λb, a. bj = 0) .map(λb, a. |a|^2) .sum()
-   */
-  /**
-   * @brief Applies the SWAP gate between qubit j and qubit k.
-   * This operation swaps the bit values (keys) in the quantum state representation 
-   * but leaves the amplitudes unchanged, mirroring the core (b, a) -> (b', a) map.
-   * 
-   * @param j Index of the first qubit (0-indexed, LSB).
-   * @param k Index of the second qubit.
-   * @return State& Reference to the modified State object.
-   */
+  /** SWAP gate. */
   State& swap(int i, int k);
   /*
    * Methods needed for Shor's algorithm.
@@ -144,9 +134,15 @@ public:
   State& qft(int start_qubit, int end_qubit);
   State& iqft(int start_qubit, int end_qubit);
   State& controlled_modular_exponentiation(int control_qubit, 
-					   int target_start, int target_end, 
-					   Bitstring a, Bitstring N, 
-					   Bitstring power);
+                                           int target_start, int target_end, 
+                                           Bitstring a, Bitstring N, 
+                                           Bitstring power);
+
+  // --- Measurement Method ---
+  /**
+   * Computes the probability of measuring 0 for qubit j: 
+   * s.filter(λb, a. bj = 0) .map(λb, a. |a|^2) .sum()
+   */
   double compute_probability_of_0(int j) const;
   const QuantumState& get_state() const;
   
@@ -171,7 +167,7 @@ public:
     state_.clear(); // Clear the vector representation
     state_.push_back({b, a});
   }
-    
+  
   /**
    * @brief Sets the state from a new vector representation. 
    * Assumes the input vector already handles amplitude summation/uniqueness.
@@ -187,7 +183,7 @@ public:
   ComplexNumber get_amplitude(Bitstring b) const {
     for (const auto& pair : state_) {
       if (pair.first == b) {
-	return pair.second;
+        return pair.second;
       }
     }
     // If the basis state is not explicitly listed, its amplitude is zero (sparse representation).
@@ -203,9 +199,9 @@ public:
     // Iterate through the vector to check if the bitstring already exists.
     for (auto& pair : state_) {
       if (pair.first == b) {
-	// Found the existing basis state: update the amplitude (the value in the key-value pair)
-	pair.second = a;
-	return;
+        // Found the existing basis state: update the amplitude (the value in the key-value pair)
+        pair.second = a;
+        return;
       }
     }
         
@@ -227,11 +223,12 @@ public:
   int get_cbit(size_t j) const {
     // Accesses the indexed classical register for retrieval, analogous to s.cbits[j] [2]
     // Using .at() ensures bounds checking.
-    if (j < 0 || j >= cbits_.size()) {
+    if (j >= cbits_.size()) {
       throw std::out_of_range("Classical bit index out of bounds.");
     }
     return cbits_.at(j);
   }
+
   /*
    */
   State& apply_U0_perp();
@@ -239,6 +236,4 @@ public:
   State& grover_oracle_Uf(Bitstring solution_w);
   State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);  
 };
-
-
 
