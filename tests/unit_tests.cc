@@ -32,6 +32,133 @@ void assert_complex_equal(const ComplexNumber& expected, const ComplexNumber& ac
     }
 }
 
+void assert_complex_close(const ComplexNumber& expected, const ComplexNumber& actual, double tol, const std::string& message) {
+    if (std::abs(expected - actual) > tol) {
+        throw std::runtime_error("Assertion failed: " + message + 
+                                 " Expected: " + std::to_string(expected.real()) + 
+                                 " Actual: " + std::to_string(actual.real()));
+    }
+}
+
+// --- Core Gate Tests ---
+
+void test_x_gate_flips_basis() {
+    State s(1, 0);
+    s.set_basis_state(0b0, 1.0);
+    s.x(0);
+    assert_complex_equal(0.0, s.get_amplitude(0b0), "X should clear |0> amplitude");
+    assert_complex_equal(1.0, s.get_amplitude(0b1), "X should set |1> amplitude");
+}
+
+void test_h_gate_on_zero() {
+    State s(1, 0);
+    s.set_basis_state(0b0, 1.0);
+    s.h(0);
+    ComplexNumber coeff = 1.0 / std::sqrt(2.0);
+    assert_complex_equal(coeff, s.get_amplitude(0b0), "H|0> amplitude for |0>");
+    assert_complex_equal(coeff, s.get_amplitude(0b1), "H|0> amplitude for |1>");
+}
+
+void test_h_gate_on_one() {
+    State s(1, 0);
+    s.set_basis_state(0b1, 1.0);
+    s.h(0);
+    ComplexNumber coeff = 1.0 / std::sqrt(2.0);
+    assert_complex_equal(coeff, s.get_amplitude(0b0), "H|1> amplitude for |0>");
+    assert_complex_equal(-coeff, s.get_amplitude(0b1), "H|1> amplitude for |1>");
+}
+
+void test_s_gate_phase() {
+    State s(1, 0);
+    s.set_basis_state(0b1, 1.0);
+    s.s(0);
+    assert_complex_equal(I, s.get_amplitude(0b1), "S should apply i phase to |1>");
+}
+
+void test_t_gate_phase() {
+    State s(1, 0);
+    s.set_basis_state(0b1, 1.0);
+    s.t(0);
+    ComplexNumber expected(ONE_OVER_SQRT_TWO, ONE_OVER_SQRT_TWO);
+    assert_complex_equal(expected, s.get_amplitude(0b1), "T should apply (1+i)/sqrt(2) phase to |1>");
+}
+
+void test_cx_gate_control_on() {
+    State s(2, 0);
+    s.set_basis_state(0b10, 1.0); // control=1, target=0
+    s.cx(1, 0);
+    assert_complex_equal(0.0, s.get_amplitude(0b10), "CX should clear |10>");
+    assert_complex_equal(1.0, s.get_amplitude(0b11), "CX should flip target when control=1");
+}
+
+void test_cx_gate_control_off() {
+    State s(2, 0);
+    s.set_basis_state(0b00, 1.0); // control=0
+    s.cx(1, 0);
+    assert_complex_equal(1.0, s.get_amplitude(0b00), "CX should preserve |00>");
+    assert_complex_equal(0.0, s.get_amplitude(0b01), "CX should not flip target when control=0");
+}
+
+void test_swap_gate() {
+    State s(2, 0);
+    s.set_basis_state(0b01, 1.0); // |01>
+    s.swap(1, 0); // swap qubits -> |10>
+    assert_complex_equal(0.0, s.get_amplitude(0b01), "SWAP should clear |01>");
+    assert_complex_equal(1.0, s.get_amplitude(0b10), "SWAP should move amplitude to |10>");
+}
+
+void main_core_gate_tests() {
+    std::cout << "Testing core gates (X, H, S, T, CX, SWAP):\n";
+    std::cout << "------------------------------------------------------------------\n";
+
+    run_test("X gate flips |0> to |1>", test_x_gate_flips_basis);
+    run_test("H gate on |0>", test_h_gate_on_zero);
+    run_test("H gate on |1>", test_h_gate_on_one);
+    run_test("S gate phase on |1>", test_s_gate_phase);
+    run_test("T gate phase on |1>", test_t_gate_phase);
+    run_test("CX gate (control on)", test_cx_gate_control_on);
+    run_test("CX gate (control off)", test_cx_gate_control_off);
+    run_test("SWAP gate", test_swap_gate);
+
+    std::cout << "------------------------------------------------------------------\n";
+}
+
+// --- QFT / IQFT Tests ---
+
+void test_qft_on_zero_uniform() {
+    State s(2, 0);
+    s.set_basis_state(0b00, 1.0);
+    s.qft(0, 1);
+    ComplexNumber coeff = 0.5; // 1/sqrt(4)
+    assert_complex_close(coeff, s.get_amplitude(0b00), 1e-6, "QFT |00> -> uniform |00>");
+    assert_complex_close(coeff, s.get_amplitude(0b01), 1e-6, "QFT |00> -> uniform |01>");
+    assert_complex_close(coeff, s.get_amplitude(0b10), 1e-6, "QFT |00> -> uniform |10>");
+    assert_complex_close(coeff, s.get_amplitude(0b11), 1e-6, "QFT |00> -> uniform |11>");
+}
+
+void test_qft_iqft_roundtrip() {
+    State s(2, 0);
+    s.set_amplitude(0b00, 0.5);
+    s.set_amplitude(0b01, 0.5);
+    s.set_amplitude(0b10, 0.5);
+    s.set_amplitude(0b11, -0.5);
+
+    s.qft(0, 1);
+    s.iqft(0, 1);
+
+    assert_complex_close(0.5, s.get_amplitude(0b00), 1e-6, "IQFT(QFT) |00>");
+    assert_complex_close(0.5, s.get_amplitude(0b01), 1e-6, "IQFT(QFT) |01>");
+    assert_complex_close(0.5, s.get_amplitude(0b10), 1e-6, "IQFT(QFT) |10>");
+    assert_complex_close(-0.5, s.get_amplitude(0b11), 1e-6, "IQFT(QFT) |11>");
+}
+
+void main_qft_tests() {
+    std::cout << "Testing QFT/IQFT:\n";
+    std::cout << "------------------------------------------------------------------\n";
+    run_test("QFT on |00> yields uniform superposition", test_qft_on_zero_uniform);
+    run_test("QFT then IQFT round-trip", test_qft_iqft_roundtrip);
+    std::cout << "------------------------------------------------------------------\n";
+}
 
 // --- Test Cases (r=2, Phase = I) ---
 
@@ -317,6 +444,12 @@ void test_mod_exp_zero_power() {
     assert_equal(result, 1ULL, "Zero Power Test (42^0 mod 100)");
 }
 
+void test_mod_exp_mod_one() {
+    // Test case: mod 1 should always yield 0
+    Bitstring result = modular_exponentiation(5ULL, 123ULL, 1ULL);
+    assert_equal(result, 0ULL, "Mod 1 Test (5^123 mod 1)");
+}
+
 void test_mod_exp_one_power() {
     // Test case: a^1 mod N = a mod N
     Bitstring result = modular_exponentiation(5ULL, 1ULL, 7ULL);
@@ -410,6 +543,7 @@ void test_mod_exp_large_power() {
 int main_mod_exp() {
      std::cout << "Testing modular_exponentiation utility:" << std::endl;
      run_test("Test 1: Zero Power", test_mod_exp_zero_power);
+     run_test("Test 2: Modulo 1", test_mod_exp_mod_one);
      run_test("Test 2: One Power", test_mod_exp_one_power);
      run_test("Test 3: Standard Exponentiation", test_mod_exp_standard);
      run_test("Test 4: Shor Period Check", test_mod_exp_shor_period);
@@ -527,6 +661,16 @@ void test_cme_out_of_range_target_identity() {
     assert_amplitude_match(s, START_B, 1.0, "Out-of-range target should remain unchanged");
 }
 
+void test_cme_zero_target_control_on() {
+    // Test 7: If target value y=0, result should remain 0 when control is on.
+    const Bitstring START_B = 0ULL | (1ULL << CONTROL_QUBIT);
+    State s(START_B, 7);
+
+    s.controlled_modular_exponentiation(CONTROL_QUBIT, TARGET_START, TARGET_END, A, N, 1);
+
+    assert_amplitude_match(s, START_B, 1.0, "Target 0 should remain unchanged under CME");
+}
+
 
 // --- Main Test Harness ---
 
@@ -549,6 +693,7 @@ void main_all_cme_tests() {
     run_test_cme("Test 4: Superposition Input (Check entanglement)", test_cme_superposition_input);
     run_test_cme("Test 5: Superposition 7 1 15 (Check entanglement)", test_cme_superposition_7_1_15);
     run_test_cme("Test 6: Out-of-range target acts as identity", test_cme_out_of_range_target_identity);
+    run_test_cme("Test 7: Zero target with control on", test_cme_zero_target_control_on);
     
     std::cout << "------------------------------------------------------------------\n";
 }
@@ -600,11 +745,45 @@ void test_shor_quantum_part_n15_a7_r4() {
   assert_amplitude_magnitude(s, 1ULL | (1ULL << 4), 0.0, "state x=1/2^m");
 }
 
+void assert_shor_grid(const State& s,
+                      const Bitstring* target_vals,
+                      const Bitstring* control_vals,
+                      int r,
+                      double expected_mag)
+{
+  for (int i = 0; i < r; ++i) {
+    for (int j = 0; j < r; ++j) {
+      Bitstring b = target_vals[i] | (control_vals[j] << 4);
+      assert_amplitude_magnitude(s, b, expected_mag, "expected Shor output basis state");
+    }
+  }
+}
+
+void test_shor_quantum_part_n15_a2_r4() {
+  // Test Case: Factor N=15, choosing base a=2. Known period r=4.
+  // Expected target values: 1,2,4,8.
+  const Bitstring N = 15;
+  const Bitstring a = 2;
+  const int R = 4;
+  const double expected_mag = 1.0 / std::sqrt(static_cast<double>(R * R));
+
+  State s(9, 0);
+  s.run_shor_algorithm_quantum_part(N, a);
+
+  const Bitstring target_vals[R] = {1ULL, 2ULL, 4ULL, 8ULL};
+  const Bitstring control_vals[R] = {0ULL, 8ULL, 16ULL, 24ULL};
+  assert_shor_grid(s, target_vals, control_vals, R, expected_mag);
+
+  // A non-expected state should be near zero.
+  assert_amplitude_magnitude(s, 3ULL, 0.0, "state |00...03>");
+}
+
 void main_shor_tests() {
     std::cout << "Testing State::run_shor_algorithm_quantum_part (Order Finding):\n";
     std::cout << "------------------------------------------------------------------\n";
     
     run_test("Test 1: N=15, a=7, r=4 (Verification of QPE output concentration)", test_shor_quantum_part_n15_a7_r4);
+    run_test("Test 2: N=15, a=2, r=4 (Verification of QPE output concentration)", test_shor_quantum_part_n15_a2_r4);
     
     std::cout << "------------------------------------------------------------------\n";
 }
@@ -615,7 +794,9 @@ int main()
   //main_test_controlled_Rr();
   //main_test_controlled_Rr_dag();
   //main_test_qft();
-  //main_mod_exp();
+  main_mod_exp();
   //main_all_cme_tests();
+  main_core_gate_tests();
+  main_qft_tests();
   main_shor_tests();
 }
