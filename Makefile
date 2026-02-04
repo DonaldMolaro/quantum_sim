@@ -1,13 +1,17 @@
 # Define variables
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -O2
+CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -I.
 CXXDEPFLAGS = -MMD -MP
 
 TARGETS = quantum_sim unit_tests grover_test
-SOURCES = state.cc display.cc shell.cc grover.cc grover_search.cc \
-	swap.cc qft.cc modular_exp.cc helper.cc shor.cc
+SOURCES = state.cc display.cc shell.cc swap.cc qft.cc modular_exp.cc \
+	math/bit_ops.cc math/mod_arith.cc \
+	algorithms/grover.cc algorithms/grover_search.cc algorithms/shor.cc
 OBJECTS = $(SOURCES:.cc=.o)
-DEPS    = $(SOURCES:.cc=.d) main.d unit_tests.d grover_test.d
+DEPS    = $(SOURCES:.cc=.d) main.d tests/unit_tests.d tests/grover_test.d
+
+UNIT_TEST_SRC = tests/unit_tests.cc
+GROVER_TEST_SRC = tests/grover_test.cc
 
 # Default target: builds the executable
 all: $(TARGETS)
@@ -17,14 +21,13 @@ all: $(TARGETS)
 quantum_sim : main.o $(OBJECTS)
 	$(CXX) $(CXXFLAGS) main.o $(OBJECTS) -o quantum_sim
 
-unit_tests : unit_tests.o $(OBJECTS)
-	$(CXX) $(CXXFLAGS) unit_tests.o $(OBJECTS) -o unit_tests
+unit_tests : tests/unit_tests.o $(OBJECTS)
+	$(CXX) $(CXXFLAGS) tests/unit_tests.o $(OBJECTS) -o unit_tests
 
-grover_test : grover_test.o $(OBJECTS)
-	$(CXX) $(CXXFLAGS) grover_test.o $(OBJECTS) -o grover_test
+grover_test : tests/grover_test.o $(OBJECTS)
+	$(CXX) $(CXXFLAGS) tests/grover_test.o $(OBJECTS) -o grover_test
 
 # Rule to compile .cc files into .o files (using implicit rule)
-# This rule applies to both main.cc and state.cc
 .cc.o:
 	$(CXX) $(CXXFLAGS) $(CXXDEPFLAGS) -c $< -o $@
 
@@ -33,7 +36,7 @@ grover_test : grover_test.o $(OBJECTS)
 
 # Cleanup target
 clean:
-	rm -f $(OBJECTS) $(DEPS) $(TARGETS) main.o unit_tests.o grover_test.o
+	rm -f $(OBJECTS) $(DEPS) $(TARGETS) main.o tests/unit_tests.o tests/grover_test.o
 
 -include $(DEPS)
 

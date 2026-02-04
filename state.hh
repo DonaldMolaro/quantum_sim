@@ -106,10 +106,6 @@ public:
   /** Constructor: Initializes the state to the ground state |00...0>. */
   State(int N, int num_cbits = 0);
 
-  State(int n) : num_qubits_(n) {
-    state_.push_back({0ULL, 1.0});
-  }
-  
   State(Bitstring initial_state_value, int n) : num_qubits_(n)
   {
     state_.push_back({initial_state_value, 1.0});
@@ -236,4 +232,3 @@ public:
   State& grover_oracle_Uf(Bitstring solution_w);
   State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);  
 };
-

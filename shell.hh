@@ -5,6 +5,7 @@
  * how the underlying machine works. In theroy you could write a program in
  * the shell.
  */
+#pragma once
 #include <vector>
 #include <complex>
 #include <string>

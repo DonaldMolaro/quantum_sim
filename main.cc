@@ -14,8 +14,6 @@
 #include "state.hh"
 #include "shell.hh"
 
-extern void run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);
-
 
 int main()
 {
@@ -29,6 +27,5 @@ int main()
   //run_shor_algorithm_quantum_part(N,a);
   
 };
-
 
 
