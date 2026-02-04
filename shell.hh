@@ -6,11 +6,11 @@
  * the shell.
  */
 #pragma once
-#include <vector>
 #include <complex>
-#include <string>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <vector>
 
 class QuantumShell
 {

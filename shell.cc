@@ -7,13 +7,13 @@
  * Grover's algorithim. Maybe I'll get ambitious and implement a few other
  * quantum algorithms.
  */
-#include <vector>
-#include <complex>
-#include <string>
-#include <iostream>
-#include <sstream>
 #include "state.hh"
 #include "shell.hh"
+#include <complex>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 extern void run_grover_search(State *s,Bitstring targer_w);
 extern void run_shor_demo(Bitstring N);

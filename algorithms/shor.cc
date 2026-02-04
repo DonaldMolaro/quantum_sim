@@ -4,14 +4,14 @@
  * unitary permutations for modular exponentiation (rather than decomposing
  * into elementary reversible gates).
  */
-#include <cmath>
-#include <cstdlib>
-#include <iostream>
-#include <vector>
-#include <limits>
-#include <ctime>
 #include "state.hh"
 #include "math/mod_arith.hh"
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <iostream>
+#include <limits>
+#include <vector>
 
 static std::vector<Bitstring> continued_fraction(Bitstring numerator, Bitstring denominator)
 {

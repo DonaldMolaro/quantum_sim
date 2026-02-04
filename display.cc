@@ -9,12 +9,12 @@
  * purposes of understanding the display method prints out everything, which
  * for me helps.
  */
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <cmath>
-#include <map>
 #include "state.hh"
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <sstream>
 
 // --- Helper Functions for Display (Refined for Alignment) ---
 

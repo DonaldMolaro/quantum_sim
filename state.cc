@@ -17,16 +17,16 @@
  * as the quantumness is taken out of it.
  */
 
-#include <vector>
-#include <complex>
-#include <utility>
-#include <functional>
-#include <cmath>
-#include <map>
-#include <algorithm> // For std::remove_if
-#include <iostream>
-#include <cstdlib> // For std::rand and RAND_MAX
 #include "state.hh"
+#include <algorithm> // For std::remove_if
+#include <cmath>
+#include <complex>
+#include <cstdlib> // For std::rand and RAND_MAX
+#include <functional>
+#include <iostream>
+#include <map>
+#include <utility>
+#include <vector>
 // --- Type Definitions based on Source Material ---
 
 // Amplitude is a complex number (using C++11 std::complex<double>)

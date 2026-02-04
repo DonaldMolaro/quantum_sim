@@ -1,5 +1,7 @@
 #include "state.hh"
+#include <complex>
 #include <iostream>
+#include <map>
 
 Bitstring power_mod(Bitstring base, Bitstring exp, Bitstring mod)
 {
@@ -57,9 +59,6 @@ Bitstring replace_bits(Bitstring b, int start, int end, Bitstring new_val) {
     // 4. Use bitwise OR to insert the new value
     return b | shifted_new_val;
 }
-
-#include <complex>
-#include <map>
 
 // Assuming QuantumState is defined as std::map<Bitstring, ComplexNumber>
 using ComplexNumber = std::complex<double>; 

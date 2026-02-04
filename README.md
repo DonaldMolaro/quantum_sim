@@ -30,3 +30,7 @@ make test   # runs grover_test
 - `algorithms/`: Grover and Shor implementations
 - `tests/`: unit tests and Grover tests
 - `shell.cc`, `shell.hh`, `main.cc`: interactive CLI
+
+## Style Notes
+
+- Include order: project headers first, then standard library headers.

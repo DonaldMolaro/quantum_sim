@@ -7,13 +7,13 @@
  * one can "peek" inside and see the state of the Qubits.
  */
 #pragma once
-#include <vector>
-#include <complex>
-#include <utility>
-#include <functional>
-#include <cmath>
-#include <map>
 #include <algorithm>
+#include <cmath>
+#include <complex>
+#include <functional>
+#include <map>
+#include <utility>
+#include <vector>
 
 // --- Type Definitions based on Source Material ---
 
