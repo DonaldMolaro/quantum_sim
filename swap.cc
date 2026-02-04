@@ -1,4 +1,5 @@
-#include "state.hh"    
+#include "state.hh"
+#include <iostream>
 /**
  * @brief Applies the SWAP gate between qubit j and qubit k.
  * This operation swaps the bit values (keys) in the quantum state representation 

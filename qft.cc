@@ -1,4 +1,5 @@
 #include "state.hh"
+#include <iostream>
 
 State& State::controlled_Rr(int control_j, int target_k, int r)
 {

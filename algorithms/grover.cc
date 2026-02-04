@@ -5,6 +5,7 @@
  */
 
 #include "state.hh"
+#include <iostream>
 
 /**
  * @brief Applies the U_{0^perp} operator. 

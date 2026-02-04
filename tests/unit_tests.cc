@@ -2,7 +2,6 @@
 #include <complex>
 #include <iostream>
 #include <cmath>
-#include <cassert>
 #include <functional>
 #include <algorithm>
 #include <stdexcept>

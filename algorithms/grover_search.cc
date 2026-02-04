@@ -22,7 +22,7 @@
  */
 #include "state.hh"
 #include <cmath>
-#include <numeric> // For std::accumulate if needed
+#include <iostream>
 
 // Include Complex, Bitstring, State class definition (assumed from context)
 // Assume State class methods grover_oracle_Uf, grover_diffusion_Us, 
@@ -83,5 +83,3 @@ void run_grover_search(State *s, Bitstring target_w)
   // The probability amplitude of |w〉 should now be boosted near 1.
   s->display(); // Use the display method to show amplitudes and probabilities
 }
-
-

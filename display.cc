@@ -14,7 +14,6 @@
 #include <iomanip>
 #include <cmath>
 #include <map>
-#include <algorithm> // Required for max/min if needed, or simply for utility
 #include "state.hh"
 
 // --- Helper Functions for Display (Refined for Alignment) ---
