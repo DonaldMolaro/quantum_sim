@@ -122,7 +122,7 @@ static Bitstring run_shor_algorithm_quantum_part(Bitstring N, Bitstring a, int& 
 
   // Controlled modular exponentiation for each control qubit.
   for (int j = 0; j < n_c; ++j) {
-    int control_q = n_c - 1 - j;
+    int control_q = j;
     Bitstring power_of_a = 1ULL << j;
     s.controlled_modular_exponentiation(
         control_q,
@@ -145,7 +145,7 @@ static Bitstring run_shor_algorithm_quantum_part(Bitstring N, Bitstring a, int& 
   for (int j = 0; j < n_c; ++j) {
     int bit = s.get_cbit(j);
     std::cout << bit;
-    measured_x |= (Bitstring)bit << (n_c - 1 - j);
+    measured_x |= (Bitstring)bit << j;
   }
   std::cout << " (Decimal: " << measured_x << ")\n";
 
@@ -237,14 +237,7 @@ State& State::run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)
   int control_start = n_t;
   int control_end = total_qubits - 1;
 
-  // Best-effort decode of modulus when N appears shifted (used by tests).
   Bitstring modulus = N;
-  if (n_t > 1) {
-    Bitstring shifted = N >> (n_t - 1);
-    if (shifted > 1) {
-      modulus = shifted;
-    }
-  }
 
   // Reset to |0...0> and set target to |1>.
   set_basis_state(0ULL, ONE_COMPLEX);

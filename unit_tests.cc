@@ -42,7 +42,7 @@ const int R_VALUE = 2; // Produces phase factor I
 
 // Test Case 1: Control=0, Target=0 (State |00>, Bitstring 0)
 void test_crr_00_no_change() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b00, 1.0);
     s.controlled_Rr(CONTROL_Q, TARGET_Q, R_VALUE); 
     assert_complex_equal(1.0, s.get_amplitude(0b00), "00 state should be unchanged.");
@@ -50,7 +50,7 @@ void test_crr_00_no_change() {
 
 // Test Case 2: Control=0, Target=1 (State |01>, Bitstring 1)
 void test_crr_01_no_change() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b01, 1.0);
     s.controlled_Rr(CONTROL_Q, TARGET_Q, R_VALUE);
     // Expect amplitude 1.0 (control bit 1 is 0)
@@ -59,7 +59,7 @@ void test_crr_01_no_change() {
 
 // Test Case 3: Control=1, Target=0 (State |10>, Bitstring 2)
 void test_crr_10_no_change() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b10, 1.0);
     s.controlled_Rr(CONTROL_Q, TARGET_Q, R_VALUE);
     // Expect amplitude 1.0 (target bit 0 is 0)
@@ -68,7 +68,7 @@ void test_crr_10_no_change() {
 
 // Test Case 4: Control=1, Target=1 (State |11>, Bitstring 3)
 void test_crr_11_applies_phase_I() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b11, 1.0);
     s.controlled_Rr(CONTROL_Q, TARGET_Q, R_VALUE); 
     // Expect amplitude I (phase rotation by pi/2 for r=2)
@@ -77,7 +77,7 @@ void test_crr_11_applies_phase_I() {
 
 // Test Case 5: Superposition Test (Linearity)
 void test_crr_superposition() {
-    State s(2);
+    State s(2, 0);
     // State: 1/sqrt(2) |00> + 1/sqrt(2) |11>
     ComplexNumber coeff = 1.0 / std::sqrt(2.0);
     QuantumState initial_state = { {0b00, coeff}, {0b11, coeff} };
@@ -112,7 +112,7 @@ int main_test_controlled_Rr() {
 
 // Test Case 1: Control=0, Target=0 (State |00>, Bitstring 0)
 void test_crrdag_00_no_change() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b00, 1.0);
     s.controlled_Rr_dag(CONTROL_Q, TARGET_Q, R_VALUE); 
     assert_complex_equal(1.0, s.get_amplitude(0b00), "00 state should be unchanged.");
@@ -120,7 +120,7 @@ void test_crrdag_00_no_change() {
 
 // Test Case 2: Control=0, Target=1 (State |01>, Bitstring 1)
 void test_crrdag_01_no_change() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b01, 1.0);
     s.controlled_Rr_dag(CONTROL_Q, TARGET_Q, R_VALUE);
     assert_complex_equal(1.0, s.get_amplitude(0b01), "01 state should be unchanged.");
@@ -128,7 +128,7 @@ void test_crrdag_01_no_change() {
 
 // Test Case 3: Control=1, Target=0 (State |10>, Bitstring 2)
 void test_crrdag_10_no_change() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b10, 1.0);
     s.controlled_Rr_dag(CONTROL_Q, TARGET_Q, R_VALUE);
     assert_complex_equal(1.0, s.get_amplitude(0b10), "10 state should be unchanged.");
@@ -136,7 +136,7 @@ void test_crrdag_10_no_change() {
 
 // Test Case 4: Control=1, Target=1 (State |11>, Bitstring 3) - Applies phase -I
 void test_crrdag_11_applies_phase_minus_I() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b11, 1.0);
     s.controlled_Rr_dag(CONTROL_Q, TARGET_Q, R_VALUE); 
     // Expected result: -I
@@ -145,7 +145,7 @@ void test_crrdag_11_applies_phase_minus_I() {
 
 // Test Case 5: Verification that R_r * R_r_dag = I
 void test_crrdag_inversion() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b11, 1.0);
     
     // Step 1: Apply R_r (Phase I)
@@ -162,7 +162,7 @@ void test_crrdag_inversion() {
 
 // Test Case 6: Superposition Test (Linearity)
 void test_crrdag_superposition() {
-    State s(2);
+    State s(2, 0);
     // State: 1/sqrt(2) |00> + 1/sqrt(2) |11>
     ComplexNumber coeff = 1.0 / std::sqrt(2.0);
     QuantumState initial_state = { {0b00, coeff}, {0b11, coeff} };
@@ -206,7 +206,7 @@ const int END = 1;
 
 // Test 1: QFT on |00> (j=0) -> Should yield uniform superposition (amplitude 0.5 for all states).
 void test_qft_zero_state() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b00, 1.0);
     s.qft(START, END);
 
@@ -219,7 +219,7 @@ void test_qft_zero_state() {
 
 // Test 2: QFT on |01> (j=1) -> Should yield characteristic phases (1/2, i/2, -1/2, -i/2).
 void test_qft_phase_state_j1() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b01, 1.0);
     s.qft(START, END);
     
@@ -237,7 +237,7 @@ void test_qft_phase_state_j1() {
 
 // Test 3: QFT on |10> (j=2) -> Should yield alternating signs (1/2, -1/2, 1/2, -1/2).
 void test_qft_phase_state_j2() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b10, 1.0);
     s.qft(START, END);
     
@@ -256,7 +256,7 @@ void test_qft_phase_state_j2() {
 
 // Test 4: IQFT applied to the uniform superposition (result of QFT|00>) must return |00>.
 void test_iqft_inversion_check() {
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b00, 1.0);
     
     // 1. Apply QFT -> creates uniform superposition
@@ -274,7 +274,7 @@ void test_iqft_inversion_check() {
 void test_iqft_single_qubit_h_inverse() {
     // Note: This requires redefining START/END for N=2 or mocking H->IQFT|0>.
     // Using the current N=4 architecture: Test IQFT on |00> (j=0) -> |00>
-    State s(2);
+    State s(2, 0);
     s.set_basis_state(0b00, 1.0);
     s.iqft(START, END);
 
@@ -506,7 +506,7 @@ void test_cme_superposition_input() {
     const Bitstring B_OFF_OUT = B_OFF; // Target remains |1> (7^0 mod 15 * 1 mod 15 = 1)
     const Bitstring B_ON_OUT = 7ULL | (1ULL << CONTROL_QUBIT); // Target shifts to |7> (7^1 mod 15 * 1 mod 15 = 7)
 
-    State s(0);
+    State s(0, 0);
     s.set_amplitude(B_OFF, AMP);
     s.set_amplitude(B_ON_IN, AMP);
     
@@ -515,6 +515,17 @@ void test_cme_superposition_input() {
     assert_amplitude_match(s, B_OFF_OUT, AMP, "Superposition: Control OFF component (B=1) maintained magnitude");
     assert_amplitude_match(s, B_ON_OUT, AMP, "Superposition: Control ON component (B=71) maintained magnitude");
     assert_amplitude_match(s, B_ON_IN, 0.0, "Superposition: Initial ON input state must vanish");
+}
+
+void test_cme_out_of_range_target_identity() {
+    // Test 5: If target value y >= N, the CME should act as identity (unitary embedding).
+    // Use target value 15 (0b1111) with N=15 (out of range), control ON.
+    const Bitstring START_B = 15ULL | (1ULL << CONTROL_QUBIT);
+    State s(START_B, 7);
+
+    s.controlled_modular_exponentiation(CONTROL_QUBIT, TARGET_START, TARGET_END, A, N, 1);
+
+    assert_amplitude_match(s, START_B, 1.0, "Out-of-range target should remain unchanged");
 }
 
 
@@ -538,6 +549,7 @@ void main_all_cme_tests() {
     run_test_cme("Test 3: Control ON, Power=2 (7^2 mod 15 = 4)", test_cme_control_on_p2);
     run_test_cme("Test 4: Superposition Input (Check entanglement)", test_cme_superposition_input);
     run_test_cme("Test 5: Superposition 7 1 15 (Check entanglement)", test_cme_superposition_7_1_15);
+    run_test_cme("Test 6: Out-of-range target acts as identity", test_cme_out_of_range_target_identity);
     
     std::cout << "------------------------------------------------------------------\n";
 }
@@ -558,32 +570,29 @@ void test_shor_quantum_part_n15_a7_r4() {
   // Corresponding control register values: {0, 8, 16, 24}.
   // Total qubits = 5 (control) + 4 (target) = 9
 
-  const Bitstring N = 15 << 3;
+  const Bitstring N = 15;
   const Bitstring a = 7;
   const int R = 4;
-  const double expected_mag = 1.0 / std::sqrt(static_cast<double>(R));
+  const double expected_mag = 1.0 / std::sqrt(static_cast<double>(R * R));
 
-  State s(N,9);
+  State s(9, 0);
     
   s.display();
   s.run_shor_algorithm_quantum_part(N, a);
 
-  std::cout << "Qubits 0-3 (target register) are fixed at |0001> (index 1)." << std::endl;
+  std::cout << "Qubits 0-3 (target register) hold |a^k mod N> for k in [0, r-1]." << std::endl;
   std::cout << "Qubits 4-8 (control register) hold the period information." << std::endl;
   s.display();
-    
-  // Test expected states (x/2^m = s/r)
-  // s=0 -> x=0 -> Bitstring index 1 (000000001)
-  assert_amplitude_magnitude(s, 1ULL, expected_mag, "s=0/r=4 state (|00...01>)");
-    
-  // s=1 -> x=8 -> Bitstring index 1 + (8 << 4) = 129
-  assert_amplitude_magnitude(s, 1ULL | (8ULL << 4), expected_mag, "s=1/r=4 state");
-    
-  // s=2 -> x=16 -> Bitstring index 1 + (16 << 4) = 257
-  assert_amplitude_magnitude(s, 1ULL | (16ULL << 4), expected_mag, "s=2/r=4 state");
-    
-  // s=3 -> x=24 -> Bitstring index 1 + (24 << 4) = 385
-  assert_amplitude_magnitude(s, 1ULL | (24ULL << 4), expected_mag, "s=3/r=4 state");
+
+  const Bitstring target_vals[R] = {1ULL, 7ULL, 4ULL, 13ULL};
+  const Bitstring control_vals[R] = {0ULL, 8ULL, 16ULL, 24ULL};
+
+  for (int i = 0; i < R; ++i) {
+    for (int j = 0; j < R; ++j) {
+      Bitstring b = target_vals[i] | (control_vals[j] << 4);
+      assert_amplitude_magnitude(s, b, expected_mag, "expected Shor output basis state");
+    }
+  }
 
   // Test a state expected to have near zero amplitude (e.g., index 2, which is |00...02>)
   assert_amplitude_magnitude(s, 2ULL, 0.0, "state |00...02>");

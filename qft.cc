@@ -44,7 +44,7 @@ State& State::qft(int start_qubit, int end_qubit)
 {
     // 1. Determine register size and total dimension N
     int n = end_qubit - start_qubit + 1;
-    if (n <= 0) {
+    if (n <= 0 || n >= 63) {
         std::cerr << "Error: Invalid qubit range for QFT." << std::endl;
         return *this;
     }
@@ -53,6 +53,7 @@ State& State::qft(int start_qubit, int end_qubit)
     // Calculate the overall scaling factor 1/sqrt(N)
     ComplexNumber overall_scale = 1.0 / std::sqrt((double)N);
     const ComplexNumber I(0.0, 1.0);
+    const long double PI = std::acos(-1.0L);
     
     // 2. Prepare temporary map for accumulation (handling quantum interference)
     AmplitudeMap new_state_map;
@@ -69,8 +70,10 @@ State& State::qft(int start_qubit, int end_qubit)
         for (Bitstring k = 0; k < N; ++k) {
             
             // Calculate phase factor: exp(2 * pi * i * j * k / N)
-            double exponent = 2.0 * M_PI * static_cast<double>(j * k) / static_cast<double>(N);
-            ComplexNumber phase_factor = std::exp(I * exponent);
+            long double exponent = 2.0L * PI * static_cast<long double>(j) * static_cast<long double>(k)
+                                   / static_cast<long double>(N);
+            double exponent_d = static_cast<double>(exponent);
+            ComplexNumber phase_factor = std::exp(I * exponent_d);
             
             // New amplitude contribution A_k = A_j * (1/sqrt(N)) * phase_factor
             ComplexNumber A_jk = A_j * overall_scale * phase_factor;
@@ -103,7 +106,7 @@ State& State::iqft(int start_qubit, int end_qubit)
 {
     // 1. Determine register size and total dimension N
     int n = end_qubit - start_qubit + 1;
-    if (n <= 0) {
+    if (n <= 0 || n >= 63) {
         std::cerr << "Error: Invalid qubit range for IQFT." << std::endl;
         return *this;
     }
@@ -112,6 +115,7 @@ State& State::iqft(int start_qubit, int end_qubit)
     // Calculate the overall scaling factor 1/sqrt(N)
     ComplexNumber overall_scale = 1.0 / std::sqrt((double)N);
     const ComplexNumber I(0.0, 1.0); 
+    const long double PI = std::acos(-1.0L);
     
     // 2. Prepare temporary map for accumulation
     AmplitudeMap new_state_map;
@@ -128,8 +132,10 @@ State& State::iqft(int start_qubit, int end_qubit)
         for (Bitstring k = 0; k < N; ++k) {
             
             // Calculate inverse phase factor: exp(-2 * pi * i * j * k / N)
-            double exponent = -2.0 * M_PI * static_cast<double>(j * k) / static_cast<double>(N);
-            ComplexNumber phase_factor = std::exp(I * exponent);
+            long double exponent = -2.0L * PI * static_cast<long double>(j) * static_cast<long double>(k)
+                                   / static_cast<long double>(N);
+            double exponent_d = static_cast<double>(exponent);
+            ComplexNumber phase_factor = std::exp(I * exponent_d);
             
             // New amplitude contribution A_k = A_j * (1/sqrt(N)) * phase_factor
             ComplexNumber A_jk = A_j * overall_scale * phase_factor;
@@ -157,4 +163,3 @@ State& State::iqft(int start_qubit, int end_qubit)
     
     return *this;
 }
-

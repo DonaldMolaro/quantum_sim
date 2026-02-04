@@ -109,12 +109,17 @@ State& State::controlled_modular_exponentiation(
                 
       // Extract the target register's numerical value (y).
       Bitstring current_target_value = get_target_value_general(b, target_start, target_end);
-                
-      // Calculate the new target value: y' = (F * y) mod N.
-      Bitstring new_target_value = (exponent_factor * current_target_value) % N;
-                
-      // Construct the new full bitstring (b' = Control | Target_new).
-      b_new = replace_target_value_general(b, new_target_value, target_start, target_end);
+
+      // For unitarity: if y is outside [0, N-1], leave it unchanged.
+      if (current_target_value >= N) {
+        b_new = b;
+      } else {
+        // Calculate the new target value: y' = (F * y) mod N.
+        Bitstring new_target_value = (exponent_factor * current_target_value) % N;
+
+        // Construct the new full bitstring (b' = Control | Target_new).
+        b_new = replace_target_value_general(b, new_target_value, target_start, target_end);
+      }
     } else {
       // Control OFF: Apply Identity (keep state unchanged).
       b_new = b;
