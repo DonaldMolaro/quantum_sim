@@ -791,11 +791,11 @@ void main_shor_tests() {
 
 int main()
 {
-  //main_test_controlled_Rr();
-  //main_test_controlled_Rr_dag();
-  //main_test_qft();
+  main_test_controlled_Rr();
+  main_test_controlled_Rr_dag();
+  main_test_qft();
   main_mod_exp();
-  //main_all_cme_tests();
+  main_all_cme_tests();
   main_core_gate_tests();
   main_qft_tests();
   main_shor_tests();
