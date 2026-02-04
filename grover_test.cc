@@ -17,7 +17,7 @@ static double probability_of_state(const State& s, Bitstring target)
 
 static bool run_grover_case(int n_qubits, Bitstring target, double min_prob)
 {
-  State s(n_qubits);
+  State s(n_qubits, 0);
   for (int j = 0; j < n_qubits; ++j) {
     s.h(j);
   }
