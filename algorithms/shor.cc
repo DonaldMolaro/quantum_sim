@@ -6,6 +6,7 @@
  */
 #include "state.hh"
 #include "math/mod_arith.hh"
+#include "math/register_layout.hh"
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -205,33 +206,30 @@ State& State::run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)
   int n_t = total_qubits / 2;
   int n_c = total_qubits - n_t;
 
-  int target_start = 0;
-  int target_end = n_t - 1;
-  int control_start = n_t;
-  int control_end = total_qubits - 1;
+  RegisterLayout layout = make_shor_layout(n_t, n_c);
 
   Bitstring modulus = N;
 
   // Reset to |0...0> and set target to |1>.
   set_basis_state(0ULL, ONE_COMPLEX);
-  x(target_start);
+  x(layout.target_start);
 
   // QFT on control register.
-  qft(control_start, control_end);
+  qft(layout.control_start, layout.control_end);
 
   // Controlled modular exponentiation.
   for (int j = 0; j < n_c; ++j) {
-    int control_q = control_start + j;
+    int control_q = layout.control_start + j;
     Bitstring power_of_a = 1ULL << j;
     controlled_modular_exponentiation(
         control_q,
-        target_start, target_end,
+        layout.target_start, layout.target_end,
         a, modulus,
         power_of_a);
   }
 
   // Inverse QFT on control register.
-  iqft(control_start, control_end);
+  iqft(layout.control_start, layout.control_end);
 
   return *this;
 }

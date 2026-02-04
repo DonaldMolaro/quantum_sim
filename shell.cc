@@ -241,7 +241,7 @@ void QuantumShell::print_help()
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
-  std::cout << "GROVER <t...>    : Run Grover's algorithim searching for one or more targets\n";
+  std::cout << "GROVER <t...>    : Run Grover's algorithm searching for one or more targets\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
   std::cout << "LATIN DEMO [iters] [r0 r1 r2]: Demo with custom row0 permutation\n";
   std::cout << "LATIN COUNT [r0 r1 r2]       : Count solutions for row0 permutation\n";
