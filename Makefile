@@ -37,4 +37,7 @@ clean:
 
 -include $(DEPS)
 
-.PHONY: clean
+.PHONY: clean test
+
+test: grover_test
+	./grover_test

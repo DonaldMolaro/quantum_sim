@@ -1,0 +1,6 @@
+# Build artifacts
+*.o
+quantum_sim
+
+# Editor backups
+*~

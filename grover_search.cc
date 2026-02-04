@@ -33,14 +33,19 @@ void run_grover_search(State *s, Bitstring target_w)
     
   // 1. Initialization
   int n_qubits = s->get_num_qubits();
-  const double N = 1ULL << n_qubits; // N = 2^n
+  if (n_qubits >= 63) {
+    std::cerr << "Grover demo supports up to 62 qubits (got " << n_qubits << ").\n";
+    return;
+  }
+  const double N = std::ldexp(1.0, n_qubits); // N = 2^n (safe for display and sqrt)
 
   std::cout << "Starting Grover search for solution index " << target_w 
 	    << " in a database of size N=" << N << " (n=" << n_qubits << " qubits).\n";
 
   // Calculate optimal number of iterations R
   // R = floor( (PI/4) * sqrt(N) ) 
-  const int R = static_cast<int>(std::floor((M_PI / 4.0) * std::sqrt(N)));
+  const double PI = std::acos(-1.0);
+  const int R = static_cast<int>(std::floor((PI / 4.0) * std::sqrt(N)));
   std::cout << "Optimal number of Grover iterations: R = " << R << "\n";
     
   // Check if R=0 is optimal (usually if N=1 or N=2)
@@ -78,6 +83,5 @@ void run_grover_search(State *s, Bitstring target_w)
   // The probability amplitude of |w〉 should now be boosted near 1.
   s->display(); // Use the display method to show amplitudes and probabilities
 }
-
 
 
