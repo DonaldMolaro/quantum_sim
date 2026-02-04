@@ -1,6 +1,9 @@
 # Build artifacts
 *.o
+*.d
 quantum_sim
+unit_tests
+grover_test
 
 # Editor backups
 *~
