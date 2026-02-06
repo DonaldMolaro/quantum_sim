@@ -92,8 +92,14 @@ double QuantumShell::get_angle_arg(const std::vector<std::string>& tokens, size_
   if (token_upper == "PI") {
     theta = pi;
     is_deg = false;
+  } else if (token_upper == "TAU") {
+    theta = 2.0 * pi;
+    is_deg = false;
   } else if (token_upper == "PI/2") {
     theta = pi / 2.0;
+    is_deg = false;
+  } else if (token_upper == "PI/4") {
+    theta = pi / 4.0;
     is_deg = false;
   } else if (token_upper == "-PI") {
     theta = -pi;
@@ -101,12 +107,62 @@ double QuantumShell::get_angle_arg(const std::vector<std::string>& tokens, size_
   } else if (token_upper == "-PI/2") {
     theta = -pi / 2.0;
     is_deg = false;
+  } else if (token_upper == "-PI/4") {
+    theta = -pi / 4.0;
+    is_deg = false;
   } else {
-    try {
-      theta = std::stod(token);
-    } catch (const std::exception&) {
-      std::cerr << "Error: Argument '" << tokens[index] << "' must be a number.\n";
-      return std::numeric_limits<double>::quiet_NaN();
+    bool parsed_pi_expr = false;
+    bool neg = false;
+    std::string expr = token_upper;
+    if (!expr.empty() && expr[0] == '-') {
+      neg = true;
+      expr = expr.substr(1);
+    }
+
+    size_t pi_pos = expr.find("PI");
+    if (pi_pos != std::string::npos) {
+      std::string coeff_str = expr.substr(0, pi_pos);
+      if (!coeff_str.empty()) {
+        try {
+          double coeff = std::stod(coeff_str);
+          theta = coeff * pi;
+          parsed_pi_expr = true;
+        } catch (const std::exception&) {
+          parsed_pi_expr = false;
+        }
+      } else {
+        theta = pi;
+        parsed_pi_expr = true;
+      }
+
+      if (parsed_pi_expr) {
+        size_t denom_pos = expr.find('/', pi_pos + 2);
+        if (denom_pos != std::string::npos) {
+          std::string denom_str = expr.substr(denom_pos + 1);
+          try {
+            double denom = std::stod(denom_str);
+            if (denom == 0.0) {
+              std::cerr << "Error: division by zero in '" << tokens[index] << "'.\n";
+              return std::numeric_limits<double>::quiet_NaN();
+            }
+            theta /= denom;
+          } catch (const std::exception&) {
+            std::cerr << "Error: Invalid PI expression '" << tokens[index] << "'.\n";
+            return std::numeric_limits<double>::quiet_NaN();
+          }
+        }
+      }
+    }
+
+    if (parsed_pi_expr) {
+      if (neg) theta = -theta;
+    } else {
+      try {
+        theta = std::stod(token);
+      } catch (const std::exception&) {
+        std::cerr << "Error: Argument '" << tokens[index] << "' must be a number.\n";
+        return std::numeric_limits<double>::quiet_NaN();
+      }
     }
   }
 
@@ -330,7 +386,8 @@ void QuantumShell::print_help()
   std::cout << "RY <j> <theta>   : Rotation around Y by angle theta (radians by default).\n";
   std::cout << "RZ <j> <theta>   : Rotation around Z by angle theta (radians by default).\n";
   std::cout << "  Degrees: append DEG or add DEG token. Examples: RX 0 90 DEG, RY 1 45DEG\n";
-  std::cout << "  Constants: PI, PI/2 (case-insensitive). Examples: RX 0 PI, RZ 1 PI/2\n";
+  std::cout << "  Constants: PI, PI/2, PI/4, TAU (case-insensitive).\n";
+  std::cout << "  Expressions: nPI, nPI/m (n,m numeric). Examples: RX 0 3PI/2, RZ 1 -PI/4\n";
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
