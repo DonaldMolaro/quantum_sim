@@ -52,10 +52,10 @@ extern std::string bitstring_to_string(Bitstring b, int N);
 /** Converts the ComplexNumber to a readable string (e.g., 0.707 + 0.707i). */
 extern std::string complex_to_string(const ComplexNumber& a);
 
-Bitstring power_mod(Bitstring base, Bitstring exp, Bitstring mod);
 Bitstring extract_bits(Bitstring b, int start, int end);
 Bitstring replace_bits(Bitstring b, int start, int end, Bitstring new_val);
-void accumulate(std::map<Bitstring, ComplexNumber>& state_map, Bitstring b, ComplexNumber a);
+
+using Oracle = std::function<bool(Bitstring)>;
 
 class State
 {
@@ -101,6 +101,11 @@ private:
 public:
   /** Constructor: Initializes the state to the ground state |00...0>. */
   State(int N, int num_cbits = 0);
+  static State from_basis(int n, Bitstring basis_value) {
+    State s(n, 0);
+    s.set_basis_state(basis_value, ONE_COMPLEX);
+    return s;
+  }
 
   State(Bitstring initial_state_value, int n) : num_qubits_(n)
   {
@@ -117,7 +122,7 @@ public:
   /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
   State& h(int j);
   /** Phase flip for basis states matching a predicate. */
-  State& phase_flip_if(const std::function<bool(Bitstring)>& predicate);
+  State& phase_flip_if(const Oracle& predicate);
   /** SWAP gate. */
   State& swap(int i, int k);
   /*

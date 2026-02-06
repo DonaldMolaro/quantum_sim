@@ -1,30 +1,4 @@
 #include "state.hh"
-#include <complex>
-#include <iostream>
-#include <map>
-
-Bitstring power_mod(Bitstring base, Bitstring exp, Bitstring mod)
-{
-    Bitstring result = 1;
-    // Ensure base is initially reduced modulo mod
-    base %= mod;
-
-    while (exp > 0) {
-        // If exp is odd (LSB is 1), include this base term in the result
-        if (exp & 1) {
-            // Perform multiplication safely, ensuring intermediate results are reduced modulo mod
-            result = (result * base) % mod;
-        }
-
-        // Square the base for the next iteration and reduce modulo mod
-        base = (base * base) % mod;
-        
-        // Halve the exponent (bit shift right)
-        exp >>= 1;
-    }
-    return result;
-}
-
 
 Bitstring extract_bits(Bitstring b, int start, int end)
 {
@@ -58,19 +32,4 @@ Bitstring replace_bits(Bitstring b, int start, int end, Bitstring new_val) {
 
     // 4. Use bitwise OR to insert the new value
     return b | shifted_new_val;
-}
-
-// Assuming QuantumState is defined as std::map<Bitstring, ComplexNumber>
-using ComplexNumber = std::complex<double>; 
-
-// This function must be part of the State class or have direct access to its internal state map
-void accumulate(std::map<Bitstring, ComplexNumber>& state_map, 
-                Bitstring b, 
-                ComplexNumber a) 
-{
-    // C++ map/unordered_map lookup performs summation of amplitudes (if key exists) 
-    // or insertion (if key is new).
-    // This is the functional equivalent of "reduceByKey(lambda x, y. x + y)" applied 
-    // to collect amplitudes for identical keys (bitstrings).
-    state_map[b] += a; 
 }

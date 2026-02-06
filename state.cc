@@ -198,7 +198,7 @@ State& State::h(int j)
   return *this;
 }
 
-State& State::phase_flip_if(const std::function<bool(Bitstring)>& predicate)
+State& State::phase_flip_if(const Oracle& predicate)
 {
   s_map([&predicate](const Bitstring& b, const ComplexNumber& a) {
     if (predicate(b)) {
