@@ -10,6 +10,7 @@
 #include "state.hh"
 #include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <iostream>
@@ -82,16 +83,34 @@ double QuantumShell::get_angle_arg(const std::vector<std::string>& tokens, size_
     is_deg = true;
   }
 
+  std::string token_upper = token;
+  std::transform(token_upper.begin(), token_upper.end(), token_upper.begin(), ::toupper);
+
+  const double pi = std::acos(-1.0);
   double theta = std::numeric_limits<double>::quiet_NaN();
-  try {
-    theta = std::stod(token);
-  } catch (const std::exception&) {
-    std::cerr << "Error: Argument '" << tokens[index] << "' must be a number.\n";
-    return std::numeric_limits<double>::quiet_NaN();
+
+  if (token_upper == "PI") {
+    theta = pi;
+    is_deg = false;
+  } else if (token_upper == "PI/2") {
+    theta = pi / 2.0;
+    is_deg = false;
+  } else if (token_upper == "-PI") {
+    theta = -pi;
+    is_deg = false;
+  } else if (token_upper == "-PI/2") {
+    theta = -pi / 2.0;
+    is_deg = false;
+  } else {
+    try {
+      theta = std::stod(token);
+    } catch (const std::exception&) {
+      std::cerr << "Error: Argument '" << tokens[index] << "' must be a number.\n";
+      return std::numeric_limits<double>::quiet_NaN();
+    }
   }
 
   if (is_deg) {
-    const double pi = std::acos(-1.0);
     theta = theta * (pi / 180.0);
   }
 
@@ -311,6 +330,7 @@ void QuantumShell::print_help()
   std::cout << "RY <j> <theta>   : Rotation around Y by angle theta (radians by default).\n";
   std::cout << "RZ <j> <theta>   : Rotation around Z by angle theta (radians by default).\n";
   std::cout << "  Degrees: append DEG or add DEG token. Examples: RX 0 90 DEG, RY 1 45DEG\n";
+  std::cout << "  Constants: PI, PI/2 (case-insensitive). Examples: RX 0 PI, RZ 1 PI/2\n";
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
