@@ -65,6 +65,39 @@ double QuantumShell::get_double_arg(const std::vector<std::string>& tokens, size
   }
 }
 
+double QuantumShell::get_angle_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd)
+{
+  if (index >= tokens.size()) {
+    std::cerr << "Error: " << cmd << " requires more arguments.\n";
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+
+  std::string token = tokens[index];
+  bool is_deg = false;
+
+  if (token.size() >= 3 && token.substr(token.size() - 3) == "DEG") {
+    token = token.substr(0, token.size() - 3);
+    is_deg = true;
+  } else if (index + 1 < tokens.size() && tokens[index + 1] == "DEG") {
+    is_deg = true;
+  }
+
+  double theta = std::numeric_limits<double>::quiet_NaN();
+  try {
+    theta = std::stod(token);
+  } catch (const std::exception&) {
+    std::cerr << "Error: Argument '" << tokens[index] << "' must be a number.\n";
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+
+  if (is_deg) {
+    const double pi = std::acos(-1.0);
+    theta = theta * (pi / 180.0);
+  }
+
+  return theta;
+}
+
 void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 {
   if (tokens.empty()) return;
@@ -110,7 +143,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
   if (cmd == "RX" || cmd == "RY" || cmd == "RZ") {
     int j = get_arg(tokens, 1, cmd);
-    double theta = get_double_arg(tokens, 2, cmd);
+    double theta = get_angle_arg(tokens, 2, cmd);
     if (j == -1 || std::isnan(theta)) return;
 
     try {
@@ -274,9 +307,10 @@ void QuantumShell::print_help()
   std::cout << "X <j>            : NOT gate on qubit j.\n";
   std::cout << "S <j>            : S gate on qubit j (Phase).\n";
   std::cout << "T <j>            : T gate on qubit j (Phase).\n";
-  std::cout << "RX <j> <theta>   : Rotation around X by angle theta (radians).\n";
-  std::cout << "RY <j> <theta>   : Rotation around Y by angle theta (radians).\n";
-  std::cout << "RZ <j> <theta>   : Rotation around Z by angle theta (radians).\n";
+  std::cout << "RX <j> <theta>   : Rotation around X by angle theta (radians by default).\n";
+  std::cout << "RY <j> <theta>   : Rotation around Y by angle theta (radians by default).\n";
+  std::cout << "RZ <j> <theta>   : Rotation around Z by angle theta (radians by default).\n";
+  std::cout << "  Degrees: append DEG or add DEG token. Examples: RX 0 90 DEG, RY 1 45DEG\n";
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";

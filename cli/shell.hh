@@ -24,6 +24,8 @@ private:
   int get_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd);
   // Helper to get floating-point arguments safely
   double get_double_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd);
+  // Helper to parse angles (radians by default, optional degrees)
+  double get_angle_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd);
   void handle_command(const std::vector<std::string>& tokens);
 public:
   // Destructor to clean up the dynamically allocated State object
