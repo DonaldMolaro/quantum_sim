@@ -52,9 +52,6 @@ extern std::string bitstring_to_string(Bitstring b, int N);
 /** Converts the ComplexNumber to a readable string (e.g., 0.707 + 0.707i). */
 extern std::string complex_to_string(const ComplexNumber& a);
 
-Bitstring extract_bits(Bitstring b, int start, int end);
-Bitstring replace_bits(Bitstring b, int start, int end, Bitstring new_val);
-
 using Oracle = std::function<bool(Bitstring)>;
 
 class State

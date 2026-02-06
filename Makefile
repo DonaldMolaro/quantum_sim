@@ -52,3 +52,17 @@ clean:
 
 test: grover_test
 	./grover_test
+
+.PHONY: install
+install: $(LIB_NAME)
+	mkdir -p dist/lib dist/include/algorithms/api dist/include/math
+	cp $(LIB_NAME) dist/lib/
+	cp include/quantum_sim.hh dist/include/
+	cp state.hh dist/include/
+	cp algorithms/latin_square.hh dist/include/algorithms/
+	cp algorithms/api/grover_api.hh dist/include/algorithms/api/
+	cp algorithms/api/shor_api.hh dist/include/algorithms/api/
+	cp math/bit_ops.hh dist/include/math/
+	cp math/mod_arith.hh dist/include/math/
+	cp math/qft_utils.hh dist/include/math/
+	cp math/register_layout.hh dist/include/math/

@@ -4,4 +4,5 @@
 #include "algorithms/latin_square.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
+#include "math/bit_ops.hh"
 #include "math/register_layout.hh"

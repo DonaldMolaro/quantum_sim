@@ -1,4 +1,5 @@
 #include "state.hh"
+#include "math/bit_ops.hh"
 #include "math/qft_utils.hh"
 #include <iostream>
 

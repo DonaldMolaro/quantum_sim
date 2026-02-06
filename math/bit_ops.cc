@@ -1,4 +1,4 @@
-#include "state.hh"
+#include "math/bit_ops.hh"
 
 Bitstring extract_bits(Bitstring b, int start, int end)
 {
