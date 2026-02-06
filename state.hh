@@ -122,6 +122,7 @@ public:
   State& rx(int j, double theta);
   State& ry(int j, double theta);
   State& rz(int j, double theta);
+  State& ru(int j, double theta, double phi, double lambda);
   /** Phase flip for basis states matching a predicate. */
   State& phase_flip_if(const Oracle& predicate);
   /** SWAP gate. */

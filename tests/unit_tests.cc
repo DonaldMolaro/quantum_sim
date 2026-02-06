@@ -102,6 +102,32 @@ void test_rz_pi_phases() {
     assert_complex_close(ComplexNumber(0.0, 1.0), s1.get_amplitude(0b1), 1e-9, "RZ(pi) should map |1> to i|1>");
 }
 
+void test_ru_matches_ry_pi() {
+    State s(1, 0);
+    s.set_basis_state(0b0, 1.0);
+    const double pi = std::acos(-1.0);
+    s.ru(0, pi, 0.0, 0.0); // U(pi,0,0) == RY(pi)
+    assert_complex_close(0.0, s.get_amplitude(0b0), 1e-9, "RU(pi,0,0) should clear |0>");
+    assert_complex_close(1.0, s.get_amplitude(0b1), 1e-9, "RU(pi,0,0) should map |0> to |1>");
+}
+
+void test_ru_zero_theta_phase() {
+    const double pi = std::acos(-1.0);
+    const double phi = pi / 3.0;
+    const double lambda = -pi / 5.0;
+
+    State s0(1, 0);
+    s0.set_basis_state(0b0, 1.0);
+    s0.ru(0, 0.0, phi, lambda);
+    assert_complex_close(1.0, s0.get_amplitude(0b0), 1e-9, "RU(0,phi,lambda) should keep |0> amplitude");
+
+    State s1(1, 0);
+    s1.set_basis_state(0b1, 1.0);
+    s1.ru(0, 0.0, phi, lambda);
+    ComplexNumber expected(std::cos(phi + lambda), std::sin(phi + lambda));
+    assert_complex_close(expected, s1.get_amplitude(0b1), 1e-9, "RU(0,phi,lambda) should apply e^{i(phi+lambda)} to |1>");
+}
+
 void test_cx_gate_control_on() {
     State s(2, 0);
     s.set_basis_state(0b10, 1.0); // control=1, target=0
@@ -138,6 +164,8 @@ void main_core_gate_tests() {
     run_test("RX(pi) on |0> gives -i|1>", test_rx_pi_on_zero);
     run_test("RY(pi) on |0> gives |1>", test_ry_pi_on_zero);
     run_test("RZ(pi) phase on |0> and |1>", test_rz_pi_phases);
+    run_test("RU(pi,0,0) matches RY(pi)", test_ru_matches_ry_pi);
+    run_test("RU(0,phi,lambda) applies phase to |1>", test_ru_zero_theta_phase);
     run_test("CX gate (control on)", test_cx_gate_control_on);
     run_test("CX gate (control off)", test_cx_gate_control_off);
     run_test("SWAP gate", test_swap_gate);

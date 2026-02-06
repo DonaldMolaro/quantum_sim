@@ -173,6 +173,15 @@ double QuantumShell::get_angle_arg(const std::vector<std::string>& tokens, size_
   return theta;
 }
 
+double QuantumShell::get_angle_arg_required(const std::vector<std::string>& tokens, size_t index, const std::string& cmd)
+{
+  if (index >= tokens.size()) {
+    std::cerr << "Error: " << cmd << " requires more arguments.\n";
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+  return get_angle_arg(tokens, index, cmd);
+}
+
 void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 {
   if (tokens.empty()) return;
@@ -218,7 +227,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
   if (cmd == "RX" || cmd == "RY" || cmd == "RZ") {
     int j = get_arg(tokens, 1, cmd);
-    double theta = get_angle_arg(tokens, 2, cmd);
+    double theta = get_angle_arg_required(tokens, 2, cmd);
     if (j == -1 || std::isnan(theta)) return;
 
     try {
@@ -226,6 +235,23 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       else if (cmd == "RY") state->ry(j, theta);
       else state->rz(j, theta);
       std::cout << cmd << "(" << j << ", " << theta << ") applied.\n";
+      state->display();
+    } catch (const std::exception& e) {
+      std::cerr << "Operation failed: " << e.what() << "\n";
+    }
+    return;
+  }
+
+  if (cmd == "RU") {
+    int j = get_arg(tokens, 1, cmd);
+    double theta = get_angle_arg_required(tokens, 2, cmd);
+    double phi = get_angle_arg_required(tokens, 3, cmd);
+    double lambda = get_angle_arg_required(tokens, 4, cmd);
+    if (j == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return;
+
+    try {
+      state->ru(j, theta, phi, lambda);
+      std::cout << "RU(" << j << ", " << theta << ", " << phi << ", " << lambda << ") applied.\n";
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -385,6 +411,7 @@ void QuantumShell::print_help()
   std::cout << "RX <j> <theta>   : Rotation around X by angle theta (radians by default).\n";
   std::cout << "RY <j> <theta>   : Rotation around Y by angle theta (radians by default).\n";
   std::cout << "RZ <j> <theta>   : Rotation around Z by angle theta (radians by default).\n";
+  std::cout << "RU <j> <t> <p> <l>: General single-qubit gate U(t, p, l) (radians by default).\n";
   std::cout << "  Degrees: append DEG or add DEG token. Examples: RX 0 90 DEG, RY 1 45DEG\n";
   std::cout << "  Constants: PI, PI/2, PI/4, TAU (case-insensitive).\n";
   std::cout << "  Expressions: nPI, nPI/m (n,m numeric). Examples: RX 0 3PI/2, RZ 1 -PI/4\n";

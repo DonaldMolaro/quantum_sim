@@ -251,6 +251,35 @@ State& State::rz(int j, double theta)
   return *this;
 }
 
+State& State::ru(int j, double theta, double phi, double lambda)
+{
+  const double c = std::cos(theta / 2.0);
+  const double s = std::sin(theta / 2.0);
+
+  const ComplexNumber eiphi(std::cos(phi), std::sin(phi));
+  const ComplexNumber eilambda(std::cos(lambda), std::sin(lambda));
+  const ComplexNumber eiphilambda(std::cos(phi + lambda), std::sin(phi + lambda));
+
+  s_flatMap_and_reduce([j, c, s, eiphi, eilambda, eiphilambda](const Bitstring& b,
+                                                              const ComplexNumber& a) -> IntermediateState {
+    IntermediateState generated_set;
+    int bj = get_jth_bit(b, j);
+    Bitstring b_flip = flip_jth_bit(b, j);
+
+    if (bj == 0) {
+      generated_set.push_back(std::make_pair(b, a * c));
+      generated_set.push_back(std::make_pair(b_flip, a * (eiphi * s)));
+    } else {
+      generated_set.push_back(std::make_pair(b_flip, a * (-eilambda * s)));
+      generated_set.push_back(std::make_pair(b, a * (eiphilambda * c)));
+    }
+
+    return generated_set;
+  });
+
+  return *this;
+}
+
 State& State::phase_flip_if(const Oracle& predicate)
 {
   s_map([&predicate](const Bitstring& b, const ComplexNumber& a) {
