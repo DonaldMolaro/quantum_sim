@@ -118,6 +118,10 @@ public:
   State& t(int j);
   /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
   State& h(int j);
+  /** Rotation gates around X/Y/Z axes. */
+  State& rx(int j, double theta);
+  State& ry(int j, double theta);
+  State& rz(int j, double theta);
   /** Phase flip for basis states matching a predicate. */
   State& phase_flip_if(const Oracle& predicate);
   /** SWAP gate. */

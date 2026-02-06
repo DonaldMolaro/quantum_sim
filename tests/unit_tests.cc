@@ -71,6 +71,37 @@ void test_t_gate_phase() {
     assert_complex_equal(expected, s.get_amplitude(0b1), "T should apply (1+i)/sqrt(2) phase to |1>");
 }
 
+void test_rx_pi_on_zero() {
+    State s(1, 0);
+    s.set_basis_state(0b0, 1.0);
+    const double pi = std::acos(-1.0);
+    s.rx(0, pi);
+    assert_complex_close(0.0, s.get_amplitude(0b0), 1e-9, "RX(pi) should clear |0>");
+    assert_complex_close(ComplexNumber(0.0, -1.0), s.get_amplitude(0b1), 1e-9, "RX(pi) should map |0> to -i|1>");
+}
+
+void test_ry_pi_on_zero() {
+    State s(1, 0);
+    s.set_basis_state(0b0, 1.0);
+    const double pi = std::acos(-1.0);
+    s.ry(0, pi);
+    assert_complex_close(0.0, s.get_amplitude(0b0), 1e-9, "RY(pi) should clear |0>");
+    assert_complex_close(1.0, s.get_amplitude(0b1), 1e-9, "RY(pi) should map |0> to |1>");
+}
+
+void test_rz_pi_phases() {
+    State s(1, 0);
+    s.set_basis_state(0b0, 1.0);
+    const double pi = std::acos(-1.0);
+    s.rz(0, pi);
+    assert_complex_close(ComplexNumber(0.0, -1.0), s.get_amplitude(0b0), 1e-9, "RZ(pi) should map |0> to -i|0>");
+
+    State s1(1, 0);
+    s1.set_basis_state(0b1, 1.0);
+    s1.rz(0, pi);
+    assert_complex_close(ComplexNumber(0.0, 1.0), s1.get_amplitude(0b1), 1e-9, "RZ(pi) should map |1> to i|1>");
+}
+
 void test_cx_gate_control_on() {
     State s(2, 0);
     s.set_basis_state(0b10, 1.0); // control=1, target=0
@@ -104,6 +135,9 @@ void main_core_gate_tests() {
     run_test("H gate on |1>", test_h_gate_on_one);
     run_test("S gate phase on |1>", test_s_gate_phase);
     run_test("T gate phase on |1>", test_t_gate_phase);
+    run_test("RX(pi) on |0> gives -i|1>", test_rx_pi_on_zero);
+    run_test("RY(pi) on |0> gives |1>", test_ry_pi_on_zero);
+    run_test("RZ(pi) phase on |0> and |1>", test_rz_pi_phases);
     run_test("CX gate (control on)", test_cx_gate_control_on);
     run_test("CX gate (control off)", test_cx_gate_control_off);
     run_test("SWAP gate", test_swap_gate);

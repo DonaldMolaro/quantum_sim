@@ -10,8 +10,10 @@
 #include "state.hh"
 #include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
+#include <cmath>
 #include <complex>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -46,6 +48,20 @@ int QuantumShell::get_arg(const std::vector<std::string>& tokens, size_t index, 
   } catch (const std::exception&) {
     std::cerr << "Error: Argument '" << tokens[index] << "' must be an integer.\n";
     return -1;
+  }
+}
+
+double QuantumShell::get_double_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd)
+{
+  if (index >= tokens.size()) {
+    std::cerr << "Error: " << cmd << " requires more arguments.\n";
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+  try {
+    return std::stod(tokens[index]);
+  } catch (const std::exception&) {
+    std::cerr << "Error: Argument '" << tokens[index] << "' must be a number.\n";
+    return std::numeric_limits<double>::quiet_NaN();
   }
 }
 
@@ -85,6 +101,23 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       else if (cmd == "S") state->s(j); // Implements s.map(λb, a. (b, aibj ))
       else if (cmd == "T") state->t(j); // Implements s.map(λb, a. (b, a((1+i)/sqrt(2))^bj ))
       std::cout << cmd << "(" << j << ") applied.\n";
+      state->display();
+    } catch (const std::exception& e) {
+      std::cerr << "Operation failed: " << e.what() << "\n";
+    }
+    return;
+  }
+
+  if (cmd == "RX" || cmd == "RY" || cmd == "RZ") {
+    int j = get_arg(tokens, 1, cmd);
+    double theta = get_double_arg(tokens, 2, cmd);
+    if (j == -1 || std::isnan(theta)) return;
+
+    try {
+      if (cmd == "RX") state->rx(j, theta);
+      else if (cmd == "RY") state->ry(j, theta);
+      else state->rz(j, theta);
+      std::cout << cmd << "(" << j << ", " << theta << ") applied.\n";
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -241,6 +274,9 @@ void QuantumShell::print_help()
   std::cout << "X <j>            : NOT gate on qubit j.\n";
   std::cout << "S <j>            : S gate on qubit j (Phase).\n";
   std::cout << "T <j>            : T gate on qubit j (Phase).\n";
+  std::cout << "RX <j> <theta>   : Rotation around X by angle theta (radians).\n";
+  std::cout << "RY <j> <theta>   : Rotation around Y by angle theta (radians).\n";
+  std::cout << "RZ <j> <theta>   : Rotation around Z by angle theta (radians).\n";
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";

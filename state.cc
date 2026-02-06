@@ -198,6 +198,59 @@ State& State::h(int j)
   return *this;
 }
 
+State& State::rx(int j, double theta)
+{
+  const double c = std::cos(theta / 2.0);
+  const double s = std::sin(theta / 2.0);
+  const ComplexNumber minus_i_s(0.0, -s); // -i * sin
+
+  s_flatMap_and_reduce([j, c, minus_i_s](const Bitstring& b, const ComplexNumber& a) -> IntermediateState {
+    IntermediateState generated_set;
+    Bitstring b_flip = flip_jth_bit(b, j);
+    generated_set.push_back(std::make_pair(b, a * c));
+    generated_set.push_back(std::make_pair(b_flip, a * minus_i_s));
+    return generated_set;
+  });
+
+  return *this;
+}
+
+State& State::ry(int j, double theta)
+{
+  const double c = std::cos(theta / 2.0);
+  const double s = std::sin(theta / 2.0);
+
+  s_flatMap_and_reduce([j, c, s](const Bitstring& b, const ComplexNumber& a) -> IntermediateState {
+    IntermediateState generated_set;
+    int bj = get_jth_bit(b, j);
+    Bitstring b_flip = flip_jth_bit(b, j);
+
+    if (bj == 0) {
+      generated_set.push_back(std::make_pair(b, a * c));
+      generated_set.push_back(std::make_pair(b_flip, a * s));
+    } else {
+      generated_set.push_back(std::make_pair(b_flip, a * (-s)));
+      generated_set.push_back(std::make_pair(b, a * c));
+    }
+    return generated_set;
+  });
+
+  return *this;
+}
+
+State& State::rz(int j, double theta)
+{
+  const ComplexNumber phase0(std::cos(-theta / 2.0), std::sin(-theta / 2.0));
+  const ComplexNumber phase1(std::cos(theta / 2.0), std::sin(theta / 2.0));
+
+  s_map([j, phase0, phase1](const Bitstring& b, const ComplexNumber& a) {
+    int bj = get_jth_bit(b, j);
+    return std::make_pair(b, a * (bj ? phase1 : phase0));
+  });
+
+  return *this;
+}
+
 State& State::phase_flip_if(const Oracle& predicate)
 {
   s_map([&predicate](const Bitstring& b, const ComplexNumber& a) {
