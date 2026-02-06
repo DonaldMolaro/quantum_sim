@@ -1,5 +1,6 @@
 #include "state.hh"
 #include "tests/helpers.hh"
+#include "algorithms/qrng.hh"
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -102,6 +103,19 @@ void test_rz_pi_phases() {
     assert_complex_close(ComplexNumber(0.0, 1.0), s1.get_amplitude(0b1), 1e-9, "RZ(pi) should map |1> to i|1>");
 }
 
+void test_qrng_deterministic_bits() {
+    std::vector<double> random_vals = {0.1, 0.9, 0.1, 0.9};
+    std::vector<int> bits = qrng_bits(4, &random_vals);
+    assert_equal(bits.size(), static_cast<size_t>(4), "QRNG should return 4 bits");
+    assert_equal(bits[0], 0, "QRNG bit0 should be 0");
+    assert_equal(bits[1], 1, "QRNG bit1 should be 1");
+    assert_equal(bits[2], 0, "QRNG bit2 should be 0");
+    assert_equal(bits[3], 1, "QRNG bit3 should be 1");
+
+    uint64_t value = qrng_u64(4, &random_vals);
+    assert_equal(value, static_cast<uint64_t>(10), "QRNG value should match bits (1010b)");
+}
+
 void test_ru_matches_ry_pi() {
     State s(1, 0);
     s.set_basis_state(0b0, 1.0);
@@ -166,6 +180,7 @@ void main_core_gate_tests() {
     run_test("RZ(pi) phase on |0> and |1>", test_rz_pi_phases);
     run_test("RU(pi,0,0) matches RY(pi)", test_ru_matches_ry_pi);
     run_test("RU(0,phi,lambda) applies phase to |1>", test_ru_zero_theta_phase);
+    run_test("QRNG deterministic bits", test_qrng_deterministic_bits);
     run_test("CX gate (control on)", test_cx_gate_control_on);
     run_test("CX gate (control off)", test_cx_gate_control_off);
     run_test("SWAP gate", test_swap_gate);

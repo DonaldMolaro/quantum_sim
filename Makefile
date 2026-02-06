@@ -8,7 +8,7 @@ LIB_NAME = libquantum_sim.a
 LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	math/bit_ops.cc math/mod_arith.cc \
 	algorithms/grover.cc algorithms/grover_search.cc algorithms/shor.cc \
-	algorithms/latin_square.cc algorithms/api/grover_api.cc \
+	algorithms/latin_square.cc algorithms/qrng.cc algorithms/api/grover_api.cc \
 	algorithms/api/shor_api.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 DRIVER_SOURCES = cli/shell.cc cli/main.cc
@@ -60,6 +60,7 @@ install: $(LIB_NAME)
 	cp include/quantum_sim.hh dist/include/
 	cp state.hh dist/include/
 	cp algorithms/latin_square.hh dist/include/algorithms/
+	cp algorithms/qrng.hh dist/include/algorithms/
 	cp algorithms/api/grover_api.hh dist/include/algorithms/api/
 	cp algorithms/api/shor_api.hh dist/include/algorithms/api/
 	cp math/bit_ops.hh dist/include/math/

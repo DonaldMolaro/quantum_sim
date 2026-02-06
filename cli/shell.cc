@@ -10,6 +10,7 @@
 #include "state.hh"
 #include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
+#include "algorithms/qrng.hh"
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -25,6 +26,28 @@ extern void run_latin3_grover_demo_row0(const int row0[3], int iterations);
 extern void run_latin3_count_row0(const int row0[3]);
 extern void run_latin3_print_all_row0(const int row0[3]);
 extern void run_shor_demo(Bitstring N);
+
+static std::string bits_to_string(const std::vector<int>& bits)
+{
+  if (bits.empty()) return "0";
+  std::string out;
+  out.reserve(bits.size());
+  for (int i = static_cast<int>(bits.size()) - 1; i >= 0; --i) {
+    out.push_back(bits[i] ? '1' : '0');
+  }
+  return out;
+}
+
+static uint64_t bits_to_u64(const std::vector<int>& bits)
+{
+  uint64_t value = 0;
+  for (size_t i = 0; i < bits.size() && i < 63; ++i) {
+    if (bits[i]) {
+      value |= (1ULL << i);
+    }
+  }
+  return value;
+}
 
 std::vector<std::string> QuantumShell::parse_command(const std::string& line)
 {
@@ -197,6 +220,29 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       if (state != nullptr) delete state; // Cleanup old state
       state = new State(N, C);
       std::cout << "State initialized with " << N << " qubits and " << C << " classical register(s).\n";
+    }
+    return;
+  }
+
+  if (cmd == "QRNG") {
+    int n = get_arg(tokens, 1, "QRNG");
+    int count = (tokens.size() > 2) ? get_arg(tokens, 2, "QRNG") : 1;
+    if (n <= 0) {
+      std::cerr << "Error: QRNG requires n > 0.\n";
+      return;
+    }
+    if (count <= 0) {
+      std::cerr << "Error: QRNG count must be > 0.\n";
+      return;
+    }
+    if (n > 63) {
+      std::cout << "Note: QRNG displays integer values using only the lowest 63 bits.\n";
+    }
+
+    for (int i = 0; i < count; ++i) {
+      std::vector<int> bits = qrng_bits(n);
+      std::cout << "QRNG[" << i << "] bits=" << bits_to_string(bits)
+                << " value=" << bits_to_u64(bits) << "\n";
     }
     return;
   }
@@ -420,6 +466,7 @@ void QuantumShell::print_help()
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
   std::cout << "GROVER <t...>    : Run Grover's algorithm searching for one or more targets\n";
+  std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
   std::cout << "LATIN DEMO [iters] [r0 r1 r2]: Demo with custom row0 permutation\n";
   std::cout << "LATIN COUNT [r0 r1 r2]       : Count solutions for row0 permutation\n";
