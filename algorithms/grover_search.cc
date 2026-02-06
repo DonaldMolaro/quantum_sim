@@ -10,13 +10,13 @@
  * Someday I'll extend the implementaion so that it can find multiple solutions
  * to the search space, but today is not that day.
  *
- * If you want to *understand* what/how Grover's algorithim works go watch this:
+ * If you want to *understand* what/how Grover's algorithm works go watch this:
  *
  * from https://www.youtube.com/@3blue1brown
  *
  * https://www.youtube.com/watch?v=RQWpF2Gb-gU&t=7s
  *
- * Even if you *think* you understand Grover's algorithim, you should go watch
+ * Even if you *think* you understand Grover's algorithm, you should go watch
  * the video.
  *
  */

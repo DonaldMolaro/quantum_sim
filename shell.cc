@@ -4,11 +4,12 @@
  * but with it you can poke at the machine and see what it does.
  *
  * Beyond just basic quantum gates it's also able to call an implementation of
- * Grover's algorithim. Maybe I'll get ambitious and implement a few other
+ * Grover's algorithm. Maybe I'll get ambitious and implement a few other
  * quantum algorithms.
  */
 #include "state.hh"
 #include "shell.hh"
+#include "algorithms/api/grover_api.hh"
 #include <complex>
 #include <iostream>
 #include <sstream>
@@ -16,7 +17,6 @@
 #include <vector>
 
 extern void run_grover_search(State *s,Bitstring targer_w);
-extern void run_grover_search_multi(State *s, const std::vector<Bitstring>& targets);
 extern void run_latin3_grover_demo(int iterations);
 extern void run_latin3_grover_demo_row0(const int row0[3], int iterations);
 extern void run_latin3_count_row0(const int row0[3]);
@@ -117,18 +117,18 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
   // --- Algorithims ---
   if (cmd == "GROVER") {
-    if (tokens.size() == 2) {
-      int target_w = get_arg(tokens, 1, "GROVER"); // Target Word
-      run_grover_search(state, target_w);
-    } else {
-      std::vector<Bitstring> targets;
-      for (size_t i = 1; i < tokens.size(); ++i) {
-        int t = get_arg(tokens, i, "GROVER");
-        if (t == -1) return;
-        targets.push_back(static_cast<Bitstring>(t));
-      }
-      run_grover_search_multi(state, targets);
+    if (tokens.size() < 2) {
+      std::cerr << "Error: GROVER requires at least one target.\n";
+      return;
     }
+    std::vector<Bitstring> targets;
+    for (size_t i = 1; i < tokens.size(); ++i) {
+      int t = get_arg(tokens, i, "GROVER");
+      if (t == -1) return;
+      targets.push_back(static_cast<Bitstring>(t));
+    }
+    GroverResult result = run_grover(*state, targets);
+    std::cout << "Grover iterations used: " << result.iterations << "\n";
     return;
   }
   if (cmd == "LATIN") {

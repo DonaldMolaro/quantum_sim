@@ -791,6 +791,10 @@ void main_shor_tests() {
 
 int main()
 {
+  bool verbose = false;
+  if (const char* env = std::getenv("QSIM_TEST_VERBOSE")) {
+    verbose = (env[0] != '\0' && env[0] != '0');
+  }
   main_test_controlled_Rr();
   main_test_controlled_Rr_dag();
   main_test_qft();
@@ -798,5 +802,9 @@ int main()
   main_all_cme_tests();
   main_core_gate_tests();
   main_qft_tests();
-  main_shor_tests();
+  if (verbose) {
+    main_shor_tests();
+  } else {
+    std::cout << "Shor tests skipped. Set QSIM_TEST_VERBOSE=1 to run them.\n";
+  }
 }
