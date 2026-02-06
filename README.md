@@ -29,8 +29,13 @@ make test   # runs grover_test
 - `math/`: bit operations and modular arithmetic helpers
 - `algorithms/`: Grover and Shor implementations
 - `tests/`: unit tests and Grover tests
-- `shell.cc`, `shell.hh`, `main.cc`: interactive CLI
+- `cli/`: interactive CLI driver program
 
 ## Style Notes
 
 - Include order: project headers first, then standard library headers.
+
+## Conventions
+
+- Bit ordering uses little-endian indexing: qubit 0 is the least-significant bit.
+- Registers are laid out as contiguous ranges; for Shor, target comes first, then control.

@@ -8,7 +8,7 @@
  * quantum algorithms.
  */
 #include "state.hh"
-#include "shell.hh"
+#include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
 #include <complex>
 #include <iostream>
@@ -128,6 +128,10 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       targets.push_back(static_cast<Bitstring>(t));
     }
     GroverResult result = run_grover(*state, targets);
+    if (!result.ok) {
+      std::cerr << "Grover error: " << result.error << "\n";
+      return;
+    }
     std::cout << "Grover iterations used: " << result.iterations << "\n";
     return;
   }

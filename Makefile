@@ -11,7 +11,7 @@ LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	algorithms/latin_square.cc algorithms/api/grover_api.cc \
 	algorithms/api/shor_api.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
-DRIVER_SOURCES = shell.cc main.cc
+DRIVER_SOURCES = cli/shell.cc cli/main.cc
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
 DEPS    = $(LIB_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) tests/unit_tests.d tests/grover_test.d
 

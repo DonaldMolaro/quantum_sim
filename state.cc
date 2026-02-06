@@ -241,11 +241,10 @@ const QuantumState& State::get_state() const { return state_; }
  * @param cbit_index Index of classical register to store the result.
  * @return Reference to the updated State object.
  */
-State& State::measure(int j, unsigned long cbit_index) {
+State& State::measure_with_rng(int j, unsigned long cbit_index, double random_val) {
   // 1. Compute Pj,0: Probability of measuring 0
   double p0 = compute_probability_of_0(j);
-  // 2. Randomly determine the outcome (0 or 1)
-  double random_val = (double)std::rand() / RAND_MAX;
+  // 2. Determine the outcome (0 or 1)
   int outcome; 
   double p_outcome; // The probability corresponding to the chosen outcome
         
@@ -257,36 +256,25 @@ State& State::measure(int j, unsigned long cbit_index) {
     p_outcome = 1.0 - p0; // Pj,1
   }
         
-  // Check probability stability (ensure p_outcome is not zero, though theoretically 
-  // the state should already be clean if p_outcome=0)
+  // Check probability stability (ensure p_outcome is not zero)
   if (p_outcome < 1e-9) {
-    // If probability is essentially zero, we cannot normalize. 
-    // We set the factor to 1 and let the map zero out any remaining noise.
     p_outcome = 1.0; 
   }
 
   // 3. Calculate the renormalization factor (1 / sqrt(p))
-  // The factor required is p^-0.5.
   ComplexNumber norm_factor(1.0 / std::sqrt(p_outcome), 0.0);
         
   // 4. Post-measurement State Update (Collapse and Renormalize)
-  // This is implemented via s.map(λb, a. (b, new_amplitude))
   s_map([j, outcome, norm_factor](const Bitstring& b, const ComplexNumber& a) {
     int bj = get_jth_bit(b, j);
-            
     if (bj == outcome) {
-      // If the qubit matches the measured outcome, renormalize.
-      // New amplitude = a * p^-0.5
       return std::make_pair(b, a * norm_factor);
     } else {
-      // If the qubit does NOT match the measured outcome, zero out (collapse).
-      // This mimics the (1 - bj) coefficient used in the measure_j,0 pseudocode.
       return std::make_pair(b, ComplexNumber(0.0, 0.0));
     }
   });
 
   // 5. Clean up the state vector by removing elements with zero amplitude
-  // This step is vital for efficiency, though not explicitly in the pseudocode.
   state_.erase(std::remove_if(state_.begin(), state_.end(), 
 			      [](const QubitAmplitudePair& pair) { 
 				return std::abs(pair.second) < 1e-9; 
@@ -305,4 +293,33 @@ State& State::measure(int j, unsigned long cbit_index) {
       std::cout << "No Classical Registers \n";
     }
   return *this;
+}
+
+State& State::measure(int j, unsigned long cbit_index) {
+  double random_val = (double)std::rand() / RAND_MAX;
+  return measure_with_rng(j, cbit_index, random_val);
+}
+
+State& State::measure_all_with_rng(const std::vector<double>& random_vals, std::vector<int>& out) {
+  out.clear();
+  out.resize(num_qubits_, 0);
+
+  for (int j = 0; j < num_qubits_; ++j) {
+    double rv = (j < (int)random_vals.size()) ? random_vals[j] : ((double)std::rand() / RAND_MAX);
+    unsigned long cbit_index = cbits_.empty() ? 0 : static_cast<unsigned long>(j);
+    measure_with_rng(j, cbit_index, rv);
+
+    if (!cbits_.empty() && j < (int)cbits_.size()) {
+      out[j] = cbits_[j];
+    } else if (!state_.empty()) {
+      out[j] = get_jth_bit(state_.front().first, j);
+    }
+  }
+
+  return *this;
+}
+
+State& State::measure_all(std::vector<int>& out) {
+  std::vector<double> empty;
+  return measure_all_with_rng(empty, out);
 }

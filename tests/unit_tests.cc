@@ -1,14 +1,13 @@
 #include "state.hh"
+#include "tests/helpers.hh"
 #include <algorithm>
 #include <cmath>
 #include <complex>
 #include <functional>
 #include <iostream>
-#include <stdexcept>
 #include <vector>
 
 const ComplexNumber I(0.0, 1.0); // Imaginary unit i
-const double EPSILON = 1e-9; // Tolerance for complex number comparison
 
 // --- Utility Functions ---
 
@@ -23,22 +22,11 @@ void run_test(const std::string& name, std::function<void()> test_func) {
     }
 }
 
-// Custom assertion for complex numbers
-void assert_complex_equal(const ComplexNumber& expected, const ComplexNumber& actual, const std::string& message) {
-    if (std::abs(expected - actual) > EPSILON) {
-        throw std::runtime_error("Assertion failed: " + message + 
-                                 " Expected: " + std::to_string(expected.real()) + 
-                                 " Actual: " + std::to_string(actual.real()));
-    }
-}
-
-void assert_complex_close(const ComplexNumber& expected, const ComplexNumber& actual, double tol, const std::string& message) {
-    if (std::abs(expected - actual) > tol) {
-        throw std::runtime_error("Assertion failed: " + message + 
-                                 " Expected: " + std::to_string(expected.real()) + 
-                                 " Actual: " + std::to_string(actual.real()));
-    }
-}
+using test_helpers::assert_complex_equal;
+using test_helpers::assert_complex_close;
+using test_helpers::assert_equal;
+using test_helpers::assert_amplitude_match;
+using test_helpers::assert_amplitude_magnitude;
 
 // --- Core Gate Tests ---
 
@@ -429,15 +417,6 @@ int main_test_qft() {
 
 extern Bitstring modular_exponentiation(Bitstring a, Bitstring power, Bitstring N);
 
-void assert_equal(Bitstring actual, Bitstring expected, const std::string& message) {
-    if (actual != expected) {
-        throw std::runtime_error("Test failed for " + message + 
-                                 ". Expected: " + std::to_string(expected) + 
-                                 ", Actual: " + std::to_string(actual));
-    }
-}
-
-
 void test_mod_exp_zero_power() {
     // Test case: a^0 mod N = 1
     Bitstring result = modular_exponentiation(42ULL, 0ULL, 100ULL);
@@ -561,15 +540,6 @@ const Bitstring A = 7; // Base 'a'
 const int CONTROL_QUBIT = 6; // A representative index outside the target range (e.g., q6)
 
 // --- Unit Tests Helper ---
-
-void assert_amplitude_match(const State& s, Bitstring b, ComplexNumber expected_a, const std::string& msg) {
-    ComplexNumber actual_a = s.get_amplitude(b);
-    if (std::abs(actual_a - expected_a) > EPSILON) {
-        throw std::runtime_error("Amplitude check failed for " + msg + " (Bitstring " + std::to_string(b) + 
-                                 "). Expected: " + std::to_string(expected_a.real()) + 
-                                 ", Actual: " + std::to_string(actual_a.real()));
-    }
-}
 
 // --- Unit Tests Implementation ---
 
@@ -696,15 +666,6 @@ void main_all_cme_tests() {
     run_test_cme("Test 7: Zero target with control on", test_cme_zero_target_control_on);
     
     std::cout << "------------------------------------------------------------------\n";
-}
-
-void assert_amplitude_magnitude(const State& s, Bitstring b, double expected_mag, const std::string& msg) {
-    double actual_mag = std::abs(s.get_amplitude(b));
-    if (std::abs(actual_mag - expected_mag) > EPSILON) {
-        throw std::runtime_error("Amplitude check failed for " + msg + " (Bitstring " + std::to_string(b) + 
-                                 "). Expected magnitude: " + std::to_string(expected_mag) + 
-                                 ", Actual: " + std::to_string(actual_mag));
-    }
 }
 
 void test_shor_quantum_part_n15_a7_r4() {

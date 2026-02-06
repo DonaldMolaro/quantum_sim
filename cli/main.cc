@@ -12,7 +12,7 @@
  * Don - December 2025
  */
 #include "state.hh"
-#include "shell.hh"
+#include "cli/shell.hh"
 
 
 int main()
@@ -23,5 +23,4 @@ int main()
   return 0;
 
 };
-
 

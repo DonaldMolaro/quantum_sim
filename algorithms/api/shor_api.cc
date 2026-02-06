@@ -3,12 +3,22 @@
 
 ShorResult run_shor_quantum_part(Bitstring N, Bitstring a)
 {
-  ShorResult result{0, 0};
+  ShorResult result;
+
+  if (N < 2) {
+    result.error = "N must be >= 2.";
+    return result;
+  }
 
   int n_t = static_cast<int>(std::ceil(std::log2(static_cast<double>(N))));
   int n_c = 2 * n_t;
   int total_qubits = n_c + n_t;
   int num_cbits = n_c;
+
+  if (n_c >= 63) {
+    result.error = "Control register too large for 64-bit demo.";
+    return result;
+  }
 
   result.n_c = n_c;
 
@@ -32,5 +42,6 @@ ShorResult run_shor_quantum_part(Bitstring N, Bitstring a)
   }
 
   result.measured_x = measured_x;
+  result.ok = true;
   return result;
 }

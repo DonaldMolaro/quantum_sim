@@ -4,13 +4,15 @@
 
 GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int iterations)
 {
-  GroverResult result{0};
+  GroverResult result;
   if (targets.empty()) {
+    result.error = "No targets provided.";
     return result;
   }
 
   int n_qubits = s.get_num_qubits();
   if (n_qubits >= 63) {
+    result.error = "Grover supports up to 62 qubits.";
     return result;
   }
 
@@ -22,6 +24,10 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
 
   std::unordered_set<Bitstring> target_set;
   for (Bitstring t : targets) {
+    if (t >= static_cast<Bitstring>(N)) {
+      result.error = "Target out of range for current number of qubits.";
+      return result;
+    }
     target_set.insert(t);
   }
 
@@ -35,5 +41,6 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
   }
 
   result.iterations = R;
+  result.ok = true;
   return result;
 }

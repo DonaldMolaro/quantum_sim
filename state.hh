@@ -153,6 +153,12 @@ public:
    * @return Reference to the updated State object.
    */
   State& measure(int j, unsigned long cbit_index);
+  /** Optional deterministic measurement for tests. */
+  State& measure_with_rng(int j, unsigned long cbit_index, double random_val);
+  /** Measure all qubits and return outcomes in out (LSB first). */
+  State& measure_all(std::vector<int>& out);
+  /** Deterministic measurement for all qubits using provided random values. */
+  State& measure_all_with_rng(const std::vector<double>& random_vals, std::vector<int>& out);
   bool is_initialized() const { return true; };
   int get_num_qubits() const { return num_qubits_; };
   std::vector<int> get_cbits() const { return cbits_; }

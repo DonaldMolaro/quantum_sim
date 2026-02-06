@@ -9,6 +9,7 @@ struct RegisterLayout {
 
 inline RegisterLayout make_shor_layout(int n_t, int n_c)
 {
+  // Target register is lower bits; control register follows.
   RegisterLayout layout;
   layout.target_start = 0;
   layout.target_end = n_t - 1;
