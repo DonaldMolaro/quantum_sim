@@ -249,6 +249,28 @@ State& State::cu(int j_control, int k_target, double theta, double phi, double l
   rz(k_target, (lambda - phi) / 2.0);
   return *this;
 }
+
+/** CCX Gate (Toffoli): composite using H, CNOT, and phase rotations. */
+State& State::ccx(int c1, int c2, int target)
+{
+  const double pi = std::acos(-1.0);
+  h(target);
+  cnot(c2, target);
+  rz(target, -pi / 4.0); // T†
+  cnot(c1, target);
+  rz(target, pi / 4.0); // T
+  cnot(c2, target);
+  rz(target, -pi / 4.0); // T†
+  cnot(c1, target);
+  rz(c2, pi / 4.0); // T on control
+  rz(target, pi / 4.0); // T on target
+  h(target);
+  cnot(c1, c2);
+  rz(c1, pi / 4.0); // T on control
+  rz(c2, -pi / 4.0); // T† on control
+  cnot(c1, c2);
+  return *this;
+}
     
 /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
 State& State::cx(int j_control, int k_target)

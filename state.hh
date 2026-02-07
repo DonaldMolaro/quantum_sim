@@ -130,6 +130,8 @@ public:
   State& cry(int j_control, int k_target, double theta);
   /** CU Gate (Controlled U): composite using RZ/RY and CX. */
   State& cu(int j_control, int k_target, double theta, double phi, double lambda);
+  /** CCX Gate (Toffoli): composite using H, CNOT, and phase rotations. */
+  State& ccx(int c1, int c2, int target);
   /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
   State& cx(int j_control, int k_target);
   /** S Gate (Phase): s.map(λb, a. (b, a * i^b_j)) */

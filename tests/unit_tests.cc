@@ -264,6 +264,14 @@ void test_cu_gate_matches_cnot_like() {
     assert_complex_close(1.0, std::abs(a11), 1e-9, "CU(pi,0,0) should map |10> to |11> (up to phase)");
 }
 
+void test_ccx_gate_on_110() {
+    State s(3, 0);
+    s.set_basis_state(0b110, 1.0); // c1=1, c2=1, t=0
+    s.ccx(2, 1, 0);
+    assert_complex_close(0.0, s.get_amplitude(0b110), 1e-9, "CCX should clear |110>");
+    assert_complex_close(1.0, std::abs(s.get_amplitude(0b111)), 1e-9, "CCX should map |110> to |111> (up to phase)");
+}
+
 void test_swap_gate() {
     State s(2, 0);
     s.set_basis_state(0b01, 1.0); // |01>
@@ -299,6 +307,7 @@ void main_core_gate_tests() {
     run_test("CRX gate (control on)", test_crx_gate_on_control_on);
     run_test("CRY gate (control on)", test_cry_gate_on_control_on);
     run_test("CU gate (control on)", test_cu_gate_matches_cnot_like);
+    run_test("CCX gate (control on)", test_ccx_gate_on_110);
     run_test("SWAP gate", test_swap_gate);
 
     std::cout << "------------------------------------------------------------------\n";
