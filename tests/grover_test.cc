@@ -1,4 +1,5 @@
 #include "state.hh"
+#include "algorithms/api/grover_api.hh"
 #include <cmath>
 #include <complex>
 #include <iostream>
@@ -82,6 +83,83 @@ static bool run_grover_multi_case(int n_qubits,
   return min_found >= min_prob;
 }
 
+static bool run_grover_api_case(int n_qubits,
+                                const std::vector<Bitstring>& targets,
+                                int iterations,
+                                double min_prob)
+{
+  State s(n_qubits, 0);
+  GroverResult result = run_grover(s, targets, iterations);
+  if (!result.ok) {
+    std::cerr << "Grover API error: " << result.error << "\n";
+    return false;
+  }
+
+  double min_found = 1.0;
+  for (Bitstring t : targets) {
+    double prob = probability_of_state(s, t);
+    if (prob < min_found) {
+      min_found = prob;
+    }
+  }
+
+  std::cout << "Grover API test n=" << n_qubits
+            << " targets=" << targets.size()
+            << " R=" << result.iterations
+            << " min_prob=" << min_found
+            << " expected_success=" << result.expected_success << "\n";
+
+  return min_found >= min_prob;
+}
+
+static bool run_grover_api_duplicates_case()
+{
+  State s(3, 0);
+  std::vector<Bitstring> targets = {1, 1, 6};
+  GroverResult result = run_grover(s, targets, -1);
+  if (!result.ok) {
+    std::cerr << "Grover API error: " << result.error << "\n";
+    return false;
+  }
+
+  double p1 = probability_of_state(s, 1);
+  double p6 = probability_of_state(s, 6);
+  double min_found = std::min(p1, p6);
+
+  std::cout << "Grover API duplicates test min_prob=" << min_found
+            << " expected_success=" << result.expected_success << "\n";
+
+  return min_found >= 0.2;
+}
+
+static bool run_grover_api_zero_iterations_case()
+{
+  const int n_qubits = 2;
+  const double N = std::ldexp(1.0, n_qubits);
+  State s(n_qubits, 0);
+  std::vector<Bitstring> targets = {0, 1, 2}; // M=3 => R_default=0
+  GroverResult result = run_grover(s, targets, -1);
+  if (!result.ok) {
+    std::cerr << "Grover API error: " << result.error << "\n";
+    return false;
+  }
+  if (result.iterations != 0) {
+    std::cerr << "Expected R=0, got " << result.iterations << "\n";
+    return false;
+  }
+
+  double expected = 1.0 / N;
+  for (Bitstring t : targets) {
+    double prob = probability_of_state(s, t);
+    if (std::abs(prob - expected) > 1e-6) {
+      std::cerr << "Expected uniform probability for R=0.\n";
+      return false;
+    }
+  }
+
+  return true;
+}
+
 int main()
 {
   bool ok = true;
@@ -94,6 +172,15 @@ int main()
 
   // Multi-solution case: N=8, targets {1,6} should both be amplified.
   ok = ok && run_grover_multi_case(3, {1, 6}, 0.2);
+
+  // Grover API single-target (explicit iterations).
+  ok = ok && run_grover_api_case(3, {5}, 2, 0.5);
+
+  // Grover API duplicate targets should de-duplicate without hurting amplification.
+  ok = ok && run_grover_api_duplicates_case();
+
+  // Grover API when R=0 should leave uniform distribution.
+  ok = ok && run_grover_api_zero_iterations_case();
 
   // Latin-3 fixed-row has exactly 2 solutions.
   int latin_count = 0;
