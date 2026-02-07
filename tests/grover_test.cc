@@ -160,6 +160,25 @@ static bool run_grover_api_zero_iterations_case()
   return true;
 }
 
+static bool run_grover_api_out_of_range_case()
+{
+  State s(3, 0);
+  std::vector<Bitstring> targets = {8}; // out of range for n=3 (max 7)
+  GroverResult result = run_grover(s, targets, -1);
+  if (result.ok) {
+    std::cerr << "Expected out-of-range error.\n";
+    return false;
+  }
+  return true;
+}
+
+static bool run_grover_api_stress_case()
+{
+  const int n_qubits = 5; // N=32
+  std::vector<Bitstring> targets = {3, 7, 12, 19}; // M=4
+  return run_grover_api_case(n_qubits, targets, -1, 0.2);
+}
+
 int main()
 {
   bool ok = true;
@@ -181,6 +200,12 @@ int main()
 
   // Grover API when R=0 should leave uniform distribution.
   ok = ok && run_grover_api_zero_iterations_case();
+
+  // Grover API out-of-range target should fail.
+  ok = ok && run_grover_api_out_of_range_case();
+
+  // Grover API stress case (n=5, M=4).
+  ok = ok && run_grover_api_stress_case();
 
   // Latin-3 fixed-row has exactly 2 solutions.
   int latin_count = 0;
