@@ -1,6 +1,8 @@
 #include "state.hh"
 #include "tests/helpers.hh"
 #include "algorithms/qrng.hh"
+#include "math/mod_arith.hh"
+#include "math/bit_ops.hh"
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -982,6 +984,68 @@ void main_shor_tests() {
     std::cout << "------------------------------------------------------------------\n";
 }
 
+double target_probability(const State& s, int n_t, Bitstring target_val)
+{
+  double prob = 0.0;
+  for (const auto& pair : s.get_state()) {
+    Bitstring b = pair.first;
+    Bitstring t = extract_bits(b, 0, n_t - 1);
+    if (t == target_val) {
+      prob += std::norm(pair.second);
+    }
+  }
+  return prob;
+}
+
+void test_shor_small_semiprimes() {
+  struct Case { Bitstring N; Bitstring a; int r; };
+  const Case cases[] = {
+    {21, 2, 6},  // 21 = 3*7
+    {33, 10, 2}, // 33 = 3*11
+    {35, 2, 12}, // 35 = 5*7
+    {39, 2, 12}, // 39 = 3*13
+  };
+
+  for (const auto& c : cases) {
+    int n_t = static_cast<int>(std::ceil(std::log2(static_cast<double>(c.N))));
+    int n_c = 2 * n_t;
+    int total_qubits = n_c + n_t;
+    State s(total_qubits, 0);
+    s.run_shor_algorithm_quantum_part(c.N, c.a);
+
+    std::vector<Bitstring> expected_targets;
+    expected_targets.reserve(c.r);
+    for (int k = 0; k < c.r; ++k) {
+      expected_targets.push_back(mod_pow(c.a, static_cast<Bitstring>(k), c.N));
+    }
+
+    double min_expected = 0.03;
+    for (Bitstring t : expected_targets) {
+      double prob = target_probability(s, n_t, t);
+      if (prob < min_expected) {
+        throw std::runtime_error("Expected target probability too low in Shor small semiprime test.");
+      }
+    }
+
+    // Check non-targets are small.
+    Bitstring max_target = (1ULL << n_t);
+    for (Bitstring t = 0; t < max_target; ++t) {
+      bool is_expected = false;
+      for (Bitstring et : expected_targets) {
+        if (et == t) {
+          is_expected = true;
+          break;
+        }
+      }
+      if (is_expected) continue;
+      double prob = target_probability(s, n_t, t);
+      if (prob > 0.05) {
+        throw std::runtime_error("Unexpected target probability too high in Shor small semiprime test.");
+      }
+    }
+  }
+}
+
 
 int main()
 {
@@ -998,6 +1062,7 @@ int main()
   main_qft_tests();
   if (verbose) {
     main_shor_tests();
+    run_test("Small semiprimes order-finding (Shor)", test_shor_small_semiprimes);
   } else {
     std::cout << "Shor tests skipped. Set QSIM_TEST_VERBOSE=1 to run them.\n";
   }
