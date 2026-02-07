@@ -342,11 +342,42 @@ void test_qft_iqft_roundtrip() {
     assert_complex_close(-0.5, s.get_amplitude(0b11), 1e-6, "IQFT(QFT) |11>");
 }
 
+void test_qft_on_zero_uniform_gate() {
+    State s(2, 0);
+    s.set_qft_mode(State::QftMode::Gate);
+    s.set_basis_state(0b00, 1.0);
+    s.qft(0, 1);
+    ComplexNumber coeff = 0.5; // 1/sqrt(4)
+    assert_complex_close(coeff, s.get_amplitude(0b00), 1e-6, "Gate QFT |00> -> uniform |00>");
+    assert_complex_close(coeff, s.get_amplitude(0b01), 1e-6, "Gate QFT |00> -> uniform |01>");
+    assert_complex_close(coeff, s.get_amplitude(0b10), 1e-6, "Gate QFT |00> -> uniform |10>");
+    assert_complex_close(coeff, s.get_amplitude(0b11), 1e-6, "Gate QFT |00> -> uniform |11>");
+}
+
+void test_qft_iqft_roundtrip_gate() {
+    State s(2, 0);
+    s.set_qft_mode(State::QftMode::Gate);
+    s.set_amplitude(0b00, 0.5);
+    s.set_amplitude(0b01, 0.5);
+    s.set_amplitude(0b10, 0.5);
+    s.set_amplitude(0b11, -0.5);
+
+    s.qft(0, 1);
+    s.iqft(0, 1);
+
+    assert_complex_close(0.5, s.get_amplitude(0b00), 1e-6, "Gate IQFT(QFT) |00>");
+    assert_complex_close(0.5, s.get_amplitude(0b01), 1e-6, "Gate IQFT(QFT) |01>");
+    assert_complex_close(0.5, s.get_amplitude(0b10), 1e-6, "Gate IQFT(QFT) |10>");
+    assert_complex_close(-0.5, s.get_amplitude(0b11), 1e-6, "Gate IQFT(QFT) |11>");
+}
+
 void main_qft_tests() {
     std::cout << "Testing QFT/IQFT:\n";
     std::cout << "------------------------------------------------------------------\n";
     run_test("QFT on |00> yields uniform superposition", test_qft_on_zero_uniform);
     run_test("QFT then IQFT round-trip", test_qft_iqft_roundtrip);
+    run_test("Gate QFT on |00> yields uniform superposition", test_qft_on_zero_uniform_gate);
+    run_test("Gate QFT then IQFT round-trip", test_qft_iqft_roundtrip_gate);
     std::cout << "------------------------------------------------------------------\n";
 }
 

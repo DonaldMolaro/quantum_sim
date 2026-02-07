@@ -56,10 +56,17 @@ using Oracle = std::function<bool(Bitstring)>;
 
 class State
 {
+public:
+  enum class QftMode {
+    Direct,
+    Gate
+  };
+
 private:
   QuantumState state_;
   int num_qubits_;
   std::vector<int> cbits_;
+  QftMode qft_mode_ = QftMode::Direct;
 
   // Accessor for the size of the classical register
   size_t cbits_size() const { return cbits_.size(); }
@@ -98,6 +105,8 @@ private:
 public:
   /** Constructor: Initializes the state to the ground state |00...0>. */
   State(int N, int num_cbits = 0);
+  void set_qft_mode(QftMode mode) { qft_mode_ = mode; }
+  QftMode get_qft_mode() const { return qft_mode_; }
   static State from_basis(int n, Bitstring basis_value) {
     State s(n, 0);
     s.set_basis_state(basis_value, ONE_COMPLEX);
