@@ -110,6 +110,8 @@ public:
   }
 
   State& x(int j);
+  /** Z Gate (Phase flip): equivalent to RZ(pi). */
+  State& z(int j);
   /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
   State& cx(int j_control, int k_target);
   /** S Gate (Phase): s.map(λb, a. (b, a * i^b_j)) */

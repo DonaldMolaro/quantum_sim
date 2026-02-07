@@ -64,6 +64,17 @@ void test_s_gate_phase() {
     assert_complex_equal(I, s.get_amplitude(0b1), "S should apply i phase to |1>");
 }
 
+void test_z_gate_phase() {
+    State s(1, 0);
+    s.set_basis_state(0b0, 1.0);
+    s.h(0); // (|0> + |1>) / sqrt(2)
+    s.z(0); // should flip phase of |1> relative to |0>
+
+    ComplexNumber a0 = s.get_amplitude(0b0);
+    ComplexNumber a1 = s.get_amplitude(0b1);
+    assert_complex_close(a0, -a1, 1e-9, "Z should flip the relative phase between |0> and |1>");
+}
+
 void test_t_gate_phase() {
     State s(1, 0);
     s.set_basis_state(0b1, 1.0);
@@ -174,6 +185,7 @@ void main_core_gate_tests() {
     run_test("H gate on |0>", test_h_gate_on_zero);
     run_test("H gate on |1>", test_h_gate_on_one);
     run_test("S gate phase on |1>", test_s_gate_phase);
+    run_test("Z gate phase on |0> and |1>", test_z_gate_phase);
     run_test("T gate phase on |1>", test_t_gate_phase);
     run_test("RX(pi) on |0> gives -i|1>", test_rx_pi_on_zero);
     run_test("RY(pi) on |0> gives |1>", test_ry_pi_on_zero);

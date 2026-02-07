@@ -254,13 +254,14 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   }
 
   // --- Gate Operations (Single Qubit) ---
-  if (cmd == "H" || cmd == "X" || cmd == "S" || cmd == "T") {
+  if (cmd == "H" || cmd == "X" || cmd == "Z" || cmd == "S" || cmd == "T") {
     int j = get_arg(tokens, 1, cmd);
     if (j == -1) return; 
 
     try {
       if (cmd == "H") state->h(j); // Implements flatMap + reduceByKey
       else if (cmd == "X") state->x(j); // Implements s.map(λb, a. (b¬j , a))
+      else if (cmd == "Z") state->z(j); // Implements RZ(pi)
       else if (cmd == "S") state->s(j); // Implements s.map(λb, a. (b, aibj ))
       else if (cmd == "T") state->t(j); // Implements s.map(λb, a. (b, a((1+i)/sqrt(2))^bj ))
       std::cout << cmd << "(" << j << ") applied.\n";
@@ -452,6 +453,7 @@ void QuantumShell::print_help()
   std::cout << "INIT <N> [C]     : Initialize state with N qubits and C classical bits.\n";
   std::cout << "H <j>            : Hadamard gate on qubit j (Superposition).\n";
   std::cout << "X <j>            : NOT gate on qubit j.\n";
+  std::cout << "Z <j>            : Z gate on qubit j (Phase flip).\n";
   std::cout << "S <j>            : S gate on qubit j (Phase).\n";
   std::cout << "T <j>            : T gate on qubit j (Phase).\n";
   std::cout << "RX <j> <theta>   : Rotation around X by angle theta (radians by default).\n";

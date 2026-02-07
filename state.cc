@@ -139,6 +139,13 @@ State& State::x(int j)
   });
   return *this;
 }
+
+/** Z Gate (Phase flip): equivalent to RZ(pi). */
+State& State::z(int j)
+{
+  const double pi = std::acos(-1.0);
+  return rz(j, pi);
+}
     
 /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
 State& State::cx(int j_control, int k_target)
