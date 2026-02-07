@@ -112,6 +112,18 @@ public:
   State& x(int j);
   /** Z Gate (Phase flip): equivalent to RZ(pi). */
   State& z(int j);
+  /** Y Gate: composite via RZ(pi/2), X, RZ(-pi/2). */
+  State& y(int j);
+  /** CNOT Gate (alias): implemented via H on target, CZ, H on target. */
+  State& cnot(int j_control, int k_target);
+  /** CZ Gate (Controlled Z): H on target, CX, H on target. */
+  State& cz(int j_control, int k_target);
+  /** CY Gate (Controlled Y): RZ(-pi/2), CX, RZ(pi/2) on target. */
+  State& cy(int j_control, int k_target);
+  /** CH Gate (Controlled H): composite decomposition using RZ/RY and CX. */
+  State& ch(int j_control, int k_target);
+  /** CRZ Gate (Controlled RZ): composite using CX and RZ rotations. */
+  State& crz(int j_control, int k_target, double theta);
   /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
   State& cx(int j_control, int k_target);
   /** S Gate (Phase): s.map(λb, a. (b, a * i^b_j)) */

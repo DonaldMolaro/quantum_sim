@@ -254,13 +254,14 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   }
 
   // --- Gate Operations (Single Qubit) ---
-  if (cmd == "H" || cmd == "X" || cmd == "Z" || cmd == "S" || cmd == "T") {
+  if (cmd == "H" || cmd == "X" || cmd == "Y" || cmd == "Z" || cmd == "S" || cmd == "T") {
     int j = get_arg(tokens, 1, cmd);
     if (j == -1) return; 
 
     try {
       if (cmd == "H") state->h(j); // Implements flatMap + reduceByKey
       else if (cmd == "X") state->x(j); // Implements s.map(λb, a. (b¬j , a))
+      else if (cmd == "Y") state->y(j); // Implements RZ(pi/2) X RZ(-pi/2)
       else if (cmd == "Z") state->z(j); // Implements RZ(pi)
       else if (cmd == "S") state->s(j); // Implements s.map(λb, a. (b, aibj ))
       else if (cmd == "T") state->t(j); // Implements s.map(λb, a. (b, a((1+i)/sqrt(2))^bj ))
@@ -306,14 +307,44 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
 
+  if (cmd == "CRZ") {
+    int j = get_arg(tokens, 1, cmd);
+    int k = get_arg(tokens, 2, cmd);
+    double theta = get_angle_arg_required(tokens, 3, cmd);
+    if (j == -1 || k == -1 || std::isnan(theta)) return;
+
+    try {
+      state->crz(j, k, theta);
+      std::cout << "CRZ(" << j << ", " << k << ", " << theta << ") applied.\n";
+      state->display();
+    } catch (const std::exception& e) {
+      std::cerr << "Operation failed: " << e.what() << "\n";
+    }
+    return;
+  }
+
   // --- Gate Operations (Two Qubits) ---
-  if (cmd == "CX") {
-    int j = get_arg(tokens, 1, "CX");
-    int k = get_arg(tokens, 2, "CX");
+  if (cmd == "CX" || cmd == "CZ" || cmd == "CY" || cmd == "CH" || cmd == "CNOT") {
+    int j = get_arg(tokens, 1, cmd);
+    int k = get_arg(tokens, 2, cmd);
     if (j == -1 || k == -1) return;
 
-    state->cx(j, k); // Implements s.map(λb, a. (ite(bj , b ¬k, b), a))
-    std::cout << "CX(" << j << ", " << k << ") applied.\n";
+    if (cmd == "CX") {
+      state->cx(j, k); // Implements s.map(λb, a. (ite(bj , b ¬k, b), a))
+      std::cout << "CX(" << j << ", " << k << ") applied.\n";
+    } else if (cmd == "CZ") {
+      state->cz(j, k);
+      std::cout << "CZ(" << j << ", " << k << ") applied.\n";
+    } else if (cmd == "CY") {
+      state->cy(j, k);
+      std::cout << "CY(" << j << ", " << k << ") applied.\n";
+    } else if (cmd == "CH") {
+      state->ch(j, k);
+      std::cout << "CH(" << j << ", " << k << ") applied.\n";
+    } else {
+      state->cnot(j, k);
+      std::cout << "CNOT(" << j << ", " << k << ") applied.\n";
+    }
     state->display();
     return;
   }
@@ -453,6 +484,7 @@ void QuantumShell::print_help()
   std::cout << "INIT <N> [C]     : Initialize state with N qubits and C classical bits.\n";
   std::cout << "H <j>            : Hadamard gate on qubit j (Superposition).\n";
   std::cout << "X <j>            : NOT gate on qubit j.\n";
+  std::cout << "Y <j>            : Y gate on qubit j.\n";
   std::cout << "Z <j>            : Z gate on qubit j (Phase flip).\n";
   std::cout << "S <j>            : S gate on qubit j (Phase).\n";
   std::cout << "T <j>            : T gate on qubit j (Phase).\n";
@@ -464,6 +496,11 @@ void QuantumShell::print_help()
   std::cout << "  Constants: PI, PI/2, PI/4, TAU (case-insensitive).\n";
   std::cout << "  Expressions: nPI, nPI/m (n,m numeric). Examples: RX 0 3PI/2, RZ 1 -PI/4\n";
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
+  std::cout << "CNOT <j> <k>     : Controlled-X alias using CZ decomposition.\n";
+  std::cout << "CZ <j> <k>       : Controlled-Z where j is control, k is target.\n";
+  std::cout << "CY <j> <k>       : Controlled-Y where j is control, k is target.\n";
+  std::cout << "CH <j> <k>       : Controlled-H where j is control, k is target.\n";
+  std::cout << "CRZ <j> <k> <t>  : Controlled-RZ with angle t (radians by default).\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";

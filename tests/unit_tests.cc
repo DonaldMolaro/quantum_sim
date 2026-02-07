@@ -6,6 +6,7 @@
 #include <complex>
 #include <functional>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 const ComplexNumber I(0.0, 1.0); // Imaginary unit i
@@ -62,6 +63,18 @@ void test_s_gate_phase() {
     s.set_basis_state(0b1, 1.0);
     s.s(0);
     assert_complex_equal(I, s.get_amplitude(0b1), "S should apply i phase to |1>");
+}
+
+void test_y_gate_on_zero() {
+    State s(1, 0);
+    s.set_basis_state(0b0, 1.0);
+    s.y(0);
+    ComplexNumber a1 = s.get_amplitude(0b1);
+    bool ok = (std::abs(a1 - ComplexNumber(0.0, 1.0)) < 1e-9) ||
+              (std::abs(a1 - ComplexNumber(0.0, -1.0)) < 1e-9);
+    if (!ok) {
+        throw std::runtime_error("Y should map |0> to ±i|1> (global phase)");
+    }
 }
 
 void test_z_gate_phase() {
@@ -169,6 +182,51 @@ void test_cx_gate_control_off() {
     assert_complex_equal(0.0, s.get_amplitude(0b01), "CX should not flip target when control=0");
 }
 
+void test_cnot_alias_matches_cx() {
+    State s(2, 0);
+    s.set_basis_state(0b10, 1.0);
+    s.cnot(1, 0);
+    assert_complex_equal(0.0, s.get_amplitude(0b10), "CNOT should clear |10>");
+    assert_complex_equal(1.0, s.get_amplitude(0b11), "CNOT should map |10> to |11>");
+}
+
+void test_cz_gate_phase_on_11() {
+    State s(2, 0);
+    s.set_basis_state(0b11, 1.0);
+    s.cz(1, 0);
+    assert_complex_equal(-1.0, s.get_amplitude(0b11), "CZ should apply -1 phase to |11>");
+}
+
+void test_cy_gate_on_10() {
+    State s(2, 0);
+    s.set_basis_state(0b10, 1.0); // control=1, target=0
+    s.cy(1, 0);
+    assert_complex_close(ComplexNumber(0.0, 1.0), s.get_amplitude(0b11), 1e-9, "CY should map |10> to i|11>");
+}
+
+void test_ch_gate_on_10() {
+    State s(2, 0);
+    s.set_basis_state(0b10, 1.0); // control=1, target=0
+    s.ch(1, 0);
+    ComplexNumber a10 = s.get_amplitude(0b10);
+    ComplexNumber a11 = s.get_amplitude(0b11);
+    double expected_mag = 1.0 / std::sqrt(2.0);
+    assert_complex_close(expected_mag, std::abs(a10), 1e-9, "CH should give |10> amplitude magnitude 1/sqrt(2)");
+    assert_complex_close(expected_mag, std::abs(a11), 1e-9, "CH should give |11> amplitude magnitude 1/sqrt(2)");
+    assert_complex_close(a10, a11, 1e-9, "CH should keep |10> and |11> in-phase (up to global phase)");
+}
+
+void test_crz_gate_phase_on_control_on() {
+    const double pi = std::acos(-1.0);
+    const double theta = pi / 2.0;
+
+    State s(2, 0);
+    s.set_basis_state(0b11, 1.0); // control=1, target=1
+    s.crz(1, 0, theta);
+    ComplexNumber expected(std::cos(theta / 2.0), std::sin(theta / 2.0));
+    assert_complex_close(expected, s.get_amplitude(0b11), 1e-9, "CRZ should apply phase e^{i theta/2} to |11>");
+}
+
 void test_swap_gate() {
     State s(2, 0);
     s.set_basis_state(0b01, 1.0); // |01>
@@ -185,6 +243,7 @@ void main_core_gate_tests() {
     run_test("H gate on |0>", test_h_gate_on_zero);
     run_test("H gate on |1>", test_h_gate_on_one);
     run_test("S gate phase on |1>", test_s_gate_phase);
+    run_test("Y gate on |0>", test_y_gate_on_zero);
     run_test("Z gate phase on |0> and |1>", test_z_gate_phase);
     run_test("T gate phase on |1>", test_t_gate_phase);
     run_test("RX(pi) on |0> gives -i|1>", test_rx_pi_on_zero);
@@ -195,6 +254,11 @@ void main_core_gate_tests() {
     run_test("QRNG deterministic bits", test_qrng_deterministic_bits);
     run_test("CX gate (control on)", test_cx_gate_control_on);
     run_test("CX gate (control off)", test_cx_gate_control_off);
+    run_test("CNOT alias matches CX", test_cnot_alias_matches_cx);
+    run_test("CZ gate (phase on |11>)", test_cz_gate_phase_on_11);
+    run_test("CY gate (control on)", test_cy_gate_on_10);
+    run_test("CH gate (control on)", test_ch_gate_on_10);
+    run_test("CRZ gate (control on)", test_crz_gate_phase_on_control_on);
     run_test("SWAP gate", test_swap_gate);
 
     std::cout << "------------------------------------------------------------------\n";

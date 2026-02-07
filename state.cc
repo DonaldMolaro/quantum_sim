@@ -146,6 +146,75 @@ State& State::z(int j)
   const double pi = std::acos(-1.0);
   return rz(j, pi);
 }
+
+/** Y Gate: composite via RZ(pi/2), X, RZ(-pi/2). */
+State& State::y(int j)
+{
+  const double pi = std::acos(-1.0);
+  rz(j, pi / 2.0);
+  x(j);
+  rz(j, -pi / 2.0);
+  return *this;
+}
+
+/** CZ Gate (Controlled Z): implemented via H on target, CX, H on target. */
+State& State::cz(int j_control, int k_target)
+{
+  h(k_target);
+  cx(j_control, k_target);
+  h(k_target);
+  return *this;
+}
+
+/** CNOT Gate (alias): implemented via H on target, CZ, H on target. */
+State& State::cnot(int j_control, int k_target)
+{
+  h(k_target);
+  cz(j_control, k_target);
+  h(k_target);
+  return *this;
+}
+
+/** CY Gate (Controlled Y): RZ(-pi/2), CX, RZ(pi/2) on target. */
+State& State::cy(int j_control, int k_target)
+{
+  const double pi = std::acos(-1.0);
+  rz(k_target, -pi / 2.0);
+  cx(j_control, k_target);
+  rz(k_target, pi / 2.0);
+  return *this;
+}
+
+/** CH Gate (Controlled H): composite decomposition using RZ/RY and CX. */
+State& State::ch(int j_control, int k_target)
+{
+  const double pi = std::acos(-1.0);
+  // Decomposition using A, B, C such that A X B X C = H and ABC = I.
+  // For H = RZ(0) RY(pi/2) RZ(pi) (up to global phase):
+  // A = RY(pi/4)
+  // B = RY(-pi/4) RZ(-pi/2)
+  // C = RZ(pi/2)
+  ry(k_target, pi / 4.0);
+  cx(j_control, k_target);
+  ry(k_target, -pi / 4.0);
+  rz(k_target, -pi / 2.0);
+  cx(j_control, k_target);
+  rz(k_target, pi / 2.0);
+  // Correct relative phase to match H on the target when control is 1.
+  cz(j_control, k_target);
+
+  return *this;
+}
+
+/** CRZ Gate (Controlled RZ): composite using CX and RZ rotations. */
+State& State::crz(int j_control, int k_target, double theta)
+{
+  rz(k_target, theta / 2.0);
+  cx(j_control, k_target);
+  rz(k_target, -theta / 2.0);
+  cx(j_control, k_target);
+  return *this;
+}
     
 /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
 State& State::cx(int j_control, int k_target)
