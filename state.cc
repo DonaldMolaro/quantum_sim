@@ -169,10 +169,7 @@ State& State::cz(int j_control, int k_target)
 /** CNOT Gate (alias): implemented via H on target, CZ, H on target. */
 State& State::cnot(int j_control, int k_target)
 {
-  h(k_target);
-  cz(j_control, k_target);
-  h(k_target);
-  return *this;
+  return cx(j_control, k_target);
 }
 
 /** CY Gate (Controlled Y): RZ(-pi/2), CX, RZ(pi/2) on target. */
@@ -504,7 +501,7 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
     }
   else
     {
-      std::cout << "No Classical Registers \n";
+      // No classical register; measurement result is not stored.
     }
   return *this;
 }

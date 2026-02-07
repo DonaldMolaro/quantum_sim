@@ -123,7 +123,7 @@ public:
   State& z(int j);
   /** Y Gate: composite via RZ(pi/2), X, RZ(-pi/2). */
   State& y(int j);
-  /** CNOT Gate (alias): implemented via H on target, CZ, H on target. */
+  /** CNOT Gate (alias): implemented via CX. */
   State& cnot(int j_control, int k_target);
   /** CZ Gate (Controlled Z): H on target, CX, H on target. */
   State& cz(int j_control, int k_target);
@@ -273,5 +273,6 @@ public:
   State& grover_diffusion_Us();
   State& grover_oracle_Uf(Bitstring solution_w);
   State& grover_oracle_Uf_multi(const std::unordered_set<Bitstring>& solutions);
+  State& grover_oracle_Uf_mask(const std::vector<uint8_t>& solution_mask);
   State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);  
 };

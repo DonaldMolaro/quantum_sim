@@ -33,6 +33,5 @@ State& State::swap(int j, int k)
     }
   }
         
-  std::cout << "SWAP gate applied between qubit " << j << " and qubit " << k << ".\n";
   return *this;
 }

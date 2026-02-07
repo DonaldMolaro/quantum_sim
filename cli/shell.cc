@@ -224,6 +224,27 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
 
+  if (cmd == "QFTMODE") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: QFTMODE requires DIRECT or GATE.\n";
+      return;
+    }
+    if (state == nullptr) {
+      std::cerr << "Error: State must be initialized first. Use INIT <N> [C].\n";
+      return;
+    }
+    if (tokens[1] == "DIRECT") {
+      state->set_qft_mode(State::QftMode::Direct);
+      std::cout << "QFT mode set to DIRECT.\n";
+    } else if (tokens[1] == "GATE") {
+      state->set_qft_mode(State::QftMode::Gate);
+      std::cout << "QFT mode set to GATE.\n";
+    } else {
+      std::cerr << "Error: QFTMODE must be DIRECT or GATE.\n";
+    }
+    return;
+  }
+
   if (cmd == "QRNG") {
     int n = get_arg(tokens, 1, "QRNG");
     int count = (tokens.size() > 2) ? get_arg(tokens, 2, "QRNG") : 1;
@@ -537,7 +558,7 @@ void QuantumShell::print_help()
   std::cout << "  Constants: PI, PI/2, PI/4, TAU (case-insensitive).\n";
   std::cout << "  Expressions: nPI, nPI/m (n,m numeric). Examples: RX 0 3PI/2, RZ 1 -PI/4\n";
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
-  std::cout << "CNOT <j> <k>     : Controlled-X alias using CZ decomposition.\n";
+  std::cout << "CNOT <j> <k>     : Controlled-X alias.\n";
   std::cout << "CZ <j> <k>       : Controlled-Z where j is control, k is target.\n";
   std::cout << "CY <j> <k>       : Controlled-Y where j is control, k is target.\n";
   std::cout << "CH <j> <k>       : Controlled-H where j is control, k is target.\n";
@@ -550,6 +571,7 @@ void QuantumShell::print_help()
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
   std::cout << "GROVER <t...>    : Run Grover's algorithm searching for one or more targets\n";
+  std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
   std::cout << "LATIN DEMO [iters] [r0 r1 r2]: Demo with custom row0 permutation\n";
