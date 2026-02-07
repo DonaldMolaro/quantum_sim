@@ -215,6 +215,40 @@ State& State::crz(int j_control, int k_target, double theta)
   cx(j_control, k_target);
   return *this;
 }
+
+/** CRX Gate (Controlled RX): composite via H, CRZ, H. */
+State& State::crx(int j_control, int k_target, double theta)
+{
+  h(k_target);
+  crz(j_control, k_target, theta);
+  h(k_target);
+  return *this;
+}
+
+/** CRY Gate (Controlled RY): composite using RY and CX. */
+State& State::cry(int j_control, int k_target, double theta)
+{
+  ry(k_target, theta / 2.0);
+  cx(j_control, k_target);
+  ry(k_target, -theta / 2.0);
+  cx(j_control, k_target);
+  return *this;
+}
+
+/** CU Gate (Controlled U): composite using RZ/RY and CX. */
+State& State::cu(int j_control, int k_target, double theta, double phi, double lambda)
+{
+  // Controlled-U3 decomposition.
+  // RZ((phi+lambda)/2) RY(theta/2) CX RY(-theta/2) RZ(-(phi+lambda)/2) CX RZ((lambda-phi)/2)
+  rz(k_target, (phi + lambda) / 2.0);
+  ry(k_target, theta / 2.0);
+  cx(j_control, k_target);
+  ry(k_target, -theta / 2.0);
+  rz(k_target, -(phi + lambda) / 2.0);
+  cx(j_control, k_target);
+  rz(k_target, (lambda - phi) / 2.0);
+  return *this;
+}
     
 /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
 State& State::cx(int j_control, int k_target)

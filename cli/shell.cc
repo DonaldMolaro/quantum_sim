@@ -307,15 +307,41 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
 
-  if (cmd == "CRZ") {
+  if (cmd == "CRZ" || cmd == "CRX" || cmd == "CRY") {
     int j = get_arg(tokens, 1, cmd);
     int k = get_arg(tokens, 2, cmd);
     double theta = get_angle_arg_required(tokens, 3, cmd);
     if (j == -1 || k == -1 || std::isnan(theta)) return;
 
     try {
-      state->crz(j, k, theta);
-      std::cout << "CRZ(" << j << ", " << k << ", " << theta << ") applied.\n";
+      if (cmd == "CRZ") {
+        state->crz(j, k, theta);
+        std::cout << "CRZ(" << j << ", " << k << ", " << theta << ") applied.\n";
+      } else if (cmd == "CRX") {
+        state->crx(j, k, theta);
+        std::cout << "CRX(" << j << ", " << k << ", " << theta << ") applied.\n";
+      } else {
+        state->cry(j, k, theta);
+        std::cout << "CRY(" << j << ", " << k << ", " << theta << ") applied.\n";
+      }
+      state->display();
+    } catch (const std::exception& e) {
+      std::cerr << "Operation failed: " << e.what() << "\n";
+    }
+    return;
+  }
+
+  if (cmd == "CU") {
+    int j = get_arg(tokens, 1, cmd);
+    int k = get_arg(tokens, 2, cmd);
+    double theta = get_angle_arg_required(tokens, 3, cmd);
+    double phi = get_angle_arg_required(tokens, 4, cmd);
+    double lambda = get_angle_arg_required(tokens, 5, cmd);
+    if (j == -1 || k == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return;
+
+    try {
+      state->cu(j, k, theta, phi, lambda);
+      std::cout << "CU(" << j << ", " << k << ", " << theta << ", " << phi << ", " << lambda << ") applied.\n";
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -501,6 +527,9 @@ void QuantumShell::print_help()
   std::cout << "CY <j> <k>       : Controlled-Y where j is control, k is target.\n";
   std::cout << "CH <j> <k>       : Controlled-H where j is control, k is target.\n";
   std::cout << "CRZ <j> <k> <t>  : Controlled-RZ with angle t (radians by default).\n";
+  std::cout << "CRX <j> <k> <t>  : Controlled-RX with angle t (radians by default).\n";
+  std::cout << "CRY <j> <k> <t>  : Controlled-RY with angle t (radians by default).\n";
+  std::cout << "CU <j> <k> <t> <p> <l>: Controlled-U with angles (radians by default).\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";

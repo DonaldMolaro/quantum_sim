@@ -124,6 +124,12 @@ public:
   State& ch(int j_control, int k_target);
   /** CRZ Gate (Controlled RZ): composite using CX and RZ rotations. */
   State& crz(int j_control, int k_target, double theta);
+  /** CRX Gate (Controlled RX): composite via H, CRZ, H. */
+  State& crx(int j_control, int k_target, double theta);
+  /** CRY Gate (Controlled RY): composite using RY and CX. */
+  State& cry(int j_control, int k_target, double theta);
+  /** CU Gate (Controlled U): composite using RZ/RY and CX. */
+  State& cu(int j_control, int k_target, double theta, double phi, double lambda);
   /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
   State& cx(int j_control, int k_target);
   /** S Gate (Phase): s.map(λb, a. (b, a * i^b_j)) */

@@ -227,6 +227,43 @@ void test_crz_gate_phase_on_control_on() {
     assert_complex_close(expected, s.get_amplitude(0b11), 1e-9, "CRZ should apply phase e^{i theta/2} to |11>");
 }
 
+void test_crx_gate_on_control_on() {
+    const double pi = std::acos(-1.0);
+    State s(2, 0);
+    s.set_basis_state(0b10, 1.0); // control=1, target=0
+    s.crx(1, 0, pi);
+    ComplexNumber a10 = s.get_amplitude(0b10);
+    ComplexNumber a11 = s.get_amplitude(0b11);
+    assert_complex_close(0.0, a10, 1e-9, "CRX(pi) should clear |10>");
+    bool ok = (std::abs(a11 - ComplexNumber(0.0, 1.0)) < 1e-9) ||
+              (std::abs(a11 - ComplexNumber(0.0, -1.0)) < 1e-9);
+    if (!ok) {
+        throw std::runtime_error("CRX(pi) should map |10> to ±i|11> (global phase)");
+    }
+}
+
+void test_cry_gate_on_control_on() {
+    const double pi = std::acos(-1.0);
+    State s(2, 0);
+    s.set_basis_state(0b10, 1.0); // control=1, target=0
+    s.cry(1, 0, pi);
+    ComplexNumber a10 = s.get_amplitude(0b10);
+    ComplexNumber a11 = s.get_amplitude(0b11);
+    assert_complex_close(0.0, a10, 1e-9, "CRY(pi) should clear |10>");
+    assert_complex_close(1.0, std::abs(a11), 1e-9, "CRY(pi) should map |10> to |11> (up to phase)");
+}
+
+void test_cu_gate_matches_cnot_like() {
+    const double pi = std::acos(-1.0);
+    State s(2, 0);
+    s.set_basis_state(0b10, 1.0); // control=1, target=0
+    s.cu(1, 0, pi, 0.0, 0.0); // U(pi,0,0) == RY(pi)
+    ComplexNumber a10 = s.get_amplitude(0b10);
+    ComplexNumber a11 = s.get_amplitude(0b11);
+    assert_complex_close(0.0, a10, 1e-9, "CU(pi,0,0) should clear |10>");
+    assert_complex_close(1.0, std::abs(a11), 1e-9, "CU(pi,0,0) should map |10> to |11> (up to phase)");
+}
+
 void test_swap_gate() {
     State s(2, 0);
     s.set_basis_state(0b01, 1.0); // |01>
@@ -259,6 +296,9 @@ void main_core_gate_tests() {
     run_test("CY gate (control on)", test_cy_gate_on_10);
     run_test("CH gate (control on)", test_ch_gate_on_10);
     run_test("CRZ gate (control on)", test_crz_gate_phase_on_control_on);
+    run_test("CRX gate (control on)", test_crx_gate_on_control_on);
+    run_test("CRY gate (control on)", test_cry_gate_on_control_on);
+    run_test("CU gate (control on)", test_cu_gate_matches_cnot_like);
     run_test("SWAP gate", test_swap_gate);
 
     std::cout << "------------------------------------------------------------------\n";
