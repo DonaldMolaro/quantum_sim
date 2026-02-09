@@ -78,6 +78,22 @@ static Bitstring run_shor_algorithm_quantum_part(Bitstring N, Bitstring a, int& 
   int num_cbits = n_c;
 
   out_n_c = n_c;
+  const int kMaxShorQubits = 24;
+  if (total_qubits > kMaxShorQubits) {
+    int max_n_t = kMaxShorQubits / 3;
+    Bitstring max_n = 0;
+    if (max_n_t > 0 && max_n_t < 63) {
+      max_n = (1ULL << max_n_t) - 1;
+    }
+    std::cout << "Shor demo limited to " << kMaxShorQubits
+              << " qubits; N=" << N
+              << " needs " << total_qubits
+              << " qubits (n_t=" << n_t << ", n_c=" << n_c << ").\n";
+    if (max_n > 0) {
+      std::cout << "Try N <= " << max_n << " for this simulator.\n";
+    }
+    return 0ULL;
+  }
   if (n_c >= 63) {
     std::cout << "Control register too large for 64-bit demo (n_c=" << n_c << ").\n";
     return 0ULL;
