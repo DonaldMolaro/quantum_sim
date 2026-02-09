@@ -1439,10 +1439,24 @@ void test_shor_demo_branches() {
     }
 
     run_shor_demo(1ULL << 20);
+    run_shor_demo((1ULL << 20) + 1); // odd, triggers max-qubits guard
 
     {
         ScopedEnv env_attempts3("QSIM_SHOR_MAX_ATTEMPTS", "1");
         ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts3b("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "7");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts3c("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "7");
         run_shor_demo(15);
     }
 
@@ -1460,6 +1474,15 @@ void test_shor_demo_branches() {
         ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
         ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "4");
         ScopedEnv env_r("QSIM_SHOR_FORCE_R", "1");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts5b("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "1");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "4");
+        ScopedEnv env_r("QSIM_SHOR_FORCE_R", "2");
         run_shor_demo(15);
     }
 
@@ -1488,6 +1511,27 @@ void test_shor_demo_branches() {
         ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "4");
         ScopedEnv env_r("QSIM_SHOR_FORCE_R", "4");
         run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts9("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "7");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "4");
+        ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "4");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts10("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "0");
+        ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "0");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts11("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "2");
+        run_shor_demo((1ULL << 32) + 1);
     }
 }
 
