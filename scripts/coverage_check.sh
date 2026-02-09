@@ -54,6 +54,8 @@ for f in $gcov_files; do
               :
             elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/demos/latin_demo.cc" ]; then
               :
+            elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/demos/grover_demo.cc" ]; then
+              :
             else
               filtered="$filtered $f"
             fi

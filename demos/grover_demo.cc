@@ -1,7 +1,4 @@
-/*
- * Grover search demo helpers (thin wrappers around the core Grover API).
- */
-#include "state.hh"
+#include "demos/grover_demo.hh"
 #include "algorithms/api/grover_api.hh"
 #include <vector>
 

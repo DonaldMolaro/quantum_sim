@@ -11,6 +11,7 @@
 #include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/qrng.hh"
+#include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
 #include <algorithm>
@@ -22,7 +23,6 @@
 #include <string>
 #include <vector>
 
-extern void run_grover_search(State *s,Bitstring targer_w);
 
 static std::string bits_to_string(const std::vector<int>& bits)
 {

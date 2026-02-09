@@ -6,6 +6,7 @@
 #include "algorithms/oracle.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
+#include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
 #include "math/bit_ops.hh"

@@ -4,6 +4,7 @@
 #include "algorithms/latin_square.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
+#include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
 #include "math/mod_arith.hh"
@@ -38,8 +39,6 @@ void run_test(const std::string& name, std::function<void()> test_func) {
     }
 }
 
-void run_grover_search(State *s, Bitstring target_w);
-void run_grover_search_multi(State *s, const std::vector<Bitstring>& targets);
 
 using test_helpers::assert_complex_equal;
 using test_helpers::assert_complex_close;
