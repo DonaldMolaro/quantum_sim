@@ -396,7 +396,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
 
-  if (cmd == "CCX") {
+  if (cmd == "CCX" || cmd == "TOFFOLI") {
     int c1 = get_arg(tokens, 1, cmd);
     int c2 = get_arg(tokens, 2, cmd);
     int t = get_arg(tokens, 3, cmd);
@@ -404,7 +404,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
     try {
       state->ccx(c1, c2, t);
-      std::cout << "CCX(" << c1 << ", " << c2 << ", " << t << ") applied.\n";
+      std::cout << cmd << "(" << c1 << ", " << c2 << ", " << t << ") applied.\n";
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -567,6 +567,7 @@ void QuantumShell::print_help()
   std::cout << "CRY <j> <k> <t>  : Controlled-RY with angle t (radians by default).\n";
   std::cout << "CU <j> <k> <t> <p> <l>: Controlled-U with angles (radians by default).\n";
   std::cout << "CCX <c1> <c2> <t>: Toffoli (double-controlled X).\n";
+  std::cout << "TOFFOLI <c1> <c2> <t>: Alias for CCX.\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
