@@ -1,5 +1,5 @@
 #include "algorithms/shor_quantum.hh"
-#include "math/register_layout.hh"
+#include "internal/register_layout.hh"
 #include <cmath>
 #include <string>
 

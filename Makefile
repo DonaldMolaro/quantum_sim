@@ -97,5 +97,3 @@ install: $(LIB_NAME)
 	cp demos/grover_demo.hh dist/include/demos/
 	cp math/bit_ops.hh dist/include/math/
 	cp math/mod_arith.hh dist/include/math/
-	cp math/qft_utils.hh dist/include/math/
-	cp math/register_layout.hh dist/include/math/

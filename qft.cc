@@ -1,6 +1,6 @@
 #include "state.hh"
 #include "math/bit_ops.hh"
-#include "math/qft_utils.hh"
+#include "internal/qft_utils.hh"
 #include <iostream>
 
 State& State::controlled_Rr(int control_j, int target_k, int r)
