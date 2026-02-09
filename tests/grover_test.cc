@@ -179,7 +179,7 @@ static bool run_grover_api_stress_case()
   return run_grover_api_case(n_qubits, targets, -1, 0.2);
 }
 
-int main()
+int run_grover_tests()
 {
   bool ok = true;
 
@@ -225,3 +225,10 @@ int main()
   std::cout << "Grover tests passed.\n";
   return 0;
 }
+
+#ifndef ALL_TESTS
+int main()
+{
+  return run_grover_tests();
+}
+#endif

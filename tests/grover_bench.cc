@@ -66,7 +66,7 @@ static void run_case(int n_qubits, const std::vector<Bitstring>& targets, int sa
             << "\n";
 }
 
-int main()
+int run_grover_bench()
 {
   auto start = std::chrono::steady_clock::now();
 
@@ -79,3 +79,10 @@ int main()
   std::cout << "Grover bench elapsed: " << elapsed.count() << "s\n";
   return 0;
 }
+
+#ifndef ALL_TESTS
+int main()
+{
+  return run_grover_bench();
+}
+#endif
