@@ -8,11 +8,11 @@ TARGETS = quantum_sim all_tests
 LIB_NAME = libquantum_sim.a
 LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	math/bit_ops.cc math/mod_arith.cc \
-	algorithms/grover.cc \
+	algorithms/grover.cc algorithms/deutsch_jozsa.cc \
 	algorithms/shor_classical.cc algorithms/shor_quantum.cc \
 	algorithms/latin_square.cc algorithms/qrng.cc algorithms/api/grover_api.cc \
 	algorithms/api/shor_api.cc demos/latin_demo.cc demos/shor_demo.cc \
-	demos/grover_demo.cc
+	demos/grover_demo.cc demos/deutsch_jozsa_demo.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 CLI_SOURCES = cli/commands.cc cli/shell.cc cli/main.cc
 DRIVER_SOURCES = $(CLI_SOURCES)
@@ -100,11 +100,13 @@ install: $(LIB_NAME)
 	cp state.hh dist/include/
 	cp modular_exp.hh dist/include/
 	cp algorithms/latin_square.hh dist/include/algorithms/
+	cp algorithms/deutsch_jozsa.hh dist/include/algorithms/
 	cp algorithms/qrng.hh dist/include/algorithms/
 	cp algorithms/api/grover_api.hh dist/include/algorithms/api/
 	cp algorithms/api/shor_api.hh dist/include/algorithms/api/
 	cp demos/latin_demo.hh dist/include/demos/
 	cp demos/shor_demo.hh dist/include/demos/
 	cp demos/grover_demo.hh dist/include/demos/
+	cp demos/deutsch_jozsa_demo.hh dist/include/demos/
 	cp math/bit_ops.hh dist/include/math/
 	cp math/mod_arith.hh dist/include/math/

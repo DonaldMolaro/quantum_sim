@@ -13,6 +13,7 @@ protocols and algorithms supported by the simulator.
 - `qrng_demo.md`: Quantum random number generator demo
 - `shor_usage.md`: Shor demo usage (small composites)
 - `grover_usage.md`: Grover demo + manual oracle by hand
+- `deutsch_jozsa.md`: Deutsch–Jozsa demo (constant vs balanced)
 
 ## Running the CLI
 

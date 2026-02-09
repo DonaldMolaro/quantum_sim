@@ -12,6 +12,7 @@
 #include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/qrng.hh"
+#include "demos/deutsch_jozsa_demo.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
@@ -107,6 +108,80 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       std::cout << "QRNG[" << i << "] bits=" << bits_to_string(bits)
                 << " value=" << bits_to_u64(bits) << "\n";
     }
+    return;
+  }
+
+  if (cmd == "DEUTSCH_JOZSA" || cmd == "DEUTSCH") {
+    int n_inputs = cli::get_arg(tokens, 1, cmd);
+    if (n_inputs == -1) return;
+    if (tokens.size() < 3) {
+      std::cerr << "Error: " << cmd << " requires an oracle (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY).\n";
+      return;
+    }
+    run_deutsch_jozsa_demo(n_inputs, tokens[2]);
+    return;
+  }
+
+  if (cmd == "LATIN") {
+    size_t idx = 1;
+    std::string mode = "demo";
+    if (idx < tokens.size()) {
+      if (tokens[idx] == "DEMO" || tokens[idx] == "COUNT" || tokens[idx] == "PRINT-ALL") {
+        mode = tokens[idx];
+        ++idx;
+      }
+    }
+
+    int iters = -1;
+    std::vector<int> row0;
+
+    if (idx < tokens.size()) {
+      int maybe_iters = cli::get_arg(tokens, idx, "LATIN");
+      if (maybe_iters == -1) return;
+      if (mode == "DEMO") {
+        iters = maybe_iters;
+        ++idx;
+      }
+    }
+
+    while (idx < tokens.size()) {
+      int v = cli::get_arg(tokens, idx, "LATIN");
+      if (v == -1) return;
+      row0.push_back(v);
+      ++idx;
+    }
+
+    int row_vals[3] = {0, 1, 2};
+    if (!row0.empty()) {
+      if (row0.size() != 3) {
+        std::cerr << "LATIN row0 must have exactly 3 values.\n";
+        return;
+      }
+      row_vals[0] = row0[0];
+      row_vals[1] = row0[1];
+      row_vals[2] = row0[2];
+    }
+
+    if (mode == "COUNT") {
+      run_latin3_count_row0(row_vals);
+      return;
+    }
+    if (mode == "PRINT-ALL") {
+      run_latin3_print_all_row0(row_vals);
+      return;
+    }
+
+    if (!row0.empty() || iters >= 0) {
+      run_latin3_grover_demo_row0(row_vals, iters);
+    } else {
+      run_latin3_grover_demo(-1);
+    }
+    return;
+  }
+  if (cmd == "SHOR") {
+    int N = cli::get_arg(tokens, 1, "SHOR");
+    if (N == -1) return;
+    run_shor_demo(static_cast<Bitstring>(N));
     return;
   }
 
@@ -284,68 +359,6 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     std::cout << "Grover iterations used: " << result.iterations << "\n";
     return;
   }
-  if (cmd == "LATIN") {
-    size_t idx = 1;
-    std::string mode = "demo";
-    if (idx < tokens.size()) {
-      if (tokens[idx] == "DEMO" || tokens[idx] == "COUNT" || tokens[idx] == "PRINT-ALL") {
-        mode = tokens[idx];
-        ++idx;
-      }
-    }
-
-    int iters = -1;
-    std::vector<int> row0;
-
-    if (idx < tokens.size()) {
-      int maybe_iters = cli::get_arg(tokens, idx, "LATIN");
-      if (maybe_iters == -1) return;
-      if (mode == "DEMO") {
-        iters = maybe_iters;
-        ++idx;
-      }
-    }
-
-    while (idx < tokens.size()) {
-      int v = cli::get_arg(tokens, idx, "LATIN");
-      if (v == -1) return;
-      row0.push_back(v);
-      ++idx;
-    }
-
-    int row_vals[3] = {0, 1, 2};
-    if (!row0.empty()) {
-      if (row0.size() != 3) {
-        std::cerr << "LATIN row0 must have exactly 3 values.\n";
-        return;
-      }
-      row_vals[0] = row0[0];
-      row_vals[1] = row0[1];
-      row_vals[2] = row0[2];
-    }
-
-    if (mode == "COUNT") {
-      run_latin3_count_row0(row_vals);
-      return;
-    }
-    if (mode == "PRINT-ALL") {
-      run_latin3_print_all_row0(row_vals);
-      return;
-    }
-
-    if (!row0.empty() || iters >= 0) {
-      run_latin3_grover_demo_row0(row_vals, iters);
-    } else {
-      run_latin3_grover_demo(-1);
-    }
-    return;
-  }
-  if (cmd == "SHOR") {
-    int N = cli::get_arg(tokens, 1, "SHOR");
-    if (N == -1) return;
-    run_shor_demo(static_cast<Bitstring>(N));
-    return;
-  }
 
   // --- Measurement ---
   if (cmd == "MEASURE") {
@@ -414,6 +427,7 @@ void QuantumShell::print_help()
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
   std::cout << "GROVER <t...>    : Run Grover's algorithm searching for one or more targets\n";
+  std::cout << "DEUTSCH_JOZSA <n> <oracle> : Run Deutsch-Jozsa demo (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY)\n";
   std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";

@@ -2,6 +2,7 @@
 #include "tests/helpers.hh"
 #include "algorithms/qrng.hh"
 #include "algorithms/latin_square.hh"
+#include "algorithms/deutsch_jozsa.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
 #include "algorithms/shor_classical.hh"
@@ -1251,6 +1252,99 @@ void test_qrng_edges() {
     }
 }
 
+void test_deutsch_jozsa_constant_oracles()
+{
+    DeutschJozsaResult r0 = run_deutsch_jozsa(3, DeutschJozsaOracle::ConstantZero);
+    if (!r0.ok || !r0.is_constant) {
+        throw std::runtime_error("Expected ConstantZero to be classified as constant");
+    }
+    for (int bit : r0.input_measurement) {
+        if (bit != 0) {
+            throw std::runtime_error("Expected ConstantZero to measure all zeros");
+        }
+    }
+
+    DeutschJozsaResult r1 = run_deutsch_jozsa(3, DeutschJozsaOracle::ConstantOne);
+    if (!r1.ok || !r1.is_constant) {
+        throw std::runtime_error("Expected ConstantOne to be classified as constant");
+    }
+    for (int bit : r1.input_measurement) {
+        if (bit != 0) {
+            throw std::runtime_error("Expected ConstantOne to measure all zeros");
+        }
+    }
+}
+
+void test_deutsch_jozsa_balanced_oracles()
+{
+    DeutschJozsaResult r0 = run_deutsch_jozsa(3, DeutschJozsaOracle::BalancedXor0);
+    if (!r0.ok || r0.is_constant) {
+        throw std::runtime_error("Expected BalancedXor0 to be classified as balanced");
+    }
+    bool any_one = false;
+    for (int bit : r0.input_measurement) {
+        if (bit != 0) {
+            any_one = true;
+            break;
+        }
+    }
+    if (!any_one) {
+        throw std::runtime_error("Expected BalancedXor0 to measure a non-zero input register");
+    }
+
+    DeutschJozsaResult r1 = run_deutsch_jozsa(3, DeutschJozsaOracle::BalancedParity);
+    if (!r1.ok || r1.is_constant) {
+        throw std::runtime_error("Expected BalancedParity to be classified as balanced");
+    }
+}
+
+void test_deutsch_jozsa_oracle_helpers()
+{
+    DeutschJozsaOracle oracle;
+    if (!parse_deutsch_jozsa_oracle("CONST0", oracle)) {
+        throw std::runtime_error("Expected CONST0 to parse");
+    }
+    if (std::string(deutsch_jozsa_oracle_name(oracle)).empty()) {
+        throw std::runtime_error("Expected oracle name to be non-empty");
+    }
+    if (!parse_deutsch_jozsa_oracle("CONST1", oracle)) {
+        throw std::runtime_error("Expected CONST1 to parse");
+    }
+    if (std::string(deutsch_jozsa_oracle_name(oracle)).empty()) {
+        throw std::runtime_error("Expected CONST1 oracle name to be non-empty");
+    }
+    if (!parse_deutsch_jozsa_oracle("balanced_xor0", oracle)) {
+        throw std::runtime_error("Expected BALANCED_XOR0 to parse case-insensitive");
+    }
+    if (std::string(deutsch_jozsa_oracle_name(oracle)).empty()) {
+        throw std::runtime_error("Expected BALANCED_XOR0 oracle name to be non-empty");
+    }
+    if (!parse_deutsch_jozsa_oracle("balanced_parity", oracle)) {
+        throw std::runtime_error("Expected BALANCED_PARITY to parse case-insensitive");
+    }
+    if (std::string(deutsch_jozsa_oracle_name(oracle)).empty()) {
+        throw std::runtime_error("Expected BALANCED_PARITY oracle name to be non-empty");
+    }
+    if (parse_deutsch_jozsa_oracle("unknown", oracle)) {
+        throw std::runtime_error("Expected unknown oracle to fail parsing");
+    }
+
+    DeutschJozsaResult bad = run_deutsch_jozsa(0, DeutschJozsaOracle::ConstantZero);
+    if (bad.ok || bad.error.empty()) {
+        throw std::runtime_error("Expected invalid n_inputs to return error");
+    }
+
+    DeutschJozsaResult too_large = run_deutsch_jozsa(63, DeutschJozsaOracle::ConstantZero);
+    if (too_large.ok || too_large.error.empty()) {
+        throw std::runtime_error("Expected too-large n_inputs to return error");
+    }
+
+    const char* unknown = deutsch_jozsa_oracle_name(static_cast<DeutschJozsaOracle>(-1));
+    if (std::string(unknown).empty()) {
+        throw std::runtime_error("Expected unknown oracle name fallback");
+    }
+}
+
 void test_grover_search_helpers() {
     run_grover_search(nullptr, 1);
     State s(2, 0);
@@ -1646,6 +1740,9 @@ int run_unit_tests()
   run_test("Mod arithmetic (gcd)", test_mod_arith_gcd_basic);
   run_test("Mod arithmetic (mod_pow)", test_mod_arith_mod_pow_edges);
   run_test("QRNG edge cases", test_qrng_edges);
+  run_test("Deutsch-Jozsa constant oracles", test_deutsch_jozsa_constant_oracles);
+  run_test("Deutsch-Jozsa balanced oracles", test_deutsch_jozsa_balanced_oracles);
+  run_test("Deutsch-Jozsa oracle helpers", test_deutsch_jozsa_oracle_helpers);
   run_test("Grover search helpers", test_grover_search_helpers);
   run_test("Grover API errors", test_grover_api_errors);
   run_test("Display output paths", test_display_output_paths);

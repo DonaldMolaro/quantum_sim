@@ -60,6 +60,8 @@ for f in $gcov_files; do
               :
             elif [ "$exclude_demo" -eq 1 ] && [ "$resolved" = "$root/demos/grover_demo.cc" ]; then
               :
+            elif [ "$exclude_demo" -eq 1 ] && [ "$resolved" = "$root/demos/deutsch_jozsa_demo.cc" ]; then
+              :
             else
               filtered="$filtered $f"
             fi
