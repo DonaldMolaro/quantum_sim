@@ -9,6 +9,7 @@ LIB_NAME = libquantum_sim.a
 LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	math/bit_ops.cc math/mod_arith.cc \
 	algorithms/grover.cc algorithms/grover_search.cc algorithms/shor.cc \
+	algorithms/shor_classical.cc algorithms/shor_quantum.cc \
 	algorithms/latin_square.cc algorithms/qrng.cc algorithms/api/grover_api.cc \
 	algorithms/api/shor_api.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)

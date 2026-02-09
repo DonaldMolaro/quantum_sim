@@ -1523,6 +1523,7 @@ void test_shor_demo_branches() {
 
     {
         ScopedEnv env_attempts10("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "7");
         ScopedEnv env_x("QSIM_SHOR_FORCE_X", "0");
         ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "0");
         run_shor_demo(15);

@@ -34,6 +34,8 @@ Notes:
 - `display.cc`: state visualization
 - `math/`: bit operations and modular arithmetic helpers
 - `algorithms/`: Grover and Shor implementations
+- `algorithms/shor_classical.*`: continued fractions + order extraction helpers
+- `algorithms/shor_quantum.*`: quantum order-finding routines
 - `tests/`: unit tests and Grover tests
 - `cli/`: interactive CLI driver program
 
