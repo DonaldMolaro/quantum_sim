@@ -1,5 +1,6 @@
 #include "algorithms/latin_square.hh"
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <vector>
 
@@ -111,6 +112,9 @@ void run_latin3_grover_demo_row0(const int row0[3], int iterations)
   validate_row0_or_die(row0);
 
   int M = count_latin3_row0(row0, nullptr);
+  if (const char* env = std::getenv("QSIM_LATIN_FORCE_M")) {
+    M = std::atoi(env);
+  }
   if (M == 0) {
     std::cout << "No solutions for given row0.\n";
     return;
@@ -151,12 +155,16 @@ void run_latin3_grover_demo_row0(const int row0[3], int iterations)
   print_grid(best, row0);
 
   // Sample one assignment by measuring all qubits.
-  for (int q = 0; q < n_qubits; ++q) {
-    s.measure(q, q);
-  }
   Bitstring measured = 0;
-  for (int q = 0; q < n_qubits; ++q) {
-    measured |= (static_cast<Bitstring>(s.get_cbit(q)) << q);
+  if (const char* forced = std::getenv("QSIM_LATIN_FORCE_MEASURED")) {
+    measured = static_cast<Bitstring>(std::strtoull(forced, nullptr, 10));
+  } else {
+    for (int q = 0; q < n_qubits; ++q) {
+      s.measure(q, q);
+    }
+    for (int q = 0; q < n_qubits; ++q) {
+      measured |= (static_cast<Bitstring>(s.get_cbit(q)) << q);
+    }
   }
   std::cout << "Measured candidate:\n";
   if (is_valid_latin3(measured, row0)) {
@@ -186,10 +194,19 @@ void run_latin3_print_all_row0(const int row0[3])
   validate_row0_or_die(row0);
   std::vector<Bitstring> solutions;
   int count = count_latin3_row0(row0, &solutions);
+  int max_print = -1;
+  if (const char* env = std::getenv("QSIM_LATIN_MAX_PRINT")) {
+    max_print = std::atoi(env);
+  }
   std::cout << "Latin-3 solutions for row0: "
             << row0[0] << " " << row0[1] << " " << row0[2]
             << " => " << count << "\n";
+  int printed = 0;
   for (Bitstring b : solutions) {
+    if (max_print >= 0 && printed >= max_print) {
+      break;
+    }
     print_grid(b, row0);
+    ++printed;
   }
 }

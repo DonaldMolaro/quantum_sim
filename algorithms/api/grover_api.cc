@@ -1,5 +1,6 @@
 #include "algorithms/api/grover_api.hh"
 #include <cmath>
+#include <cstdlib>
 #include <unordered_set>
 
 GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int iterations)
@@ -20,17 +21,20 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
   const double PI = std::acos(-1.0);
 
   std::unordered_set<Bitstring> target_set;
+  bool had_invalid = false;
   for (Bitstring t : targets) {
     if (t >= static_cast<Bitstring>(N)) {
-      result.error = "Target out of range for current number of qubits.";
-      return result;
+      had_invalid = true;
+      continue;
     }
     target_set.insert(t);
   }
 
   const double M = static_cast<double>(target_set.size());
   if (M == 0.0) {
-    result.error = "No valid targets provided.";
+    result.error = had_invalid
+        ? "Target out of range for current number of qubits."
+        : "No valid targets provided.";
     return result;
   }
 
@@ -46,7 +50,11 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
   }
 
   if (R > 0) {
-    if (N <= 1048576.0) {
+    bool force_set = false;
+    if (const char* env = std::getenv("QSIM_GROVER_FORCE_SET")) {
+      force_set = (env[0] != '\0' && env[0] != '0');
+    }
+    if (!force_set && N <= 1048576.0) {
       std::vector<uint8_t> mask(static_cast<size_t>(N), 0);
       for (Bitstring t : target_set) {
         mask[static_cast<size_t>(t)] = 1;

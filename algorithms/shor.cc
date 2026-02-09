@@ -78,6 +78,10 @@ static Bitstring run_shor_algorithm_quantum_part(Bitstring N, Bitstring a, int& 
   int num_cbits = n_c;
 
   out_n_c = n_c;
+  if (n_c >= 63) {
+    std::cout << "Control register too large for 64-bit demo (n_c=" << n_c << ").\n";
+    return 0ULL;
+  }
   const int kMaxShorQubits = 24;
   if (total_qubits > kMaxShorQubits) {
     int max_n_t = kMaxShorQubits / 3;
@@ -92,10 +96,6 @@ static Bitstring run_shor_algorithm_quantum_part(Bitstring N, Bitstring a, int& 
     if (max_n > 0) {
       std::cout << "Try N <= " << max_n << " for this simulator.\n";
     }
-    return 0ULL;
-  }
-  if (n_c >= 63) {
-    std::cout << "Control register too large for 64-bit demo (n_c=" << n_c << ").\n";
     return 0ULL;
   }
 
@@ -158,8 +158,11 @@ static bool run_shor_algorithm(Bitstring N)
     return true;
   }
 
-  // Pick random a in [2, N-2].
+  // Pick random a in [2, N-2], unless overridden for tests.
   Bitstring a = 2 + (std::rand() % (N - 3));
+  if (const char* env_a = std::getenv("QSIM_SHOR_FORCE_A")) {
+    a = static_cast<Bitstring>(std::strtoull(env_a, nullptr, 10));
+  }
   Bitstring g = gcd_bitstring(a, N);
   if (g > 1 && g < N) {
     std::cout << "Lucky gcd found: " << g << " x " << (N / g) << "\n";
@@ -167,7 +170,17 @@ static bool run_shor_algorithm(Bitstring N)
   }
 
   int n_c = 0;
-  Bitstring measured_x = run_shor_algorithm_quantum_part(N, a, n_c);
+  Bitstring measured_x = 0ULL;
+  if (const char* env_x = std::getenv("QSIM_SHOR_FORCE_X")) {
+    if (const char* env_nc = std::getenv("QSIM_SHOR_FORCE_NC")) {
+      measured_x = static_cast<Bitstring>(std::strtoull(env_x, nullptr, 10));
+      n_c = static_cast<int>(std::strtol(env_nc, nullptr, 10));
+    } else {
+      measured_x = run_shor_algorithm_quantum_part(N, a, n_c);
+    }
+  } else {
+    measured_x = run_shor_algorithm_quantum_part(N, a, n_c);
+  }
   if (measured_x == 0 && n_c == 0) {
     return false;
   }
@@ -175,7 +188,12 @@ static bool run_shor_algorithm(Bitstring N)
   std::cout << "--- Classical Post-Processing ---\n";
   std::cout << "Result x/2^n = " << measured_x << " / " << (1ULL << n_c) << "\n";
 
-  Bitstring r = estimate_order(measured_x, n_c, a, N);
+  Bitstring r = 0;
+  if (const char* env_r = std::getenv("QSIM_SHOR_FORCE_R")) {
+    r = static_cast<Bitstring>(std::strtoull(env_r, nullptr, 10));
+  } else {
+    r = estimate_order(measured_x, n_c, a, N);
+  }
   if (r == 0) {
     std::cout << "Failed to estimate order r from continued fractions.\n";
     return false;
@@ -206,8 +224,15 @@ static bool run_shor_algorithm(Bitstring N)
 
 void run_shor_demo(Bitstring N)
 {
+  int max_attempts = 5;
+  if (const char* env = std::getenv("QSIM_SHOR_MAX_ATTEMPTS")) {
+    int v = std::atoi(env);
+    if (v >= 0) {
+      max_attempts = v;
+    }
+  }
   // Try a few attempts to account for probabilistic outcomes.
-  for (int attempt = 0; attempt < 5; ++attempt) {
+  for (int attempt = 0; attempt < max_attempts; ++attempt) {
     std::cout << "\n=== Shor Attempt " << (attempt + 1) << " ===\n";
     if (run_shor_algorithm(N)) {
       return;

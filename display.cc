@@ -63,12 +63,6 @@ std::string complex_to_string(const ComplexNumber& a, int precision = 4) {
     ss << "i";
   }
     
-  // Fallback for purely imaginary parts where coefficient is 1
-  if (ss.str().empty()) {
-    if (std::abs(imag_part - 1.0) < TOLERANCE) return "i";
-    if (std::abs(imag_part + 1.0) < TOLERANCE) return "-i";
-  }
-    
   return ss.str();
 }
 

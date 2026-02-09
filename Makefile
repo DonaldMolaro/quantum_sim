@@ -1,6 +1,7 @@
 # Define variables
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -I.
+LDFLAGS =
 CXXDEPFLAGS = -MMD -MP
 
 TARGETS = quantum_sim all_tests
@@ -26,10 +27,10 @@ $(LIB_NAME): $(LIB_OBJECTS)
 	ar rcs $(LIB_NAME) $(LIB_OBJECTS)
 
 quantum_sim : $(LIB_NAME) $(DRIVER_OBJECTS)
-	$(CXX) $(CXXFLAGS) $(DRIVER_OBJECTS) $(LIB_NAME) -o quantum_sim
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DRIVER_OBJECTS) $(LIB_NAME) -o quantum_sim
 
 all_tests : tests/all_tests.o $(LIB_NAME)
-	$(CXX) $(CXXFLAGS) tests/all_tests.o $(LIB_NAME) -o all_tests
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) tests/all_tests.o $(LIB_NAME) -o all_tests
 
 # Rule to compile .cc files into .o files (using implicit rule)
 .cc.o:
@@ -46,8 +47,33 @@ clean:
 
 .PHONY: clean test
 
-test: all_tests
-	./all_tests
+ifeq ($(COVERAGE),1)
+CXXFLAGS += -O0 -g --coverage
+LDFLAGS += --coverage
+endif
+
+test:
+	$(MAKE) clean
+	$(MAKE) COVERAGE=1 all_tests
+	find . -name "*.gcda" -delete
+	find . -name "*.gcov" -delete
+	QSIM_TEST_VERBOSE=1 ./all_tests
+	./scripts/coverage_check.sh
+
+.PHONY: test-slow
+test-slow:
+	$(MAKE) clean
+	$(MAKE) COVERAGE=1 all_tests
+	find . -name "*.gcda" -delete
+	find . -name "*.gcov" -delete
+	QSIM_TEST_VERBOSE=1 QSIM_SLOW_TESTS=1 ./all_tests
+	QSIM_SLOW_TESTS=1 ./scripts/coverage_check.sh
+
+.PHONY: coverage
+coverage:
+	$(MAKE) COVERAGE=1 all_tests
+	QSIM_TEST_VERBOSE=1 ./all_tests
+	./scripts/coverage_check.sh
 
 .PHONY: install
 install: $(LIB_NAME)

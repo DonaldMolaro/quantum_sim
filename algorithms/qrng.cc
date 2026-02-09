@@ -1,5 +1,6 @@
 #include "algorithms/qrng.hh"
 #include "state.hh"
+#include <cstdlib>
 
 std::vector<int> qrng_bits(int n, const std::vector<double>* random_vals)
 {
@@ -31,6 +32,12 @@ uint64_t qrng_u64(int n, const std::vector<double>* random_vals)
   }
   if (n > 63) {
     n = 63;
+  }
+  if (const char* env = std::getenv("QSIM_QRNG_MAX_QUBITS")) {
+    int cap = std::atoi(env);
+    if (cap > 0 && n > cap) {
+      n = cap;
+    }
   }
 
   std::vector<int> bits = qrng_bits(n, random_vals);

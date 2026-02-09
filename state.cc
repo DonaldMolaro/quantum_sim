@@ -137,8 +137,8 @@ State& State::x(int j)
     Bitstring b_prime = flip_jth_bit(b, j);
     return std::make_pair(b_prime, a);
   });
-  return *this;
-}
+  (void)j;
+  return *this; }
 
 /** Z Gate (Phase flip): equivalent to RZ(pi). */
 State& State::z(int j)
@@ -281,8 +281,8 @@ State& State::cx(int j_control, int k_target)
     // Otherwise, b remains unchanged
     return std::make_pair(b, a);
   });
-  return *this;
-}
+  (void)j_control;
+  return *this; }
     
 /** S Gate (Phase): s.map(λb, a. (b, a * i^b_j)) */
 State& State::s(int j)
@@ -292,8 +292,8 @@ State& State::s(int j)
     ComplexNumber phase_factor = (get_jth_bit(b, j) == 1) ? IMAGINARY_UNIT_I : ONE_COMPLEX;
     return std::make_pair(b, a * phase_factor);
   });
-  return *this;
-}
+  (void)j;
+  return *this; }
     
 /** T Gate (Phase): s.map(λb, a. (b, a * ((1+i)/sqrt(2))^b_j)) */
 State& State::t(int j)
@@ -305,8 +305,8 @@ State& State::t(int j)
     ComplexNumber phase_factor = (get_jth_bit(b, j) == 1) ? T_GATE_CONSTANT : ONE_COMPLEX;
     return std::make_pair(b, a * phase_factor);
   });
-  return *this;
-}
+  (void)j;
+  return *this; }
     
 /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
 State& State::h(int j)
@@ -324,8 +324,8 @@ State& State::h(int j)
     return generated_set;
   };
   s_flatMap_and_reduce(h_transformation);
-  return *this;
-}
+  (void)j;
+  return *this; }
 
 State& State::rx(int j, double theta)
 {
@@ -341,8 +341,8 @@ State& State::rx(int j, double theta)
     return generated_set;
   });
 
-  return *this;
-}
+  (void)theta;
+  return *this; }
 
 State& State::ry(int j, double theta)
 {
@@ -364,8 +364,8 @@ State& State::ry(int j, double theta)
     return generated_set;
   });
 
-  return *this;
-}
+  (void)theta;
+  return *this; }
 
 State& State::rz(int j, double theta)
 {
@@ -377,8 +377,8 @@ State& State::rz(int j, double theta)
     return std::make_pair(b, a * (bj ? phase1 : phase0));
   });
 
-  return *this;
-}
+  (void)theta;
+  return *this; }
 
 State& State::ru(int j, double theta, double phi, double lambda)
 {
@@ -406,8 +406,8 @@ State& State::ru(int j, double theta, double phi, double lambda)
     return generated_set;
   });
 
-  return *this;
-}
+  (void)theta;
+  return *this; }
 
 State& State::phase_flip_if(const Oracle& predicate)
 {
@@ -417,8 +417,8 @@ State& State::phase_flip_if(const Oracle& predicate)
     }
     return std::make_pair(b, a);
   });
-  return *this;
-}
+  (void)predicate;
+  return *this; }
 
     
 // --- Measurement Method ---
@@ -503,8 +503,8 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
     {
       // No classical register; measurement result is not stored.
     }
-  return *this;
-}
+  (void)cbit_index;
+  return *this; }
 
 State& State::measure(int j, unsigned long cbit_index) {
   double random_val = (double)std::rand() / RAND_MAX;

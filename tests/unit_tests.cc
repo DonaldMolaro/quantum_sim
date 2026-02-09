@@ -1,16 +1,22 @@
 #include "state.hh"
 #include "tests/helpers.hh"
 #include "algorithms/qrng.hh"
+#include "algorithms/latin_square.hh"
+#include "algorithms/api/grover_api.hh"
+#include "algorithms/api/shor_api.hh"
 #include "math/mod_arith.hh"
 #include "math/bit_ops.hh"
 #include "math/bit_ops.hh"
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <sys/wait.h>
+#include <unistd.h>
 
 const ComplexNumber I(0.0, 1.0); // Imaginary unit i
 
@@ -31,11 +37,57 @@ void run_test(const std::string& name, std::function<void()> test_func) {
     }
 }
 
+void run_grover_search(State *s, Bitstring target_w);
+void run_grover_search_multi(State *s, const std::vector<Bitstring>& targets);
+void run_shor_demo(Bitstring N);
+
 using test_helpers::assert_complex_equal;
 using test_helpers::assert_complex_close;
 using test_helpers::assert_equal;
 using test_helpers::assert_amplitude_match;
 using test_helpers::assert_amplitude_magnitude;
+
+struct ScopedEnv {
+    std::string key;
+    std::string old_value;
+    bool had_old;
+
+    ScopedEnv(const std::string& k, const std::string& v) : key(k) {
+        const char* old = std::getenv(key.c_str());
+        had_old = (old != nullptr);
+        if (had_old) {
+            old_value = old;
+        }
+        setenv(key.c_str(), v.c_str(), 1);
+    }
+
+    ~ScopedEnv() {
+        if (had_old) {
+            setenv(key.c_str(), old_value.c_str(), 1);
+        } else {
+            unsetenv(key.c_str());
+        }
+    }
+};
+
+static void assert_exits_with_failure(const std::function<void()>& fn)
+{
+    pid_t pid = fork();
+    if (pid == 0) {
+        fn();
+        std::exit(0);
+    }
+    if (pid < 0) {
+        throw std::runtime_error("fork failed for exit test");
+    }
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0) {
+        throw std::runtime_error("waitpid failed for exit test");
+    }
+    if (!WIFEXITED(status) || WEXITSTATUS(status) == 0) {
+        throw std::runtime_error("expected child to exit with failure");
+    }
+}
 
 // --- Core Gate Tests ---
 
@@ -1148,6 +1200,297 @@ void test_shor_small_semiprimes() {
   }
 }
 
+void test_mod_arith_gcd_basic() {
+    assert_equal(gcd_bitstring(0, 7), 7ULL, "gcd(0,7)=7");
+    assert_equal(gcd_bitstring(54, 24), 6ULL, "gcd(54,24)=6");
+}
+
+void test_mod_arith_mod_pow_edges() {
+    assert_equal(mod_pow(5, 3, 1), 0ULL, "mod_pow with mod=1 returns 0");
+    assert_equal(mod_pow(2, 0, 15), 1ULL, "mod_pow exponent 0 returns 1");
+    assert_equal(mod_pow(7, 4, 15), 1ULL, "mod_pow periodicity check");
+}
+
+void test_qrng_edges() {
+    std::vector<int> empty = qrng_bits(0, nullptr);
+    if (!empty.empty()) {
+        throw std::runtime_error("qrng_bits(0) should return empty");
+    }
+
+    std::vector<int> bits_auto = qrng_bits(2, nullptr);
+    if (bits_auto.size() != 2) {
+        throw std::runtime_error("qrng_bits should return 2 bits");
+    }
+
+    std::vector<double> rv = {0.0, 1.0};
+    std::vector<int> bits = qrng_bits(2, &rv);
+    if (bits.size() != 2 || bits[0] != 0 || bits[1] != 1) {
+        throw std::runtime_error("qrng_bits with deterministic RNG failed");
+    }
+
+    ScopedEnv cap("QSIM_QRNG_MAX_QUBITS", "8");
+    std::vector<double> zeros(8, 0.0);
+    uint64_t val = qrng_u64(70, &zeros);
+    if (val != 0ULL) {
+        throw std::runtime_error("qrng_u64 expected all-zero output with zero RNG");
+    }
+
+    if (qrng_u64(0, nullptr) != 0ULL) {
+        throw std::runtime_error("qrng_u64(0) should return 0");
+    }
+}
+
+void test_grover_search_helpers() {
+    run_grover_search(nullptr, 1);
+    State s(2, 0);
+    run_grover_search(&s, 3);
+    run_grover_search_multi(&s, std::vector<Bitstring>());
+    run_grover_search_multi(&s, std::vector<Bitstring>{1, 2});
+}
+
+void test_grover_api_errors() {
+    State s(2, 0);
+    GroverResult empty = run_grover(s, std::vector<Bitstring>());
+    if (empty.ok || empty.error.empty()) {
+        throw std::runtime_error("Expected error on empty target list");
+    }
+
+    State big(63, 0);
+    GroverResult too_big = run_grover(big, std::vector<Bitstring>{1});
+    if (too_big.ok || too_big.error.empty()) {
+        throw std::runtime_error("Expected error for too many qubits");
+    }
+
+    GroverResult out_of_range = run_grover(s, std::vector<Bitstring>{7});
+    if (out_of_range.ok || out_of_range.error.empty()) {
+        throw std::runtime_error("Expected out-of-range target error");
+    }
+
+    State s2(3, 0);
+    GroverResult r0 = run_grover(s2, std::vector<Bitstring>{1}, 0);
+    if (!r0.ok || r0.iterations != 0) {
+        throw std::runtime_error("Expected R=0 Grover run to succeed");
+    }
+
+    {
+        ScopedEnv env("QSIM_GROVER_FORCE_SET", "1");
+        GroverResult forced = run_grover(s2, std::vector<Bitstring>{1}, 1);
+        if (!forced.ok) {
+            throw std::runtime_error("Expected forced set oracle Grover run to succeed");
+        }
+    }
+}
+
+void test_display_output_paths() {
+    State s(2, 2);
+    s.set_amplitude(0, ComplexNumber(1.0, 0.0));
+    s.set_amplitude(1, ComplexNumber(0.0, 1.0));
+    s.set_amplitude(2, ComplexNumber(0.0, -1.0));
+    s.set_amplitude(3, ComplexNumber(2.0, 3.0));
+
+    s.display(false);
+    s.display(true);
+
+    s.measure(0, 0);
+    s.measure(1, 1);
+    s.display_cbits();
+
+    State empty_cbits(1, 0);
+    empty_cbits.display_cbits();
+
+    State sparse_only(2, 0);
+    sparse_only.set_amplitude(0, ComplexNumber(1.0, 0.0));
+    sparse_only.display(true);
+
+    State one_bit(1, 1);
+    one_bit.set_basis_state(1, ONE_COMPLEX);
+    one_bit.measure_with_rng(0, 0, 1.0);
+    one_bit.display_cbits();
+}
+
+void test_qft_invalid_ranges() {
+    State s(2, 0);
+    s.set_qft_mode(State::QftMode::Direct);
+    s.qft(1, 0);
+    s.iqft(1, 0);
+
+    s.set_qft_mode(State::QftMode::Gate);
+    s.qft(1, 0);
+    s.iqft(1, 0);
+}
+
+void test_qft_tiny_amplitude_continue() {
+    State s(2, 0);
+    s.set_qft_mode(State::QftMode::Direct);
+    s.set_amplitude(0, ComplexNumber(1e-12, 0.0));
+    s.qft(0, 1);
+
+    State s2(2, 0);
+    s2.set_qft_mode(State::QftMode::Direct);
+    s2.set_amplitude(0, ComplexNumber(1e-12, 0.0));
+    s2.iqft(0, 1);
+}
+
+void test_measure_branches() {
+    State s(1, 1);
+    s.set_basis_state(1, ONE_COMPLEX);
+    s.measure_with_rng(0, 0, 0.0);
+    s.measure(0, 0);
+
+    State no_cbits(1, 0);
+    no_cbits.set_basis_state(1, ONE_COMPLEX);
+    std::vector<int> out;
+    std::vector<double> rv(1, 0.8);
+    no_cbits.measure_all_with_rng(rv, out);
+
+    State tiny(1, 1);
+    tiny.set_amplitude(0, ComplexNumber(0.0, 0.0));
+    tiny.measure_with_rng(0, 0, 0.0);
+}
+
+void test_latin_square_validations() {
+    const int row0[3] = {0, 1, 2};
+    Bitstring assignment = 0;
+    assignment |= (1ULL << 0);  // cell 0 = 1
+    assignment |= (2ULL << 2);  // cell 1 = 2
+    assignment |= (0ULL << 4);  // cell 2 = 0
+    assignment |= (2ULL << 6);  // cell 3 = 2
+    assignment |= (0ULL << 8);  // cell 4 = 0
+    assignment |= (1ULL << 10); // cell 5 = 1
+
+    if (!is_valid_latin3(assignment, row0)) {
+        throw std::runtime_error("Expected assignment to be valid latin square");
+    }
+
+    if (is_valid_latin3_fixedrow(0)) {
+        throw std::runtime_error("Expected zero assignment to be invalid latin square");
+    }
+}
+
+void test_latin_square_demo_forced_measure() {
+    const int row0[3] = {0, 1, 2};
+    Bitstring assignment = 0;
+    assignment |= (1ULL << 0);
+    assignment |= (2ULL << 2);
+    assignment |= (0ULL << 4);
+    assignment |= (2ULL << 6);
+    assignment |= (0ULL << 8);
+    assignment |= (1ULL << 10);
+
+    {
+        ScopedEnv env("QSIM_LATIN_FORCE_MEASURED", std::to_string(assignment));
+        run_latin3_grover_demo_row0(row0, 0);
+    }
+    {
+        ScopedEnv env("QSIM_LATIN_FORCE_MEASURED", "0");
+        run_latin3_grover_demo_row0(row0, 0);
+    }
+    {
+        ScopedEnv env("QSIM_LATIN_FORCE_M", "0");
+        run_latin3_grover_demo_row0(row0, 0);
+    }
+}
+
+void test_latin_square_invalid_row0() {
+    const int bad_range[3] = {0, 1, 3};
+    const int bad_perm[3] = {0, 0, 1};
+    assert_exits_with_failure([&]() { run_latin3_count_row0(bad_range); });
+    assert_exits_with_failure([&]() { run_latin3_count_row0(bad_perm); });
+}
+
+void test_latin_square_count_print() {
+    const int row0[3] = {0, 1, 2};
+    run_latin3_count_row0(row0);
+    {
+        ScopedEnv env("QSIM_LATIN_MAX_PRINT", "1");
+        run_latin3_print_all_row0(row0);
+    }
+    run_latin3_grover_demo_row0(row0, 1);
+    run_latin3_grover_demo(0);
+}
+
+void test_shor_api_paths() {
+    ShorResult bad = run_shor_quantum_part(1, 2);
+    if (bad.ok || bad.error.empty()) {
+        throw std::runtime_error("Expected shor_api error for N<2");
+    }
+
+    Bitstring big = (1ULL << 32);
+    ShorResult too_big = run_shor_quantum_part(big, 2);
+    if (too_big.ok || too_big.error.empty()) {
+        throw std::runtime_error("Expected shor_api error for large N");
+    }
+
+    ShorResult ok = run_shor_quantum_part(15, 7);
+    if (!ok.ok) {
+        throw std::runtime_error("Expected shor_api to succeed for N=15");
+    }
+}
+
+void test_shor_demo_branches() {
+    ScopedEnv env_attempts("QSIM_SHOR_MAX_ATTEMPTS", "1");
+    run_shor_demo(1);
+    run_shor_demo(10);
+
+    {
+        ScopedEnv env_attempts2("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env("QSIM_SHOR_FORCE_A", "5");
+        run_shor_demo(15);
+    }
+
+    run_shor_demo(1ULL << 20);
+
+    {
+        ScopedEnv env_attempts3("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts4("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "2");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "0");
+        ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "4");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts5("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "1");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "4");
+        ScopedEnv env_r("QSIM_SHOR_FORCE_R", "1");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts6("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "14");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "4");
+        ScopedEnv env_r("QSIM_SHOR_FORCE_R", "2");
+        run_shor_demo(15);
+    }
+
+    {
+        ScopedEnv env_attempts7("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "2");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "6");
+        ScopedEnv env_r("QSIM_SHOR_FORCE_R", "6");
+        run_shor_demo(9);
+    }
+
+    {
+        ScopedEnv env_attempts8("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "7");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        ScopedEnv env_nc("QSIM_SHOR_FORCE_NC", "4");
+        ScopedEnv env_r("QSIM_SHOR_FORCE_R", "4");
+        run_shor_demo(15);
+    }
+}
+
 
 int run_unit_tests()
 {
@@ -1155,6 +1498,11 @@ int run_unit_tests()
   if (const char* env = std::getenv("QSIM_TEST_VERBOSE")) {
     verbose = (env[0] != '\0' && env[0] != '0');
   }
+  bool slow = false;
+  if (const char* env = std::getenv("QSIM_SLOW_TESTS")) {
+    slow = (env[0] != '\0' && env[0] != '0');
+  }
+  setenv("QSIM_GROVER_VERBOSE", "1", 1);
   main_test_controlled_Rr();
   main_test_controlled_Rr_dag();
   main_test_qft();
@@ -1162,9 +1510,30 @@ int run_unit_tests()
   main_all_cme_tests();
   main_core_gate_tests();
   main_qft_tests();
-  if (verbose) {
+  run_test("Mod arithmetic (gcd)", test_mod_arith_gcd_basic);
+  run_test("Mod arithmetic (mod_pow)", test_mod_arith_mod_pow_edges);
+  run_test("QRNG edge cases", test_qrng_edges);
+  run_test("Grover search helpers", test_grover_search_helpers);
+  run_test("Grover API errors", test_grover_api_errors);
+  run_test("Display output paths", test_display_output_paths);
+  run_test("QFT invalid ranges", test_qft_invalid_ranges);
+  run_test("QFT tiny amplitude continue", test_qft_tiny_amplitude_continue);
+  run_test("Measurement branches", test_measure_branches);
+  run_test("Latin square validations", test_latin_square_validations);
+  run_test("Latin square forced measurement", test_latin_square_demo_forced_measure);
+  run_test("Latin square invalid row0", test_latin_square_invalid_row0);
+  run_test("Latin square count/print", test_latin_square_count_print);
+  run_test("Shor API paths", test_shor_api_paths);
+  if (slow) {
+    run_test("Shor demo branches", test_shor_demo_branches);
+  } else {
+    std::cout << "Shor demo branches skipped. Set QSIM_SLOW_TESTS=1 to run them.\n";
+  }
+  if (verbose && slow) {
     main_shor_tests();
     run_test("Small semiprimes order-finding (Shor)", test_shor_small_semiprimes);
+  } else if (verbose) {
+    std::cout << "Shor heavy tests skipped. Set QSIM_SLOW_TESTS=1 to run them.\n";
   } else {
     std::cout << "Shor tests skipped. Set QSIM_TEST_VERBOSE=1 to run them.\n";
   }
