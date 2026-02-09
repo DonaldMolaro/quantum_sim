@@ -126,6 +126,9 @@ public:
   static std::ostream* default_log_stream() { return default_log_stream_; }
   void set_log_stream(std::ostream* out) { log_stream_ = out; }
   std::ostream* log_stream() const { return log_stream_; }
+  std::ostream* log_stream_or_default() const {
+    return log_stream_ ? log_stream_ : default_log_stream_;
+  }
 
   State& x(int j);
   /** Z Gate (Phase flip): equivalent to RZ(pi). */
