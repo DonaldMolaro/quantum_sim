@@ -2,6 +2,11 @@
 
 This example shows how to use the built-in Grover demo and how to build a small
 Grover oracle by hand in the CLI.
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 ## 1) Run the Grover demo
 

@@ -3,6 +3,11 @@
 This is a **conceptual walkthrough** using the `quantum_sim` CLI to demonstrate
 BB84. The simulator does not model a noisy channel or explicit eavesdropping,
 but we can show the prepare/measure steps and how sifting works.
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 We use one qubit at a time. Alice chooses a random bit and random basis, prepares
 that qubit, sends it to Bob, and Bob measures in a random basis.

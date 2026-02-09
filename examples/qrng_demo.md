@@ -2,6 +2,11 @@
 
 This example uses the `QRNG` command in the CLI to generate random bits using
 Hadamard-superposed qubits and measurement.
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 ## 1) Generate a single random bit
 

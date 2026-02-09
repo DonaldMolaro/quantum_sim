@@ -3,6 +3,11 @@
 This example demonstrates the CHSH test using the simulator. We prepare an entangled
 Bell pair and measure correlations along different bases. With ideal measurements,
 quantum correlations violate the classical CHSH bound of 2.
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 We use two qubits:
 - `q0`: Alice

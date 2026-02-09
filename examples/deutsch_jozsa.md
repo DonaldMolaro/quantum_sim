@@ -2,6 +2,11 @@
 
 This example uses the built-in Deutsch–Jozsa demo to distinguish between
 constant and balanced oracles with a single query.
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 ## 1) Start the CLI
 

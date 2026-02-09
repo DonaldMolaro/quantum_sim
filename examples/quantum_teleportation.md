@@ -2,6 +2,11 @@
 
 This example shows how to teleport a single-qubit state from Alice to Bob using
 an entangled Bell pair and two classical bits. We use 3 qubits:
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 - `q0`: Alice's *message* qubit (the state to teleport)
 - `q1`: Alice's entangled qubit

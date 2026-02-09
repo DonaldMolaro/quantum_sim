@@ -3,6 +3,11 @@
 This example shows how to use the built-in Shor demo from the CLI. The simulator
 implements a small-scale, educational version of Shor's algorithm and is intended
 for small composite numbers.
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 ## 1) Start the CLI
 

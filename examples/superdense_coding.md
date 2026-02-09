@@ -3,6 +3,11 @@
 This example uses the `quantum_sim` CLI to demonstrate superdense coding. Alice and Bob
 share an entangled Bell pair. Alice encodes two classical bits by applying a local gate
 to her qubit, then sends that qubit to Bob. Bob decodes with `CNOT` and `H` and measures.
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 Qubits:
 - `q0` = Alice

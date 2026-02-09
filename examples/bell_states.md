@@ -3,6 +3,11 @@
 These examples use the `quantum_sim` CLI to prepare and verify all four Bell states.
 Each state is shown with a short preparation circuit and a simple measurement-based
 verification strategy. Run the commands in order inside the simulator shell.
+Optional: enable step-by-step logs while you run commands:
+
+```
+VERBOSE VERBOSE
+```
 
 ## Common Setup
 
