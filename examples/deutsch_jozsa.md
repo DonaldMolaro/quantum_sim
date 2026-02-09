@@ -33,3 +33,48 @@ reports BALANCED.
 - `n` is the number of input qubits; the demo allocates one extra ancilla.
 - `BALANCED_XOR0` uses f(x) = x0 (first input bit).
 - `BALANCED_PARITY` uses f(x) = parity of all input bits.
+
+---
+
+## By Hand (n = 2)
+
+Below is a manual circuit for n=2 (inputs q0, q1; ancilla q2). We show one
+constant and one balanced oracle so you can see the difference without
+calling the built-in demo.
+
+### A) Constant oracle f(x) = 0 (no-op)
+
+```
+INIT 3
+X 2
+H 0
+H 1
+H 2
+# oracle: f(x)=0, do nothing
+H 0
+H 1
+MEASURE 0 0
+MEASURE 1 1
+DISPLAY
+```
+
+Expected: measured input register = `00` (constant).
+
+### B) Balanced oracle f(x) = x0 (flip ancilla when q0=1)
+
+```
+INIT 3
+X 2
+H 0
+H 1
+H 2
+# oracle: f(x)=x0
+CX 0 2
+H 0
+H 1
+MEASURE 0 0
+MEASURE 1 1
+DISPLAY
+```
+
+Expected: measured input register has at least one 1 (balanced).
