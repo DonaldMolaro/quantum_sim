@@ -42,6 +42,10 @@ all_tests : tests/all_tests.o $(LIB_NAME)
 # Cleanup target
 clean:
 	rm -f $(LIB_OBJECTS) $(DRIVER_OBJECTS) $(DEPS) $(TARGETS) $(LIB_NAME) tests/all_tests.o all_tests unit_tests grover_test grover_bench tests/unit_tests.o tests/grover_test.o tests/grover_bench.o
+	rm -f *.o *.d
+	find . -name "*.gcda" -delete
+	find . -name "*.gcno" -delete
+	find . -name "*.gcov" -delete
 
 -include $(DEPS)
 

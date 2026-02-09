@@ -16,12 +16,17 @@ make
 ## Tests
 
 ```bash
-make test          # runs all_tests
-./all_tests
+make test          # fast suite + 100% coverage (library)
+make test-slow     # includes slow Shor coverage paths
+./all_tests        # direct runner (no coverage gate)
 
 # Optional Grover benchmark sweep
 QSIM_GROVER_BENCH=1 ./all_tests
 ```
+
+Notes:
+- `make test` and `make test-slow` enforce 100% coverage using `gcov`.
+- `make clean` removes build artifacts and `gcov` files.
 
 ## Project Layout
 
