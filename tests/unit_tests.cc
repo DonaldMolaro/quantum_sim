@@ -8,6 +8,7 @@
 #include "algorithms/shor_classical.hh"
 #include "algorithms/shor_quantum.hh"
 #include "cli/commands.hh"
+#include "logging.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
@@ -1345,6 +1346,57 @@ void test_deutsch_jozsa_oracle_helpers()
     }
 }
 
+void test_logging_levels()
+{
+    auto run_child = [](const char* key, const char* value, qsim_log::Level expected) {
+        pid_t pid = fork();
+        if (pid < 0) {
+            throw std::runtime_error("fork failed in logging test");
+        }
+        if (pid == 0) {
+            if (key) {
+                setenv(key, value, 1);
+            }
+            qsim_log::Level got = qsim_log::get_level();
+            std::exit(got == expected ? 0 : 1);
+        }
+        int status = 0;
+        if (waitpid(pid, &status, 0) == -1) {
+            throw std::runtime_error("waitpid failed in logging test");
+        }
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            throw std::runtime_error("logging env test failed");
+        }
+    };
+
+    run_child("QSIM_VERBOSE", "VERBOSE", qsim_log::Level::Verbose);
+    run_child("QSIM_VERBOSE", "INVALID", qsim_log::Level::Normal);
+    run_child("QSIM_LOG_LEVEL", "QUIET", qsim_log::Level::Quiet);
+    run_child("QSIM_GROVER_VERBOSE", "1", qsim_log::Level::Verbose);
+
+    qsim_log::Level parsed = qsim_log::Level::Quiet;
+    if (!qsim_log::parse_level("NORMAL", parsed) || parsed != qsim_log::Level::Normal) {
+        throw std::runtime_error("parse_level failed for NORMAL");
+    }
+    if (qsim_log::parse_level("???", parsed)) {
+        throw std::runtime_error("parse_level should fail for unknown token");
+    }
+
+    std::ostringstream out;
+    qsim_log::set_stream(&out);
+    qsim_log::set_level(qsim_log::Level::Quiet);
+    qsim_log::log(qsim_log::Level::Normal, "hidden\n");
+    if (!out.str().empty()) {
+        throw std::runtime_error("log should be quiet at QUIET level");
+    }
+    qsim_log::set_level(qsim_log::Level::Normal);
+    qsim_log::log(qsim_log::Level::Normal, "visible\n");
+    if (out.str().find("visible") == std::string::npos) {
+        throw std::runtime_error("log should emit at NORMAL level");
+    }
+    qsim_log::set_stream(&std::cout);
+}
+
 void test_grover_search_helpers() {
     run_grover_search(nullptr, 1);
     State s(2, 0);
@@ -1730,6 +1782,8 @@ int run_unit_tests()
   }
   State::set_default_log_stream(&std::cout);
   setenv("QSIM_GROVER_VERBOSE", "1", 1);
+  run_test("Logging levels", test_logging_levels);
+  qsim_log::set_level(qsim_log::Level::Verbose);
   main_test_controlled_Rr();
   main_test_controlled_Rr_dag();
   main_test_qft();

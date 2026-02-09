@@ -7,6 +7,7 @@ CXXDEPFLAGS = -MMD -MP
 TARGETS = quantum_sim all_tests
 LIB_NAME = libquantum_sim.a
 LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
+	logging.cc \
 	math/bit_ops.cc math/mod_arith.cc \
 	algorithms/grover.cc algorithms/deutsch_jozsa.cc \
 	algorithms/shor_classical.cc algorithms/shor_quantum.cc \
@@ -98,6 +99,7 @@ install: $(LIB_NAME)
 	cp $(LIB_NAME) dist/lib/
 	cp include/quantum_sim.hh dist/include/
 	cp state.hh dist/include/
+	cp logging.hh dist/include/
 	cp modular_exp.hh dist/include/
 	cp algorithms/latin_square.hh dist/include/algorithms/
 	cp algorithms/deutsch_jozsa.hh dist/include/algorithms/

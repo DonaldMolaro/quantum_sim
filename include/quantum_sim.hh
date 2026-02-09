@@ -1,6 +1,7 @@
 #pragma once
 
 #include "state.hh"
+#include "logging.hh"
 #include "algorithms/latin_square.hh"
 #include "algorithms/deutsch_jozsa.hh"
 #include "algorithms/qrng.hh"

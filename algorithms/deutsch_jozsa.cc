@@ -1,7 +1,9 @@
 #include "algorithms/deutsch_jozsa.hh"
+#include "logging.hh"
 
 #include <algorithm>
 #include <cctype>
+#include <sstream>
 #include <string>
 
 static void apply_oracle(State& state, int n_inputs, DeutschJozsaOracle oracle)
@@ -43,8 +45,18 @@ DeutschJozsaResult run_deutsch_jozsa(int n_inputs, DeutschJozsaOracle oracle)
   for (int j = 0; j <= n_inputs; ++j) {
     state.h(j);
   }
+  if (qsim_log::enabled(qsim_log::Level::Verbose)) {
+    std::ostringstream msg;
+    msg << "Deutsch-Jozsa: prepared superposition with ancilla |1> (n=" << n_inputs << ")\n";
+    qsim_log::log(qsim_log::Level::Verbose, msg.str());
+  }
 
   apply_oracle(state, n_inputs, oracle);
+  if (qsim_log::enabled(qsim_log::Level::Verbose)) {
+    std::ostringstream msg;
+    msg << "Deutsch-Jozsa: oracle applied (" << deutsch_jozsa_oracle_name(oracle) << ")\n";
+    qsim_log::log(qsim_log::Level::Verbose, msg.str());
+  }
 
   for (int j = 0; j < n_inputs; ++j) {
     state.h(j);
@@ -58,6 +70,12 @@ DeutschJozsaResult run_deutsch_jozsa(int n_inputs, DeutschJozsaOracle oracle)
                                    result.input_measurement.end(),
                                    [](int v) { return v == 0; });
   result.ok = true;
+  if (qsim_log::enabled(qsim_log::Level::Normal)) {
+    std::ostringstream msg;
+    msg << "Deutsch-Jozsa: classified "
+        << (result.is_constant ? "CONSTANT" : "BALANCED") << "\n";
+    qsim_log::log(qsim_log::Level::Normal, msg.str());
+  }
   return result;
 }
 

@@ -16,6 +16,7 @@
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
+#include "logging.hh"
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -46,6 +47,19 @@ static uint64_t bits_to_u64(const std::vector<int>& bits)
     }
   }
   return value;
+}
+
+static const char* log_level_name(qsim_log::Level level)
+{
+  switch (level) {
+    case qsim_log::Level::Quiet:
+      return "QUIET";
+    case qsim_log::Level::Normal:
+      return "NORMAL";
+    case qsim_log::Level::Verbose:
+      return "VERBOSE";
+  }
+  return "UNKNOWN";
 }
 
 void QuantumShell::handle_command(const std::vector<std::string>& tokens)
@@ -108,6 +122,21 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       std::cout << "QRNG[" << i << "] bits=" << bits_to_string(bits)
                 << " value=" << bits_to_u64(bits) << "\n";
     }
+    return;
+  }
+
+  if (cmd == "VERBOSE" || cmd == "LOGLEVEL") {
+    if (tokens.size() < 2) {
+      std::cout << "Verbosity: " << log_level_name(qsim_log::get_level()) << "\n";
+      return;
+    }
+    qsim_log::Level level;
+    if (!qsim_log::parse_level(tokens[1], level)) {
+      std::cerr << "Error: VERBOSE expects QUIET, NORMAL, VERBOSE, or 0/1/2.\n";
+      return;
+    }
+    qsim_log::set_level(level);
+    std::cout << "Verbosity set to " << log_level_name(level) << ".\n";
     return;
   }
 
@@ -427,6 +456,7 @@ void QuantumShell::print_help()
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
   std::cout << "GROVER <t...>    : Run Grover's algorithm searching for one or more targets\n";
+  std::cout << "VERBOSE <level>  : Set verbosity (QUIET, NORMAL, VERBOSE or 0/1/2)\n";
   std::cout << "DEUTSCH_JOZSA <n> <oracle> : Run Deutsch-Jozsa demo (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY)\n";
   std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
@@ -449,6 +479,7 @@ void QuantumShell::print_help()
 void QuantumShell::run()
 {
   State::set_default_log_stream(&std::cout);
+  qsim_log::set_stream(&std::cout);
   print_help();
   std::string input_line;
   while (true) {

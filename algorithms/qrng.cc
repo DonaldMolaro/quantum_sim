@@ -1,6 +1,8 @@
 #include "algorithms/qrng.hh"
+#include "logging.hh"
 #include "state.hh"
 #include <cstdlib>
+#include <sstream>
 
 std::vector<int> qrng_bits(int n, const std::vector<double>* random_vals)
 {
@@ -20,6 +22,12 @@ std::vector<int> qrng_bits(int n, const std::vector<double>* random_vals)
     s.measure_all_with_rng(*random_vals, out);
   } else {
     s.measure_all(out);
+  }
+
+  if (qsim_log::enabled(qsim_log::Level::Verbose)) {
+    std::ostringstream msg;
+    msg << "QRNG: generated " << n << " random bits\n";
+    qsim_log::log(qsim_log::Level::Verbose, msg.str());
   }
 
   return out;

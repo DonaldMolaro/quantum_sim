@@ -5,20 +5,8 @@
  */
 
 #include "state.hh"
-#include <cstdlib>
+#include "logging.hh"
 #include <ostream>
-
-static bool grover_verbose()
-{
-  static int initialized = 0;
-  static bool enabled = false;
-  if (!initialized) {
-    const char* env = std::getenv("QSIM_GROVER_VERBOSE");
-    enabled = (env && env[0] != '\0' && env[0] != '0');
-    initialized = 1;
-  }
-  return enabled;
-}
 
 /**
  * @brief Applies the U_{0^perp} operator. 
@@ -39,8 +27,7 @@ State& State::apply_U0_perp() {
   }
   // Note: Filtering zero amplitudes after this step is often useful, 
   // but unnecessary if the input state is already normalized and sparse.
-  return *this;
-}
+  return *this; }
 
 /**
  * @brief Applies the Grover Diffusion Operator (U_psi_perp or U_s).
@@ -68,13 +55,11 @@ State& State::grover_diffusion_Us()
     h(j); 
   }
         
-  std::ostream* out = log_stream_or_default();
-  if (grover_verbose() && out) {
-    (*out) << "Grover Diffusion Operator U_psi_perp applied.\n";
+  if (qsim_log::enabled(qsim_log::Level::Verbose)) {
+    qsim_log::log(qsim_log::Level::Verbose, "Grover Diffusion Operator U_psi_perp applied.\n");
   }
         
-  return *this;
-}
+  return *this; }
 
 /**
  * @brief Applies the Grover Phase Oracle (Uf) by negating the amplitude 
@@ -99,11 +84,11 @@ State& State::grover_oracle_Uf(Bitstring solution_w)
     // apply a -1 phase shift (negation).
     if (current_b == solution_w) {
       // Uf|w> = -|w>
-      if (grover_verbose() && out) {
+      if (qsim_log::enabled(qsim_log::Level::Verbose) && out) {
         (*out) << "Grover Oracle hit at " << current_b << " fliping  " << current_a << " to ";
       }
       current_a *= -1.0;
-      if (grover_verbose() && out) {
+      if (qsim_log::enabled(qsim_log::Level::Verbose) && out) {
         (*out) << current_a << "\n";
       }
                 
@@ -112,7 +97,7 @@ State& State::grover_oracle_Uf(Bitstring solution_w)
     }
     // If current_b != solution_w (f(x)=0), amplitude remains unchanged (phase +1).
   }
-  if (grover_verbose() && out) {
+  if (qsim_log::enabled(qsim_log::Level::Verbose) && out) {
     (*out) << "Grover Oracle Uf applied. Solution state " << solution_w << " phase negated.\n";
   }
   return *this;
@@ -128,7 +113,7 @@ State& State::grover_oracle_Uf_multi(const std::unordered_set<Bitstring>& soluti
       current_a *= -1.0;
     }
   }
-  if (grover_verbose() && out) {
+  if (qsim_log::enabled(qsim_log::Level::Verbose) && out) {
     (*out) << "Grover Oracle Uf applied to " << solutions.size() << " solution state(s).\n";
   }
   return *this;
@@ -144,7 +129,7 @@ State& State::grover_oracle_Uf_mask(const std::vector<uint8_t>& solution_mask)
       current_a *= -1.0;
     }
   }
-  if (grover_verbose() && out) {
+  if (qsim_log::enabled(qsim_log::Level::Verbose) && out) {
     (*out) << "Grover Oracle Uf applied to " << solution_mask.size() << " mask entries.\n";
   }
   return *this;

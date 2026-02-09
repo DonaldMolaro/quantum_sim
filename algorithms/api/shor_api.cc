@@ -1,5 +1,7 @@
 #include "algorithms/api/shor_api.hh"
+#include "logging.hh"
 #include <cmath>
+#include <sstream>
 
 ShorResult run_shor_quantum_part(Bitstring N, Bitstring a)
 {
@@ -21,6 +23,13 @@ ShorResult run_shor_quantum_part(Bitstring N, Bitstring a)
   }
 
   result.n_c = n_c;
+
+  if (qsim_log::enabled(qsim_log::Level::Normal)) {
+    std::ostringstream msg;
+    msg << "Shor (quantum part): N=" << N << " a=" << a
+        << " n_t=" << n_t << " n_c=" << n_c << "\n";
+    qsim_log::log(qsim_log::Level::Normal, msg.str());
+  }
 
   State s(total_qubits, num_cbits);
   s.x(total_qubits - 1);

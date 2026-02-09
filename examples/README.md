@@ -24,3 +24,9 @@ From the project root:
 ```
 
 Then copy/paste the command blocks from any example.
+
+Tip: set verbosity to see algorithm steps as they run:
+
+```
+VERBOSE VERBOSE
+```
