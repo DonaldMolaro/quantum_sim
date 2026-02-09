@@ -45,6 +45,7 @@ Notes:
 
 - Bit ordering uses little-endian indexing: qubit 0 is the least-significant bit.
 - Registers are laid out as contiguous ranges; for Shor, target comes first, then control.
+- Register ranges are represented by `QubitRange` (`start`, `end`, `size()`), used in `RegisterLayout`.
 
 ## Gate Index (CLI)
 

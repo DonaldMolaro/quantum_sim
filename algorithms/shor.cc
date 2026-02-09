@@ -253,24 +253,24 @@ State& State::run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)
 
   // Reset to |0...0> and set target to |1>.
   set_basis_state(0ULL, ONE_COMPLEX);
-  x(layout.target_start);
+  x(layout.target.start);
 
   // QFT on control register.
-  qft(layout.control_start, layout.control_end);
+  qft(layout.control.start, layout.control.end);
 
   // Controlled modular exponentiation.
   for (int j = 0; j < n_c; ++j) {
-    int control_q = layout.control_start + j;
+    int control_q = layout.control.start + j;
     Bitstring power_of_a = 1ULL << j;
     controlled_modular_exponentiation(
         control_q,
-        layout.target_start, layout.target_end,
+        layout.target.start, layout.target.end,
         a, modulus,
         power_of_a);
   }
 
   // Inverse QFT on control register.
-  iqft(layout.control_start, layout.control_end);
+  iqft(layout.control.start, layout.control.end);
 
   return *this;
 }
