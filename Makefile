@@ -3,7 +3,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -I.
 CXXDEPFLAGS = -MMD -MP
 
-TARGETS = quantum_sim unit_tests grover_test
+TARGETS = quantum_sim all_tests
 LIB_NAME = libquantum_sim.a
 LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	math/bit_ops.cc math/mod_arith.cc \
@@ -13,11 +13,9 @@ LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 DRIVER_SOURCES = cli/shell.cc cli/main.cc
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
-DEPS    = $(LIB_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) tests/unit_tests.d tests/grover_test.d tests/grover_bench.d
+DEPS    = $(LIB_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) tests/all_tests.d
 
-UNIT_TEST_SRC = tests/unit_tests.cc
-GROVER_TEST_SRC = tests/grover_test.cc
-GROVER_BENCH_SRC = tests/grover_bench.cc
+ALL_TESTS_SRC = tests/all_tests.cc
 
 # Default target: builds the executable
 all: $(TARGETS)
@@ -30,14 +28,8 @@ $(LIB_NAME): $(LIB_OBJECTS)
 quantum_sim : $(LIB_NAME) $(DRIVER_OBJECTS)
 	$(CXX) $(CXXFLAGS) $(DRIVER_OBJECTS) $(LIB_NAME) -o quantum_sim
 
-unit_tests : tests/unit_tests.o $(LIB_NAME)
-	$(CXX) $(CXXFLAGS) tests/unit_tests.o $(LIB_NAME) -o unit_tests
-
-grover_test : tests/grover_test.o $(LIB_NAME)
-	$(CXX) $(CXXFLAGS) tests/grover_test.o $(LIB_NAME) -o grover_test
-
-grover_bench : tests/grover_bench.o $(LIB_NAME)
-	$(CXX) $(CXXFLAGS) tests/grover_bench.o $(LIB_NAME) -o grover_bench
+all_tests : tests/all_tests.o $(LIB_NAME)
+	$(CXX) $(CXXFLAGS) tests/all_tests.o $(LIB_NAME) -o all_tests
 
 # Rule to compile .cc files into .o files (using implicit rule)
 .cc.o:
@@ -48,14 +40,14 @@ grover_bench : tests/grover_bench.o $(LIB_NAME)
 
 # Cleanup target
 clean:
-	rm -f $(LIB_OBJECTS) $(DRIVER_OBJECTS) $(DEPS) $(TARGETS) $(LIB_NAME) tests/unit_tests.o tests/grover_test.o tests/grover_bench.o grover_bench
+	rm -f $(LIB_OBJECTS) $(DRIVER_OBJECTS) $(DEPS) $(TARGETS) $(LIB_NAME) tests/all_tests.o all_tests unit_tests grover_test grover_bench tests/unit_tests.o tests/grover_test.o tests/grover_bench.o
 
 -include $(DEPS)
 
 .PHONY: clean test
 
-test: grover_test
-	./grover_test
+test: all_tests
+	./all_tests
 
 .PHONY: install
 install: $(LIB_NAME)

@@ -16,10 +16,11 @@ make
 ## Tests
 
 ```bash
-make unit_tests
-./unit_tests
+make test          # runs all_tests
+./all_tests
 
-make test   # runs grover_test
+# Optional Grover benchmark sweep
+QSIM_GROVER_BENCH=1 ./all_tests
 ```
 
 ## Project Layout
@@ -39,3 +40,17 @@ make test   # runs grover_test
 
 - Bit ordering uses little-endian indexing: qubit 0 is the least-significant bit.
 - Registers are laid out as contiguous ranges; for Shor, target comes first, then control.
+
+## Gate Index (CLI)
+
+Single-qubit:
+`H`, `X`, `Y`, `Z`, `S`, `T`, `RX`, `RY`, `RZ`, `RU`
+
+Two-qubit (controlled):
+`CX` (`CNOT`), `CZ`, `CY`, `CH`, `CRX`, `CRY`, `CRZ`, `CU`
+
+Three-qubit:
+`CCX` (`TOFFOLI`)
+
+Other:
+`SWAP`
