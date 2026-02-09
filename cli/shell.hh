@@ -17,17 +17,6 @@ class QuantumShell
 private:
   // The core quantum state object we manipulate
   State* state = nullptr; 
-
-  // Helper function to tokenize input line
-  std::vector<std::string> parse_command(const std::string& line);
-  // Helper to get integer arguments safely
-  int get_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd);
-  // Helper to get floating-point arguments safely
-  double get_double_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd);
-  // Helper to parse angles (radians by default, optional degrees)
-  double get_angle_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd);
-  // Helper to parse required angle arguments
-  double get_angle_arg_required(const std::vector<std::string>& tokens, size_t index, const std::string& cmd);
   void handle_command(const std::vector<std::string>& tokens);
 public:
   // Destructor to clean up the dynamically allocated State object

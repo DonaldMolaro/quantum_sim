@@ -8,6 +8,7 @@
  * quantum algorithms.
  */
 #include "state.hh"
+#include "cli/commands.hh"
 #include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/qrng.hh"
@@ -46,162 +47,6 @@ static uint64_t bits_to_u64(const std::vector<int>& bits)
   return value;
 }
 
-std::vector<std::string> QuantumShell::parse_command(const std::string& line)
-{
-  std::vector<std::string> tokens;
-  std::stringstream ss(line);
-  std::string token;
-  while (ss >> token) {
-    tokens.push_back(token);
-  }
-  return tokens;
-}
-
-// Helper to get integer arguments safely
-int QuantumShell::get_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd)
-{
-  if (index >= tokens.size()) {
-    std::cerr << "Error: " << cmd << " requires more arguments.\n";
-    return -1;
-  }
-  try {
-    return std::stoi(tokens[index]);
-  } catch (const std::exception&) {
-    std::cerr << "Error: Argument '" << tokens[index] << "' must be an integer.\n";
-    return -1;
-  }
-}
-
-double QuantumShell::get_double_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd)
-{
-  if (index >= tokens.size()) {
-    std::cerr << "Error: " << cmd << " requires more arguments.\n";
-    return std::numeric_limits<double>::quiet_NaN();
-  }
-  try {
-    return std::stod(tokens[index]);
-  } catch (const std::exception&) {
-    std::cerr << "Error: Argument '" << tokens[index] << "' must be a number.\n";
-    return std::numeric_limits<double>::quiet_NaN();
-  }
-}
-
-double QuantumShell::get_angle_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd)
-{
-  if (index >= tokens.size()) {
-    std::cerr << "Error: " << cmd << " requires more arguments.\n";
-    return std::numeric_limits<double>::quiet_NaN();
-  }
-
-  std::string token = tokens[index];
-  bool is_deg = false;
-
-  if (token.size() >= 3 && token.substr(token.size() - 3) == "DEG") {
-    token = token.substr(0, token.size() - 3);
-    is_deg = true;
-  } else if (index + 1 < tokens.size() && tokens[index + 1] == "DEG") {
-    is_deg = true;
-  }
-
-  std::string token_upper = token;
-  std::transform(token_upper.begin(), token_upper.end(), token_upper.begin(), ::toupper);
-
-  const double pi = std::acos(-1.0);
-  double theta = std::numeric_limits<double>::quiet_NaN();
-
-  if (token_upper == "PI") {
-    theta = pi;
-    is_deg = false;
-  } else if (token_upper == "TAU") {
-    theta = 2.0 * pi;
-    is_deg = false;
-  } else if (token_upper == "PI/2") {
-    theta = pi / 2.0;
-    is_deg = false;
-  } else if (token_upper == "PI/4") {
-    theta = pi / 4.0;
-    is_deg = false;
-  } else if (token_upper == "-PI") {
-    theta = -pi;
-    is_deg = false;
-  } else if (token_upper == "-PI/2") {
-    theta = -pi / 2.0;
-    is_deg = false;
-  } else if (token_upper == "-PI/4") {
-    theta = -pi / 4.0;
-    is_deg = false;
-  } else {
-    bool parsed_pi_expr = false;
-    bool neg = false;
-    std::string expr = token_upper;
-    if (!expr.empty() && expr[0] == '-') {
-      neg = true;
-      expr = expr.substr(1);
-    }
-
-    size_t pi_pos = expr.find("PI");
-    if (pi_pos != std::string::npos) {
-      std::string coeff_str = expr.substr(0, pi_pos);
-      if (!coeff_str.empty()) {
-        try {
-          double coeff = std::stod(coeff_str);
-          theta = coeff * pi;
-          parsed_pi_expr = true;
-        } catch (const std::exception&) {
-          parsed_pi_expr = false;
-        }
-      } else {
-        theta = pi;
-        parsed_pi_expr = true;
-      }
-
-      if (parsed_pi_expr) {
-        size_t denom_pos = expr.find('/', pi_pos + 2);
-        if (denom_pos != std::string::npos) {
-          std::string denom_str = expr.substr(denom_pos + 1);
-          try {
-            double denom = std::stod(denom_str);
-            if (denom == 0.0) {
-              std::cerr << "Error: division by zero in '" << tokens[index] << "'.\n";
-              return std::numeric_limits<double>::quiet_NaN();
-            }
-            theta /= denom;
-          } catch (const std::exception&) {
-            std::cerr << "Error: Invalid PI expression '" << tokens[index] << "'.\n";
-            return std::numeric_limits<double>::quiet_NaN();
-          }
-        }
-      }
-    }
-
-    if (parsed_pi_expr) {
-      if (neg) theta = -theta;
-    } else {
-      try {
-        theta = std::stod(token);
-      } catch (const std::exception&) {
-        std::cerr << "Error: Argument '" << tokens[index] << "' must be a number.\n";
-        return std::numeric_limits<double>::quiet_NaN();
-      }
-    }
-  }
-
-  if (is_deg) {
-    theta = theta * (pi / 180.0);
-  }
-
-  return theta;
-}
-
-double QuantumShell::get_angle_arg_required(const std::vector<std::string>& tokens, size_t index, const std::string& cmd)
-{
-  if (index >= tokens.size()) {
-    std::cerr << "Error: " << cmd << " requires more arguments.\n";
-    return std::numeric_limits<double>::quiet_NaN();
-  }
-  return get_angle_arg(tokens, index, cmd);
-}
-
 void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 {
   if (tokens.empty()) return;
@@ -210,8 +55,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
   // --- Initialization ---
   if (cmd == "INIT") {
-    int N = get_arg(tokens, 1, "INIT");
-    int C = (tokens.size() > 2) ? get_arg(tokens, 2, "INIT") : 0;
+    int N = cli::get_arg(tokens, 1, "INIT");
+    int C = (tokens.size() > 2) ? cli::get_arg(tokens, 2, "INIT") : 0;
 
     if (N > 0 && N <= 64) { // Arbitrary limit for Bitstring (ULL)
       if (state != nullptr) delete state; // Cleanup old state
@@ -243,8 +88,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   }
 
   if (cmd == "QRNG") {
-    int n = get_arg(tokens, 1, "QRNG");
-    int count = (tokens.size() > 2) ? get_arg(tokens, 2, "QRNG") : 1;
+    int n = cli::get_arg(tokens, 1, "QRNG");
+    int count = (tokens.size() > 2) ? cli::get_arg(tokens, 2, "QRNG") : 1;
     if (n <= 0) {
       std::cerr << "Error: QRNG requires n > 0.\n";
       return;
@@ -273,7 +118,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
   // --- Gate Operations (Single Qubit) ---
   if (cmd == "H" || cmd == "X" || cmd == "Y" || cmd == "Z" || cmd == "S" || cmd == "T") {
-    int j = get_arg(tokens, 1, cmd);
+    int j = cli::get_arg(tokens, 1, cmd);
     if (j == -1) return; 
 
     try {
@@ -292,8 +137,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   }
 
   if (cmd == "RX" || cmd == "RY" || cmd == "RZ") {
-    int j = get_arg(tokens, 1, cmd);
-    double theta = get_angle_arg_required(tokens, 2, cmd);
+    int j = cli::get_arg(tokens, 1, cmd);
+    double theta = cli::get_angle_arg_required(tokens, 2, cmd);
     if (j == -1 || std::isnan(theta)) return;
 
     try {
@@ -309,10 +154,10 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   }
 
   if (cmd == "RU") {
-    int j = get_arg(tokens, 1, cmd);
-    double theta = get_angle_arg_required(tokens, 2, cmd);
-    double phi = get_angle_arg_required(tokens, 3, cmd);
-    double lambda = get_angle_arg_required(tokens, 4, cmd);
+    int j = cli::get_arg(tokens, 1, cmd);
+    double theta = cli::get_angle_arg_required(tokens, 2, cmd);
+    double phi = cli::get_angle_arg_required(tokens, 3, cmd);
+    double lambda = cli::get_angle_arg_required(tokens, 4, cmd);
     if (j == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return;
 
     try {
@@ -326,9 +171,9 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   }
 
   if (cmd == "CRZ" || cmd == "CRX" || cmd == "CRY") {
-    int j = get_arg(tokens, 1, cmd);
-    int k = get_arg(tokens, 2, cmd);
-    double theta = get_angle_arg_required(tokens, 3, cmd);
+    int j = cli::get_arg(tokens, 1, cmd);
+    int k = cli::get_arg(tokens, 2, cmd);
+    double theta = cli::get_angle_arg_required(tokens, 3, cmd);
     if (j == -1 || k == -1 || std::isnan(theta)) return;
 
     try {
@@ -350,11 +195,11 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   }
 
   if (cmd == "CU") {
-    int j = get_arg(tokens, 1, cmd);
-    int k = get_arg(tokens, 2, cmd);
-    double theta = get_angle_arg_required(tokens, 3, cmd);
-    double phi = get_angle_arg_required(tokens, 4, cmd);
-    double lambda = get_angle_arg_required(tokens, 5, cmd);
+    int j = cli::get_arg(tokens, 1, cmd);
+    int k = cli::get_arg(tokens, 2, cmd);
+    double theta = cli::get_angle_arg_required(tokens, 3, cmd);
+    double phi = cli::get_angle_arg_required(tokens, 4, cmd);
+    double lambda = cli::get_angle_arg_required(tokens, 5, cmd);
     if (j == -1 || k == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return;
 
     try {
@@ -369,8 +214,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
   // --- Gate Operations (Two Qubits) ---
   if (cmd == "CX" || cmd == "CZ" || cmd == "CY" || cmd == "CH" || cmd == "CNOT") {
-    int j = get_arg(tokens, 1, cmd);
-    int k = get_arg(tokens, 2, cmd);
+    int j = cli::get_arg(tokens, 1, cmd);
+    int k = cli::get_arg(tokens, 2, cmd);
     if (j == -1 || k == -1) return;
 
     if (cmd == "CX") {
@@ -394,9 +239,9 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   }
 
   if (cmd == "CCX" || cmd == "TOFFOLI") {
-    int c1 = get_arg(tokens, 1, cmd);
-    int c2 = get_arg(tokens, 2, cmd);
-    int t = get_arg(tokens, 3, cmd);
+    int c1 = cli::get_arg(tokens, 1, cmd);
+    int c2 = cli::get_arg(tokens, 2, cmd);
+    int t = cli::get_arg(tokens, 3, cmd);
     if (c1 == -1 || c2 == -1 || t == -1) return;
 
     try {
@@ -409,8 +254,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
   if (cmd == "SWAP") {
-    int j = get_arg(tokens, 1, "SWAP");
-    int k = get_arg(tokens, 2, "SWAP");
+    int j = cli::get_arg(tokens, 1, "SWAP");
+    int k = cli::get_arg(tokens, 2, "SWAP");
     if (j == -1 || k == -1) return;
 
     state->swap(j, k); 
@@ -427,7 +272,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     }
     std::vector<Bitstring> targets;
     for (size_t i = 1; i < tokens.size(); ++i) {
-      int t = get_arg(tokens, i, "GROVER");
+      int t = cli::get_arg(tokens, i, "GROVER");
       if (t == -1) return;
       targets.push_back(static_cast<Bitstring>(t));
     }
@@ -453,7 +298,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     std::vector<int> row0;
 
     if (idx < tokens.size()) {
-      int maybe_iters = get_arg(tokens, idx, "LATIN");
+      int maybe_iters = cli::get_arg(tokens, idx, "LATIN");
       if (maybe_iters == -1) return;
       if (mode == "DEMO") {
         iters = maybe_iters;
@@ -462,7 +307,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     }
 
     while (idx < tokens.size()) {
-      int v = get_arg(tokens, idx, "LATIN");
+      int v = cli::get_arg(tokens, idx, "LATIN");
       if (v == -1) return;
       row0.push_back(v);
       ++idx;
@@ -496,7 +341,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
   if (cmd == "SHOR") {
-    int N = get_arg(tokens, 1, "SHOR");
+    int N = cli::get_arg(tokens, 1, "SHOR");
     if (N == -1) return;
     run_shor_demo(static_cast<Bitstring>(N));
     return;
@@ -504,8 +349,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
   // --- Measurement ---
   if (cmd == "MEASURE") {
-    int j = get_arg(tokens, 1, "MEASURE"); // Qubit index
-    int c = get_arg(tokens, 2, "MEASURE"); // Classical register index
+    int j = cli::get_arg(tokens, 1, "MEASURE"); // Qubit index
+    int c = cli::get_arg(tokens, 2, "MEASURE"); // Classical register index
     if (j == -1 || c == -1) return;
 
     state->measure(j, c); // Probability computation, collapse, and renormalization
@@ -607,7 +452,7 @@ void QuantumShell::run()
       continue;
     }
             
-    handle_command(parse_command(input_line));
+    handle_command(cli::parse_command(input_line));
   }
   std::cout << "Exiting simulator.\n";
 }

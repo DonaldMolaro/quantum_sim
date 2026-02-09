@@ -14,11 +14,13 @@ LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	algorithms/api/shor_api.cc demos/latin_demo.cc demos/shor_demo.cc \
 	demos/grover_demo.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
-DRIVER_SOURCES = cli/shell.cc cli/main.cc
+CLI_SOURCES = cli/commands.cc cli/shell.cc cli/main.cc
+DRIVER_SOURCES = $(CLI_SOURCES)
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
 DEPS    = $(LIB_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) tests/all_tests.d
 
 ALL_TESTS_SRC = tests/all_tests.cc
+TEST_EXTRA_OBJECTS = cli/commands.o
 
 # Default target: builds the executable
 all: $(TARGETS)
@@ -31,8 +33,8 @@ $(LIB_NAME): $(LIB_OBJECTS)
 quantum_sim : $(LIB_NAME) $(DRIVER_OBJECTS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DRIVER_OBJECTS) $(LIB_NAME) -o quantum_sim
 
-all_tests : tests/all_tests.o $(LIB_NAME)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) tests/all_tests.o $(LIB_NAME) -o all_tests
+all_tests : tests/all_tests.o $(LIB_NAME) $(TEST_EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) tests/all_tests.o $(LIB_NAME) $(TEST_EXTRA_OBJECTS) -o all_tests
 
 # Rule to compile .cc files into .o files (using implicit rule)
 .cc.o:

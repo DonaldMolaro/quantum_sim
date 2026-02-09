@@ -4,6 +4,7 @@
 #include "algorithms/latin_square.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
+#include "cli/commands.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
@@ -37,6 +38,15 @@ void run_test(const std::string& name, std::function<void()> test_func) {
     } catch (...) {
         std::cerr << "[FAIL] " << name << ": Unknown error" << std::endl;
         ++g_failures;
+    }
+}
+
+static void assert_double_close(double actual, double expected, double tol, const std::string& message)
+{
+    if (std::abs(actual - expected) > tol) {
+        throw std::runtime_error("Assertion failed: " + message +
+                                 " Expected: " + std::to_string(expected) +
+                                 " Actual: " + std::to_string(actual));
     }
 }
 
@@ -1347,6 +1357,33 @@ void test_measure_branches() {
     tiny.measure_with_rng(0, 0, 0.0);
 }
 
+void test_cli_command_parsing()
+{
+    std::vector<std::string> tokens = cli::parse_command("  INIT  3   2 ");
+    if (tokens.size() != 3 || tokens[0] != "INIT" || tokens[1] != "3" || tokens[2] != "2") {
+        throw std::runtime_error("CLI parse_command failed to tokenize INIT");
+    }
+
+    std::vector<std::string> empty = cli::parse_command("   ");
+    if (!empty.empty()) {
+        throw std::runtime_error("CLI parse_command should return empty for whitespace");
+    }
+
+    std::vector<std::string> angle_tokens = {"RX", "0", "PI/2"};
+    double theta = cli::get_angle_arg_required(angle_tokens, 2, "RX");
+    assert_double_close(theta, std::acos(-1.0) / 2.0, 1e-9, "CLI PI/2 parsing");
+
+    std::vector<std::string> deg_tokens = {"RY", "0", "90", "DEG"};
+    double theta_deg = cli::get_angle_arg_required(deg_tokens, 2, "RY");
+    assert_double_close(theta_deg, std::acos(-1.0) / 2.0, 1e-9, "CLI DEG parsing");
+
+    std::vector<std::string> missing = {"X"};
+    int arg = cli::get_arg(missing, 1, "X");
+    if (arg != -1) {
+        throw std::runtime_error("CLI get_arg should return -1 on missing argument");
+    }
+}
+
 void test_latin_square_validations() {
     const int row0[3] = {0, 1, 2};
     Bitstring assignment = 0;
@@ -1574,6 +1611,7 @@ int run_unit_tests()
   run_test("QFT invalid ranges", test_qft_invalid_ranges);
   run_test("QFT tiny amplitude continue", test_qft_tiny_amplitude_continue);
   run_test("Measurement branches", test_measure_branches);
+  run_test("CLI command parsing", test_cli_command_parsing);
   run_test("Latin square validations", test_latin_square_validations);
   run_test("Latin square forced measurement", test_latin_square_demo_forced_measure);
   run_test("Latin square invalid row0", test_latin_square_invalid_row0);
