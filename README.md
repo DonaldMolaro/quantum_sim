@@ -39,6 +39,7 @@ Notes:
 - `demos/`: CLI/demo wrappers for Shor and Latin square output
 - `tests/`: unit tests and Grover tests
 - `cli/`: interactive CLI driver program
+- `examples/`: worked CLI transcripts (Bell states, etc.)
 
 ## Style Notes
 
