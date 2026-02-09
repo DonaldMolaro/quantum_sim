@@ -7,6 +7,7 @@
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
+#include "modular_exp.hh"
 #include "math/mod_arith.hh"
 #include "math/bit_ops.hh"
 #include <algorithm>
@@ -803,7 +804,6 @@ int main_test_qft() {
 
 
 
-extern Bitstring modular_exponentiation(Bitstring a, Bitstring power, Bitstring N);
 
 void test_mod_exp_zero_power() {
     // Test case: a^0 mod N = 1

@@ -9,5 +9,6 @@
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
+#include "modular_exp.hh"
 #include "math/bit_ops.hh"
 #include "math/register_layout.hh"

@@ -87,6 +87,7 @@ install: $(LIB_NAME)
 	cp $(LIB_NAME) dist/lib/
 	cp include/quantum_sim.hh dist/include/
 	cp state.hh dist/include/
+	cp modular_exp.hh dist/include/
 	cp algorithms/latin_square.hh dist/include/algorithms/
 	cp algorithms/qrng.hh dist/include/algorithms/
 	cp algorithms/api/grover_api.hh dist/include/algorithms/api/
