@@ -6,7 +6,7 @@
 
 #include "state.hh"
 #include <cstdlib>
-#include <iostream>
+#include <ostream>
 
 static bool grover_verbose()
 {
@@ -68,8 +68,8 @@ State& State::grover_diffusion_Us()
     h(j); 
   }
         
-  if (grover_verbose()) {
-    std::cout << "Grover Diffusion Operator U_psi_perp applied.\n";
+  if (grover_verbose() && log_stream_) {
+    (*log_stream_) << "Grover Diffusion Operator U_psi_perp applied.\n";
   }
         
   return *this;
@@ -97,12 +97,12 @@ State& State::grover_oracle_Uf(Bitstring solution_w)
     // apply a -1 phase shift (negation).
     if (current_b == solution_w) {
       // Uf|w> = -|w>
-      if (grover_verbose()) {
-        std::cout << "Grover Oracle hit at " << current_b << " fliping  " << current_a << " to ";
+      if (grover_verbose() && log_stream_) {
+        (*log_stream_) << "Grover Oracle hit at " << current_b << " fliping  " << current_a << " to ";
       }
       current_a *= -1.0;
-      if (grover_verbose()) {
-        std::cout << current_a << "\n";
+      if (grover_verbose() && log_stream_) {
+        (*log_stream_) << current_a << "\n";
       }
                 
       // If we assume a function f(x) that returns 1 only for x=w:
@@ -110,8 +110,8 @@ State& State::grover_oracle_Uf(Bitstring solution_w)
     }
     // If current_b != solution_w (f(x)=0), amplitude remains unchanged (phase +1).
   }
-  if (grover_verbose()) {
-    std::cout << "Grover Oracle Uf applied. Solution state " << solution_w << " phase negated.\n";
+  if (grover_verbose() && log_stream_) {
+    (*log_stream_) << "Grover Oracle Uf applied. Solution state " << solution_w << " phase negated.\n";
   }
   return *this;
 }
@@ -125,8 +125,8 @@ State& State::grover_oracle_Uf_multi(const std::unordered_set<Bitstring>& soluti
       current_a *= -1.0;
     }
   }
-  if (grover_verbose()) {
-    std::cout << "Grover Oracle Uf applied to " << solutions.size() << " solution state(s).\n";
+  if (grover_verbose() && log_stream_) {
+    (*log_stream_) << "Grover Oracle Uf applied to " << solutions.size() << " solution state(s).\n";
   }
   return *this;
 }
@@ -140,8 +140,8 @@ State& State::grover_oracle_Uf_mask(const std::vector<uint8_t>& solution_mask)
       current_a *= -1.0;
     }
   }
-  if (grover_verbose()) {
-    std::cout << "Grover Oracle Uf applied to " << solution_mask.size() << " mask entries.\n";
+  if (grover_verbose() && log_stream_) {
+    (*log_stream_) << "Grover Oracle Uf applied to " << solution_mask.size() << " mask entries.\n";
   }
   return *this;
 }

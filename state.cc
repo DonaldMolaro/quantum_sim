@@ -27,6 +27,8 @@
 #include <map>
 #include <utility>
 #include <vector>
+
+std::ostream* State::default_log_stream_ = nullptr;
 // --- Type Definitions based on Source Material ---
 
 // Amplitude is a complex number (using C++11 std::complex<double>)
@@ -122,7 +124,8 @@ void State::s_flatMap_and_reduce(const std::function<IntermediateState(const Bit
 }
 
 /** Constructor: Initializes the state to the ground state |00...0>. */
-State::State(int N, int num_cbits) : num_qubits_(N), cbits_(num_cbits, 0) 
+State::State(int N, int num_cbits)
+  : num_qubits_(N), cbits_(num_cbits, 0), log_stream_(default_log_stream_)
 {
   // Start state: bitstring 0, amplitude 1 (the ground state)
   state_.push_back({0ULL, ONE_COMPLEX}); 

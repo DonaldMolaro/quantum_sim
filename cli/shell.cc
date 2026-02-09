@@ -11,6 +11,8 @@
 #include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/qrng.hh"
+#include "demos/latin_demo.hh"
+#include "demos/shor_demo.hh"
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -21,11 +23,6 @@
 #include <vector>
 
 extern void run_grover_search(State *s,Bitstring targer_w);
-extern void run_latin3_grover_demo(int iterations);
-extern void run_latin3_grover_demo_row0(const int row0[3], int iterations);
-extern void run_latin3_count_row0(const int row0[3]);
-extern void run_latin3_print_all_row0(const int row0[3]);
-extern void run_shor_demo(Bitstring N);
 
 static std::string bits_to_string(const std::vector<int>& bits)
 {
@@ -592,6 +589,7 @@ void QuantumShell::print_help()
 
 void QuantumShell::run()
 {
+  State::set_default_log_stream(&std::cout);
   print_help();
   std::string input_line;
   while (true) {

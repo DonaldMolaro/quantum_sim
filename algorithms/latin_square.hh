@@ -5,9 +5,3 @@
 // Row 0 is provided explicitly (must be a permutation of 0,1,2).
 bool is_valid_latin3(Bitstring assignment, const int row0[3]);
 bool is_valid_latin3_fixedrow(Bitstring assignment);
-
-// Runs a Grover demo to find Latin squares of order 3 with first row fixed.
-void run_latin3_grover_demo(int iterations = -1);
-void run_latin3_grover_demo_row0(const int row0[3], int iterations = -1);
-void run_latin3_count_row0(const int row0[3]);
-void run_latin3_print_all_row0(const int row0[3]);

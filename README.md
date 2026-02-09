@@ -33,9 +33,10 @@ Notes:
 - `state.hh`, `state.cc`: core quantum state and gates
 - `display.cc`: state visualization
 - `math/`: bit operations and modular arithmetic helpers
-- `algorithms/`: Grover and Shor implementations
+- `algorithms/`: core Grover/Shor routines (no demo output)
 - `algorithms/shor_classical.*`: continued fractions + order extraction helpers
 - `algorithms/shor_quantum.*`: quantum order-finding routines
+- `demos/`: CLI/demo wrappers for Shor and Latin square output
 - `tests/`: unit tests and Grover tests
 - `cli/`: interactive CLI driver program
 

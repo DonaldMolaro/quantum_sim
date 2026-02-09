@@ -1,78 +1,70 @@
 #include "algorithms/shor_quantum.hh"
 #include "math/register_layout.hh"
 #include <cmath>
-#include <iostream>
+#include <string>
 
-Bitstring run_shor_algorithm_quantum_part(Bitstring N, Bitstring a, int& out_n_c)
+ShorQuantumResult run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)
 {
-  int n_t = static_cast<int>(std::ceil(std::log2(static_cast<double>(N))));
-  int n_c = 2 * n_t;
-  int total_qubits = n_c + n_t;
-  int num_cbits = n_c;
+  ShorQuantumResult result;
+  result.n_t = static_cast<int>(std::ceil(std::log2(static_cast<double>(N))));
+  result.n_c = 2 * result.n_t;
+  result.total_qubits = result.n_c + result.n_t;
+  int num_cbits = result.n_c;
 
-  out_n_c = n_c;
-  if (n_c >= 63) {
-    std::cout << "Control register too large for 64-bit demo (n_c=" << n_c << ").\n";
-    return 0ULL;
+  if (result.n_c >= 63) {
+    result.error = "Control register too large for 64-bit demo (n_c=" + std::to_string(result.n_c) + ").";
+    return result;
   }
   const int kMaxShorQubits = 24;
-  if (total_qubits > kMaxShorQubits) {
+  if (result.total_qubits > kMaxShorQubits) {
     int max_n_t = kMaxShorQubits / 3;
-    Bitstring max_n = 0;
     if (max_n_t > 0 && max_n_t < 63) {
-      max_n = (1ULL << max_n_t) - 1;
+      result.max_n = (1ULL << max_n_t) - 1;
     }
-    std::cout << "Shor demo limited to " << kMaxShorQubits
-              << " qubits; N=" << N
-              << " needs " << total_qubits
-              << " qubits (n_t=" << n_t << ", n_c=" << n_c << ").\n";
-    if (max_n > 0) {
-      std::cout << "Try N <= " << max_n << " for this simulator.\n";
-    }
-    return 0ULL;
+    result.error = "Shor demo limited to " + std::to_string(kMaxShorQubits) +
+                   " qubits; N=" + std::to_string(N) +
+                   " needs " + std::to_string(result.total_qubits) +
+                   " qubits (n_t=" + std::to_string(result.n_t) +
+                   ", n_c=" + std::to_string(result.n_c) + ").";
+    return result;
   }
 
-  State s(total_qubits, num_cbits);
-
-  std::cout << "Running Shor's Algorithm for N=" << N << ", a=" << a << "\n";
-  std::cout << "Total Qubits: " << total_qubits << " (Control=" << n_c << ", Target=" << n_t << ")\n";
+  State s(result.total_qubits, num_cbits);
 
   // Initialize target register to |1> (rightmost target qubit).
-  s.x(total_qubits - 1);
+  s.x(result.total_qubits - 1);
 
   // QFT on control register (creates uniform superposition).
-  s.qft(0, n_c - 1);
+  s.qft(0, result.n_c - 1);
 
   // Controlled modular exponentiation for each control qubit.
-  for (int j = 0; j < n_c; ++j) {
+  for (int j = 0; j < result.n_c; ++j) {
     int control_q = j;
     Bitstring power_of_a = 1ULL << j;
     s.controlled_modular_exponentiation(
         control_q,
-        n_c, total_qubits - 1,
+        result.n_c, result.total_qubits - 1,
         a, N,
         power_of_a);
   }
 
   // Inverse QFT on control register.
-  s.iqft(0, n_c - 1);
+  s.iqft(0, result.n_c - 1);
 
   // Measure control register into classical bits.
-  std::cout << "\nMeasuring Control Register...\n";
-  for (int j = 0; j < n_c; ++j) {
+  for (int j = 0; j < result.n_c; ++j) {
     s.measure(j, j);
   }
 
   Bitstring measured_x = 0;
-  std::cout << "Measured result (bitstring x): ";
-  for (int j = 0; j < n_c; ++j) {
+  for (int j = 0; j < result.n_c; ++j) {
     int bit = s.get_cbit(j);
-    std::cout << bit;
     measured_x |= (Bitstring)bit << j;
   }
-  std::cout << " (Decimal: " << measured_x << ")\n";
 
-  return measured_x;
+  result.measured_x = measured_x;
+  result.ok = true;
+  return result;
 }
 
 State& State::run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)

@@ -12,6 +12,7 @@
 #include <cmath>
 #include <complex>
 #include <functional>
+#include <iosfwd>
 #include <map>
 #include <unordered_set>
 #include <utility>
@@ -67,6 +68,8 @@ private:
   int num_qubits_;
   std::vector<int> cbits_;
   QftMode qft_mode_ = QftMode::Direct;
+  std::ostream* log_stream_ = nullptr;
+  static std::ostream* default_log_stream_;
 
   // Accessor for the size of the classical register
   size_t cbits_size() const { return cbits_.size(); }
@@ -113,10 +116,16 @@ public:
     return s;
   }
 
-  State(Bitstring initial_state_value, int n) : num_qubits_(n)
+  State(Bitstring initial_state_value, int n)
+      : num_qubits_(n), log_stream_(default_log_stream_)
   {
     state_.push_back({initial_state_value, 1.0});
   }
+
+  static void set_default_log_stream(std::ostream* out) { default_log_stream_ = out; }
+  static std::ostream* default_log_stream() { return default_log_stream_; }
+  void set_log_stream(std::ostream* out) { log_stream_ = out; }
+  std::ostream* log_stream() const { return log_stream_; }
 
   State& x(int j);
   /** Z Gate (Phase flip): equivalent to RZ(pi). */

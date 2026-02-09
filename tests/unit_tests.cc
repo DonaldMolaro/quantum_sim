@@ -4,8 +4,9 @@
 #include "algorithms/latin_square.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
+#include "demos/latin_demo.hh"
+#include "demos/shor_demo.hh"
 #include "math/mod_arith.hh"
-#include "math/bit_ops.hh"
 #include "math/bit_ops.hh"
 #include <algorithm>
 #include <cmath>
@@ -39,7 +40,6 @@ void run_test(const std::string& name, std::function<void()> test_func) {
 
 void run_grover_search(State *s, Bitstring target_w);
 void run_grover_search_multi(State *s, const std::vector<Bitstring>& targets);
-void run_shor_demo(Bitstring N);
 
 using test_helpers::assert_complex_equal;
 using test_helpers::assert_complex_close;
@@ -1439,7 +1439,17 @@ void test_shor_demo_branches() {
     }
 
     run_shor_demo(1ULL << 20);
-    run_shor_demo((1ULL << 20) + 1); // odd, triggers max-qubits guard
+    {
+        ScopedEnv env_attempts2b("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "2");
+        run_shor_demo((1ULL << 20) + 1); // odd, triggers max-qubits guard
+    }
+    {
+        ScopedEnv env_attempts2c("QSIM_SHOR_MAX_ATTEMPTS", "1");
+        ScopedEnv env_a("QSIM_SHOR_FORCE_A", "2");
+        ScopedEnv env_x("QSIM_SHOR_FORCE_X", "1");
+        run_shor_demo((1ULL << 20) + 1); // env_x path to guard
+    }
 
     {
         ScopedEnv env_attempts3("QSIM_SHOR_MAX_ATTEMPTS", "1");
@@ -1547,6 +1557,7 @@ int run_unit_tests()
   if (const char* env = std::getenv("QSIM_SLOW_TESTS")) {
     slow = (env[0] != '\0' && env[0] != '0');
   }
+  State::set_default_log_stream(&std::cout);
   setenv("QSIM_GROVER_VERBOSE", "1", 1);
   main_test_controlled_Rr();
   main_test_controlled_Rr_dag();

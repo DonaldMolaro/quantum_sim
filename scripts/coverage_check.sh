@@ -46,11 +46,13 @@ for f in $gcov_files; do
           */all_tests.cc|*/main.cc)
             ;;
           *.cc)
-            if [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/algorithms/shor.cc" ]; then
-              :
-            elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/algorithms/shor_classical.cc" ]; then
+            if [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/algorithms/shor_classical.cc" ]; then
               :
             elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/algorithms/shor_quantum.cc" ]; then
+              :
+            elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/demos/shor_demo.cc" ]; then
+              :
+            elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/demos/latin_demo.cc" ]; then
               :
             else
               filtered="$filtered $f"
