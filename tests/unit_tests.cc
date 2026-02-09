@@ -3,6 +3,7 @@
 #include "algorithms/qrng.hh"
 #include "math/mod_arith.hh"
 #include "math/bit_ops.hh"
+#include "math/bit_ops.hh"
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -15,14 +16,18 @@ const ComplexNumber I(0.0, 1.0); // Imaginary unit i
 
 // --- Utility Functions ---
 
+static int g_failures = 0;
+
 void run_test(const std::string& name, std::function<void()> test_func) {
     try {
         test_func();
         std::cout << "[PASS] " << name << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "[FAIL] " << name << ": " << e.what() << std::endl;
+        ++g_failures;
     } catch (...) {
         std::cerr << "[FAIL] " << name << ": Unknown error" << std::endl;
+        ++g_failures;
     }
 }
 
@@ -282,6 +287,94 @@ void test_swap_gate() {
     assert_complex_equal(1.0, s.get_amplitude(0b10), "SWAP should move amplitude to |10>");
 }
 
+// --- Helper Function Tests ---
+
+void test_extract_bits_basic() {
+    Bitstring b = 0b10001111ULL; // 143
+    Bitstring lower = extract_bits(b, 0, 3);
+    assert_equal(lower, 15ULL, "extract_bits lower nibble");
+    Bitstring bit7 = extract_bits(b, 7, 7);
+    assert_equal(bit7, 1ULL, "extract_bits single bit");
+}
+
+void test_replace_bits_basic() {
+    Bitstring b = 0b10000001ULL; // 129
+    Bitstring replaced = replace_bits(b, 0, 3, 0b0100ULL); // 4
+    assert_equal(replaced, 0b10000100ULL, "replace_bits preserves upper bits");
+}
+
+void test_set_amplitude_add_update() {
+    State s(3, 0);
+    s.set_amplitude(5ULL, 0.5);
+    assert_complex_close(0.5, s.get_amplitude(5ULL), 1e-9, "set_amplitude add");
+    size_t size_after_add = s.get_state().size();
+    s.set_amplitude(5ULL, 0.25);
+    assert_complex_close(0.25, s.get_amplitude(5ULL), 1e-9, "set_amplitude update");
+    assert_equal(s.get_state().size(), static_cast<Bitstring>(size_after_add), "set_amplitude does not add duplicate");
+}
+
+void test_apply_U0_perp() {
+    State s(2, 0);
+    s.set_amplitude(0b00, 0.5);
+    s.set_amplitude(0b01, 0.5);
+    s.apply_U0_perp();
+    assert_complex_close(0.5, s.get_amplitude(0b00), 1e-9, "U0_perp should keep |00>");
+    assert_complex_close(-0.5, s.get_amplitude(0b01), 1e-9, "U0_perp should flip |01>");
+}
+
+void test_grover_oracle_mask() {
+    State s(3, 0);
+    s.set_amplitude(0b001, 0.5);
+    s.set_amplitude(0b010, 0.5);
+    std::vector<uint8_t> mask(1ULL << 3, 0);
+    mask[0b010] = 1;
+    s.grover_oracle_Uf_mask(mask);
+    assert_complex_close(0.5, s.get_amplitude(0b001), 1e-9, "Mask oracle should keep non-target");
+    assert_complex_close(-0.5, s.get_amplitude(0b010), 1e-9, "Mask oracle should flip target");
+}
+
+void test_phase_flip_if() {
+    State s(2, 0);
+    s.set_amplitude(0b01, 0.5);
+    s.set_amplitude(0b10, 0.5);
+    s.phase_flip_if([](Bitstring b) { return b == 0b10; });
+    assert_complex_close(0.5, s.get_amplitude(0b01), 1e-9, "phase_flip_if should keep |01>");
+    assert_complex_close(-0.5, s.get_amplitude(0b10), 1e-9, "phase_flip_if should flip |10>");
+}
+
+void test_measure_with_rng() {
+    State s(1, 1);
+    s.set_amplitude(0b0, 0.6);
+    s.set_amplitude(0b1, 0.8); // norm=1
+    s.measure_with_rng(0, 0, 0.2); // p0=0.36 -> outcome 0
+    assert_equal(static_cast<Bitstring>(s.get_cbits()[0]), 0ULL, "measure_with_rng outcome 0");
+
+    State s2(1, 1);
+    s2.set_amplitude(0b0, 0.6);
+    s2.set_amplitude(0b1, 0.8);
+    s2.measure_with_rng(0, 0, 0.9); // outcome 1
+    assert_equal(static_cast<Bitstring>(s2.get_cbits()[0]), 1ULL, "measure_with_rng outcome 1");
+}
+
+void test_measure_all_with_rng() {
+    State s(2, 2);
+    s.set_amplitude(0b00, 0.5);
+    s.set_amplitude(0b01, 0.5);
+    s.set_amplitude(0b10, 0.5);
+    s.set_amplitude(0b11, 0.5);
+    std::vector<int> out;
+    s.measure_all_with_rng({0.1, 0.9}, out);
+    assert_equal(static_cast<Bitstring>(out.size()), 2ULL, "measure_all_with_rng size");
+}
+
+void test_measure_all() {
+    State s(2, 2);
+    s.set_amplitude(0b00, 1.0);
+    std::vector<int> out;
+    s.measure_all(out);
+    assert_equal(static_cast<Bitstring>(out.size()), 2ULL, "measure_all size");
+}
+
 void main_core_gate_tests() {
     std::cout << "Testing core gates (X, H, S, T, CX, SWAP):\n";
     std::cout << "------------------------------------------------------------------\n";
@@ -311,6 +404,15 @@ void main_core_gate_tests() {
     run_test("CU gate (control on)", test_cu_gate_matches_cnot_like);
     run_test("CCX gate (control on)", test_ccx_gate_on_110);
     run_test("SWAP gate", test_swap_gate);
+    run_test("extract_bits helper", test_extract_bits_basic);
+    run_test("replace_bits helper", test_replace_bits_basic);
+    run_test("set_amplitude add/update", test_set_amplitude_add_update);
+    run_test("apply_U0_perp helper", test_apply_U0_perp);
+    run_test("grover_oracle_Uf_mask helper", test_grover_oracle_mask);
+    run_test("phase_flip_if helper", test_phase_flip_if);
+    run_test("measure_with_rng helper", test_measure_with_rng);
+    run_test("measure_all_with_rng helper", test_measure_all_with_rng);
+    run_test("measure_all helper", test_measure_all);
 
     std::cout << "------------------------------------------------------------------\n";
 }
@@ -1047,7 +1149,7 @@ void test_shor_small_semiprimes() {
 }
 
 
-int main()
+int run_unit_tests()
 {
   bool verbose = false;
   if (const char* env = std::getenv("QSIM_TEST_VERBOSE")) {
@@ -1066,4 +1168,13 @@ int main()
   } else {
     std::cout << "Shor tests skipped. Set QSIM_TEST_VERBOSE=1 to run them.\n";
   }
+
+  return g_failures;
 }
+
+#ifndef ALL_TESTS
+int main()
+{
+  return run_unit_tests() == 0 ? 0 : 1;
+}
+#endif
