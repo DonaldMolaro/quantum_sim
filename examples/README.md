@@ -1,0 +1,25 @@
+# Examples Index
+
+This folder contains runnable CLI transcripts and walkthroughs for common quantum
+protocols and algorithms supported by the simulator.
+
+## Contents
+
+- `bell_states.md`: Prepare and verify all four Bell states
+- `superdense_coding.md`: Superdense coding (2 classical bits via 1 qubit)
+- `quantum_teleportation.md`: Teleport a single-qubit state
+- `bb84_qkd.md`: BB84 quantum key distribution (conceptual walkthrough)
+- `chsh_bell_test.md`: CHSH/Bell inequality test sketch
+- `qrng_demo.md`: Quantum random number generator demo
+- `shor_usage.md`: Shor demo usage (small composites)
+- `grover_usage.md`: Grover demo + manual oracle by hand
+
+## Running the CLI
+
+From the project root:
+
+```
+./quantum_sim
+```
+
+Then copy/paste the command blocks from any example.
