@@ -28,6 +28,10 @@ exclude_shor=0
 if [ -z "$QSIM_SLOW_TESTS" ] || [ "$QSIM_SLOW_TESTS" = "0" ]; then
   exclude_shor=1
 fi
+exclude_demo=0
+if [ -z "$QSIM_DEMO_TESTS" ] || [ "$QSIM_DEMO_TESTS" = "0" ]; then
+  exclude_demo=1
+fi
 
 for f in $gcov_files; do
   src=$(awk -F: '/Source:/ {print $4; exit}' "$f")
@@ -50,11 +54,11 @@ for f in $gcov_files; do
               :
             elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/algorithms/shor_quantum.cc" ]; then
               :
-            elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/demos/shor_demo.cc" ]; then
+            elif [ "$exclude_demo" -eq 1 ] && [ "$resolved" = "$root/demos/shor_demo.cc" ]; then
               :
-            elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/demos/latin_demo.cc" ]; then
+            elif [ "$exclude_demo" -eq 1 ] && [ "$resolved" = "$root/demos/latin_demo.cc" ]; then
               :
-            elif [ "$exclude_shor" -eq 1 ] && [ "$resolved" = "$root/demos/grover_demo.cc" ]; then
+            elif [ "$exclude_demo" -eq 1 ] && [ "$resolved" = "$root/demos/grover_demo.cc" ]; then
               :
             else
               filtered="$filtered $f"

@@ -77,6 +77,15 @@ test-slow:
 	QSIM_TEST_VERBOSE=1 QSIM_SLOW_TESTS=1 ./all_tests
 	QSIM_SLOW_TESTS=1 ./scripts/coverage_check.sh
 
+.PHONY: test-demo
+test-demo:
+	$(MAKE) clean
+	$(MAKE) COVERAGE=1 all_tests
+	find . -name "*.gcda" -delete
+	find . -name "*.gcov" -delete
+	QSIM_TEST_VERBOSE=1 QSIM_SLOW_TESTS=1 QSIM_DEMO_TESTS=1 ./all_tests
+	QSIM_SLOW_TESTS=1 QSIM_DEMO_TESTS=1 ./scripts/coverage_check.sh
+
 .PHONY: coverage
 coverage:
 	$(MAKE) COVERAGE=1 all_tests

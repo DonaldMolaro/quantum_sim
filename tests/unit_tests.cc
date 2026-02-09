@@ -4,6 +4,8 @@
 #include "algorithms/latin_square.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
+#include "algorithms/shor_classical.hh"
+#include "algorithms/shor_quantum.hh"
 #include "cli/commands.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
@@ -1463,6 +1465,37 @@ void test_shor_api_paths() {
     }
 }
 
+void test_shor_classical_estimate_order()
+{
+    Bitstring r = estimate_order(64, 8, 2, 15);
+    if (r != 4) {
+        throw std::runtime_error("Expected estimate_order to return r=4");
+    }
+
+    Bitstring r_none = estimate_order(0, 8, 2, 15);
+    if (r_none != 0) {
+        throw std::runtime_error("Expected estimate_order to return 0 when no r is valid");
+    }
+}
+
+void test_shor_quantum_free_function_paths()
+{
+    ShorQuantumResult too_big = run_shor_algorithm_quantum_part(1ULL << 32, 2);
+    if (too_big.ok || too_big.error.empty()) {
+        throw std::runtime_error("Expected control-register size error");
+    }
+
+    ShorQuantumResult max_qubits = run_shor_algorithm_quantum_part(257, 2);
+    if (max_qubits.ok || max_qubits.error.empty()) {
+        throw std::runtime_error("Expected max-qubits error");
+    }
+
+    ShorQuantumResult ok = run_shor_algorithm_quantum_part(15, 2);
+    if (!ok.ok || ok.n_c == 0) {
+        throw std::runtime_error("Expected shor_quantum free function to succeed");
+    }
+}
+
 void test_shor_demo_branches() {
     ScopedEnv env_attempts("QSIM_SHOR_MAX_ATTEMPTS", "1");
     run_shor_demo(1);
@@ -1593,6 +1626,14 @@ int run_unit_tests()
   if (const char* env = std::getenv("QSIM_SLOW_TESTS")) {
     slow = (env[0] != '\0' && env[0] != '0');
   }
+  bool demo = false;
+  if (const char* env = std::getenv("QSIM_DEMO_TESTS")) {
+    demo = (env[0] != '\0' && env[0] != '0');
+  }
+  if (const char* env = std::getenv("QSIM_TEST_SEED")) {
+    unsigned int seed = static_cast<unsigned int>(std::strtoul(env, nullptr, 10));
+    std::srand(seed);
+  }
   State::set_default_log_stream(&std::cout);
   setenv("QSIM_GROVER_VERBOSE", "1", 1);
   main_test_controlled_Rr();
@@ -1613,14 +1654,28 @@ int run_unit_tests()
   run_test("Measurement branches", test_measure_branches);
   run_test("CLI command parsing", test_cli_command_parsing);
   run_test("Latin square validations", test_latin_square_validations);
-  run_test("Latin square forced measurement", test_latin_square_demo_forced_measure);
+  if (demo) {
+    run_test("Latin square forced measurement", test_latin_square_demo_forced_measure);
+  } else {
+    std::cout << "Latin square demo tests skipped. Set QSIM_DEMO_TESTS=1 to run them.\n";
+  }
   run_test("Latin square invalid row0", test_latin_square_invalid_row0);
-  run_test("Latin square count/print", test_latin_square_count_print);
+  if (demo) {
+    run_test("Latin square count/print", test_latin_square_count_print);
+  } else {
+    std::cout << "Latin square demo tests skipped. Set QSIM_DEMO_TESTS=1 to run them.\n";
+  }
   run_test("Shor API paths", test_shor_api_paths);
   if (slow) {
+    run_test("Shor classical estimate_order", test_shor_classical_estimate_order);
+    run_test("Shor quantum free function", test_shor_quantum_free_function_paths);
+  } else {
+    std::cout << "Shor classical/quantum helper tests skipped. Set QSIM_SLOW_TESTS=1 to run them.\n";
+  }
+  if (demo) {
     run_test("Shor demo branches", test_shor_demo_branches);
   } else {
-    std::cout << "Shor demo branches skipped. Set QSIM_SLOW_TESTS=1 to run them.\n";
+    std::cout << "Shor demo branches skipped. Set QSIM_DEMO_TESTS=1 to run them.\n";
   }
   if (verbose && slow) {
     main_shor_tests();
