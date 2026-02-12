@@ -16,6 +16,7 @@ protocols and algorithms supported by the simulator.
 - `deutsch_jozsa.md`: Deutsch–Jozsa demo (constant vs balanced)
 - `bernstein_vazirani.md`: Bernstein-Vazirani hidden-string recovery
 - `qubo_usage.md`: QUBO exact and Grover-threshold solving
+- `vqa_qaoa.md`: VQA/QAOA optimization of QUBO instances
 
 ## Running the CLI
 
