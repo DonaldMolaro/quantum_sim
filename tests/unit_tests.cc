@@ -3,6 +3,7 @@
 #include "algorithms/qrng.hh"
 #include "algorithms/latin_square.hh"
 #include "algorithms/deutsch_jozsa.hh"
+#include "algorithms/bernstein_vazirani.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
 #include "algorithms/shor_classical.hh"
@@ -1346,6 +1347,48 @@ void test_deutsch_jozsa_oracle_helpers()
     }
 }
 
+void test_bernstein_vazirani_secret_recovery()
+{
+    BernsteinVaziraniResult r0 = run_bernstein_vazirani(5, 0b10110, 0);
+    if (!r0.ok) {
+        throw std::runtime_error("Expected BV run to succeed");
+    }
+    if (r0.measured_secret != 0b10110ULL) {
+        throw std::runtime_error("Expected BV to recover hidden string");
+    }
+
+    BernsteinVaziraniResult r1 = run_bernstein_vazirani(5, 0b10110, 1);
+    if (!r1.ok) {
+        throw std::runtime_error("Expected BV run with bias=1 to succeed");
+    }
+    if (r1.measured_secret != 0b10110ULL) {
+        throw std::runtime_error("Expected BV to recover hidden string regardless of bias");
+    }
+}
+
+void test_bernstein_vazirani_errors()
+{
+    BernsteinVaziraniResult n_bad = run_bernstein_vazirani(0, 0, 0);
+    if (n_bad.ok || n_bad.error.empty()) {
+        throw std::runtime_error("Expected BV error for n_inputs <= 0");
+    }
+
+    BernsteinVaziraniResult secret_bad = run_bernstein_vazirani(3, 8, 0);
+    if (secret_bad.ok || secret_bad.error.empty()) {
+        throw std::runtime_error("Expected BV error for out-of-range secret");
+    }
+
+    BernsteinVaziraniResult bias_bad = run_bernstein_vazirani(3, 1, 2);
+    if (bias_bad.ok || bias_bad.error.empty()) {
+        throw std::runtime_error("Expected BV error for invalid bias");
+    }
+
+    BernsteinVaziraniResult too_large = run_bernstein_vazirani(70, 1, 0);
+    if (too_large.ok || too_large.error.empty()) {
+        throw std::runtime_error("Expected BV error for too-large n_inputs");
+    }
+}
+
 void test_logging_levels()
 {
     auto run_child = [](const char* key, const char* value, qsim_log::Level expected) {
@@ -1797,6 +1840,8 @@ int run_unit_tests()
   run_test("Deutsch-Jozsa constant oracles", test_deutsch_jozsa_constant_oracles);
   run_test("Deutsch-Jozsa balanced oracles", test_deutsch_jozsa_balanced_oracles);
   run_test("Deutsch-Jozsa oracle helpers", test_deutsch_jozsa_oracle_helpers);
+  run_test("Bernstein-Vazirani recovery", test_bernstein_vazirani_secret_recovery);
+  run_test("Bernstein-Vazirani errors", test_bernstein_vazirani_errors);
   run_test("Grover search helpers", test_grover_search_helpers);
   run_test("Grover API errors", test_grover_api_errors);
   run_test("Display output paths", test_display_output_paths);

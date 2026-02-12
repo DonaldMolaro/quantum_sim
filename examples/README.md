@@ -14,6 +14,7 @@ protocols and algorithms supported by the simulator.
 - `shor_usage.md`: Shor demo usage (small composites)
 - `grover_usage.md`: Grover demo + manual oracle by hand
 - `deutsch_jozsa.md`: Deutsch–Jozsa demo (constant vs balanced)
+- `bernstein_vazirani.md`: Bernstein-Vazirani hidden-string recovery
 
 ## Running the CLI
 

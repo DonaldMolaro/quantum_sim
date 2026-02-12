@@ -6,6 +6,16 @@ inline bool qft_range_valid(int n)
   return n > 0 && n < 63;
 }
 
+inline bool qft_dimension(int n, unsigned long long& out_N)
+{
+  if (!qft_range_valid(n)) {
+    out_N = 0ULL;
+    return false;
+  }
+  out_N = 1ULL << n;
+  return true;
+}
+
 inline double qft_phase_exponent(unsigned long long j, unsigned long long k, unsigned long long N, int sign)
 {
   const long double PI = std::acos(-1.0L);

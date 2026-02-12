@@ -93,7 +93,8 @@ State& State::qft(int start_qubit, int end_qubit)
       std::cerr << "Error: Invalid qubit range for QFT." << std::endl;
       return *this;
   }
-  Bitstring N = 1ULL << n;
+  Bitstring N = 0ULL;
+  qft_dimension(n, N);
   
   // Calculate the overall scaling factor 1/sqrt(N)
   ComplexNumber overall_scale = 1.0 / std::sqrt((double)N);
@@ -156,7 +157,8 @@ State& State::iqft(int start_qubit, int end_qubit)
       std::cerr << "Error: Invalid qubit range for IQFT." << std::endl;
       return *this;
   }
-  Bitstring N = 1ULL << n;
+  Bitstring N = 0ULL;
+  qft_dimension(n, N);
   
   // Calculate the overall scaling factor 1/sqrt(N)
   ComplexNumber overall_scale = 1.0 / std::sqrt((double)N);

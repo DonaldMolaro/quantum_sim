@@ -12,6 +12,7 @@
 #include "cli/shell.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/qrng.hh"
+#include "demos/bernstein_vazirani_demo.hh"
 #include "demos/deutsch_jozsa_demo.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
@@ -148,6 +149,17 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       return;
     }
     run_deutsch_jozsa_demo(n_inputs, tokens[2]);
+    return;
+  }
+
+  if (cmd == "BV" || cmd == "BERNSTEIN_VAZIRANI") {
+    int n_inputs = cli::get_arg(tokens, 1, cmd);
+    int secret = cli::get_arg(tokens, 2, cmd);
+    int bias = (tokens.size() > 3) ? cli::get_arg(tokens, 3, cmd) : 0;
+    if (n_inputs == -1 || secret == -1 || bias == -1) return;
+    run_bernstein_vazirani_demo(n_inputs,
+                                static_cast<Bitstring>(secret),
+                                bias);
     return;
   }
 
@@ -458,6 +470,7 @@ void QuantumShell::print_help()
   std::cout << "GROVER <t...>    : Run Grover's algorithm searching for one or more targets\n";
   std::cout << "VERBOSE <level>  : Set verbosity (QUIET, NORMAL, VERBOSE or 0/1/2)\n";
   std::cout << "DEUTSCH_JOZSA <n> <oracle> : Run Deutsch-Jozsa demo (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY)\n";
+  std::cout << "BV <n> <secret> [bias]: Run Bernstein-Vazirani demo (bias defaults to 0)\n";
   std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
