@@ -15,6 +15,7 @@ protocols and algorithms supported by the simulator.
 - `grover_usage.md`: Grover demo + manual oracle by hand
 - `deutsch_jozsa.md`: Deutsch–Jozsa demo (constant vs balanced)
 - `bernstein_vazirani.md`: Bernstein-Vazirani hidden-string recovery
+- `qubo_usage.md`: QUBO exact and Grover-threshold solving
 
 ## Running the CLI
 

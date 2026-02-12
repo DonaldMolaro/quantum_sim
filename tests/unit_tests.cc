@@ -4,6 +4,7 @@
 #include "algorithms/latin_square.hh"
 #include "algorithms/deutsch_jozsa.hh"
 #include "algorithms/bernstein_vazirani.hh"
+#include "algorithms/qubo.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
 #include "algorithms/shor_classical.hh"
@@ -1389,6 +1390,91 @@ void test_bernstein_vazirani_errors()
     }
 }
 
+void test_qubo_exact_solver()
+{
+    const int n = 3;
+    const std::vector<double> q = {
+        -2.0,  0.0,  2.0,
+         0.0,  1.0,  0.0,
+         2.0,  0.0, -3.0
+    };
+
+    QuboExactResult result = qubo_solve_exact(n, q);
+    if (!result.ok) {
+        throw std::runtime_error("Expected QUBO exact solver to succeed");
+    }
+    if (result.argmin != 4ULL) {
+        throw std::runtime_error("Expected QUBO exact argmin to be 4 (0b100)");
+    }
+    if (std::abs(result.min_value - (-3.0)) > 1e-12) {
+        throw std::runtime_error("Expected QUBO exact minimum value to be -3");
+    }
+    if (std::abs(qubo_evaluate(4ULL, n, q) - (-3.0)) > 1e-12) {
+        throw std::runtime_error("Expected qubo_evaluate(4) to be -3");
+    }
+
+    const std::vector<double> zero_q = {
+        0.0, 0.0,
+        0.0, 0.0
+    };
+    QuboExactResult tie = qubo_solve_exact(2, zero_q);
+    if (!tie.ok) {
+        throw std::runtime_error("Expected zero QUBO exact solve to succeed");
+    }
+    if (tie.minimizers.size() != 4) {
+        throw std::runtime_error("Expected all four assignments to tie at value 0");
+    }
+}
+
+void test_qubo_grover_threshold_solver()
+{
+    const int n = 3;
+    const std::vector<double> q = {
+        -2.0,  0.0,  2.0,
+         0.0,  1.0,  0.0,
+         2.0,  0.0, -3.0
+    };
+
+    QuboGroverResult none = qubo_solve_grover_threshold(n, q, -100.0, -1);
+    if (!none.ok || none.found) {
+        throw std::runtime_error("Expected no candidate for very low threshold");
+    }
+
+    QuboGroverResult result = qubo_solve_grover_threshold(n, q, -3.0, -1);
+    if (!result.ok || !result.found) {
+        throw std::runtime_error("Expected QUBO Grover threshold to find a candidate");
+    }
+    if (result.candidate != 4ULL) {
+        throw std::runtime_error("Expected QUBO Grover candidate to be 4 (0b100)");
+    }
+    if (std::abs(result.candidate_value - (-3.0)) > 1e-12) {
+        throw std::runtime_error("Expected QUBO Grover candidate value to be -3");
+    }
+}
+
+void test_qubo_error_paths()
+{
+    std::string error;
+    if (qubo_matrix_valid(0, std::vector<double>(), error)) {
+        throw std::runtime_error("Expected qubo_matrix_valid to reject n=0");
+    }
+
+    std::vector<double> bad_matrix = {1.0, 2.0, 3.0};
+    if (qubo_matrix_valid(2, bad_matrix, error)) {
+        throw std::runtime_error("Expected qubo_matrix_valid to reject invalid matrix size");
+    }
+
+    QuboExactResult exact_bad = qubo_solve_exact(2, bad_matrix);
+    if (exact_bad.ok || exact_bad.error.empty()) {
+        throw std::runtime_error("Expected qubo_solve_exact to fail on invalid matrix");
+    }
+
+    QuboGroverResult grover_bad = qubo_solve_grover_threshold(70, std::vector<double>(), 0.0, -1);
+    if (grover_bad.ok || grover_bad.error.empty()) {
+        throw std::runtime_error("Expected qubo_solve_grover_threshold to fail for invalid n");
+    }
+}
+
 void test_logging_levels()
 {
     auto run_child = [](const char* key, const char* value, qsim_log::Level expected) {
@@ -1842,6 +1928,9 @@ int run_unit_tests()
   run_test("Deutsch-Jozsa oracle helpers", test_deutsch_jozsa_oracle_helpers);
   run_test("Bernstein-Vazirani recovery", test_bernstein_vazirani_secret_recovery);
   run_test("Bernstein-Vazirani errors", test_bernstein_vazirani_errors);
+  run_test("QUBO exact solver", test_qubo_exact_solver);
+  run_test("QUBO Grover threshold", test_qubo_grover_threshold_solver);
+  run_test("QUBO error paths", test_qubo_error_paths);
   run_test("Grover search helpers", test_grover_search_helpers);
   run_test("Grover API errors", test_grover_api_errors);
   run_test("Display output paths", test_display_output_paths);

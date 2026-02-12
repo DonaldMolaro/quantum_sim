@@ -16,6 +16,7 @@
 #include "demos/deutsch_jozsa_demo.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
+#include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
 #include "logging.hh"
 #include <algorithm>
@@ -160,6 +161,66 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     run_bernstein_vazirani_demo(n_inputs,
                                 static_cast<Bitstring>(secret),
                                 bias);
+    return;
+  }
+
+  if (cmd == "QUBO") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: QUBO requires a mode (DEMO, EXACT, GROVER).\n";
+      return;
+    }
+    const std::string mode = tokens[1];
+    if (mode == "DEMO") {
+      run_qubo_demo();
+      return;
+    }
+    if (mode == "EXACT") {
+      int n = cli::get_arg(tokens, 2, "QUBO EXACT");
+      if (n == -1) return;
+      if (n <= 0 || n >= 63) {
+        std::cerr << "Error: QUBO EXACT requires 1 <= n <= 62.\n";
+        return;
+      }
+      const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
+      if (tokens.size() != 3 + expected) {
+        std::cerr << "Error: QUBO EXACT requires n*n matrix entries.\n";
+        return;
+      }
+      std::vector<double> matrix;
+      matrix.reserve(expected);
+      for (size_t i = 0; i < expected; ++i) {
+        double v = cli::get_double_arg(tokens, 3 + i, "QUBO EXACT");
+        if (std::isnan(v)) return;
+        matrix.push_back(v);
+      }
+      run_qubo_exact_cli(n, matrix);
+      return;
+    }
+    if (mode == "GROVER") {
+      int n = cli::get_arg(tokens, 2, "QUBO GROVER");
+      double threshold = cli::get_double_arg(tokens, 3, "QUBO GROVER");
+      int iterations = cli::get_arg(tokens, 4, "QUBO GROVER");
+      if (n == -1 || iterations == -1 || std::isnan(threshold)) return;
+      if (n <= 0 || n >= 63) {
+        std::cerr << "Error: QUBO GROVER requires 1 <= n <= 62.\n";
+        return;
+      }
+      const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
+      if (tokens.size() != 5 + expected) {
+        std::cerr << "Error: QUBO GROVER requires n*n matrix entries.\n";
+        return;
+      }
+      std::vector<double> matrix;
+      matrix.reserve(expected);
+      for (size_t i = 0; i < expected; ++i) {
+        double v = cli::get_double_arg(tokens, 5 + i, "QUBO GROVER");
+        if (std::isnan(v)) return;
+        matrix.push_back(v);
+      }
+      run_qubo_grover_cli(n, threshold, iterations, matrix);
+      return;
+    }
+    std::cerr << "Error: QUBO mode must be DEMO, EXACT, or GROVER.\n";
     return;
   }
 
@@ -471,6 +532,9 @@ void QuantumShell::print_help()
   std::cout << "VERBOSE <level>  : Set verbosity (QUIET, NORMAL, VERBOSE or 0/1/2)\n";
   std::cout << "DEUTSCH_JOZSA <n> <oracle> : Run Deutsch-Jozsa demo (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY)\n";
   std::cout << "BV <n> <secret> [bias]: Run Bernstein-Vazirani demo (bias defaults to 0)\n";
+  std::cout << "QUBO DEMO        : Run built-in QUBO exact+Grover-threshold demo\n";
+  std::cout << "QUBO EXACT <n> <n*n matrix entries> : Solve QUBO exactly by brute force\n";
+  std::cout << "QUBO GROVER <n> <threshold> <iterations> <n*n matrix entries> : Grover threshold search\n";
   std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
