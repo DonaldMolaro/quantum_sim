@@ -18,6 +18,7 @@
 #include "demos/latin_demo.hh"
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
+#include "demos/vqa_demo.hh"
 #include "logging.hh"
 #include <algorithm>
 #include <cmath>
@@ -221,6 +222,46 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       return;
     }
     std::cerr << "Error: QUBO mode must be DEMO, EXACT, or GROVER.\n";
+    return;
+  }
+
+  if (cmd == "VQA") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: VQA requires a mode (DEMO, QAOA).\n";
+      return;
+    }
+    const std::string mode = tokens[1];
+    if (mode == "DEMO") {
+      run_vqa_demo();
+      return;
+    }
+    if (mode == "QAOA") {
+      int n = cli::get_arg(tokens, 2, "VQA QAOA");
+      int p_layers = cli::get_arg(tokens, 3, "VQA QAOA");
+      int shots = cli::get_arg(tokens, 4, "VQA QAOA");
+      int iters = cli::get_arg(tokens, 5, "VQA QAOA");
+      double step = cli::get_double_arg(tokens, 6, "VQA QAOA");
+      if (n == -1 || p_layers == -1 || shots == -1 || iters == -1 || std::isnan(step)) return;
+      if (n <= 0 || n >= 63) {
+        std::cerr << "Error: VQA QAOA requires 1 <= n <= 62.\n";
+        return;
+      }
+      const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
+      if (tokens.size() != 7 + expected) {
+        std::cerr << "Error: VQA QAOA requires n*n matrix entries.\n";
+        return;
+      }
+      std::vector<double> matrix;
+      matrix.reserve(expected);
+      for (size_t i = 0; i < expected; ++i) {
+        double v = cli::get_double_arg(tokens, 7 + i, "VQA QAOA");
+        if (std::isnan(v)) return;
+        matrix.push_back(v);
+      }
+      run_vqa_qaoa_cli(n, p_layers, shots, iters, step, matrix);
+      return;
+    }
+    std::cerr << "Error: VQA mode must be DEMO or QAOA.\n";
     return;
   }
 
@@ -535,6 +576,8 @@ void QuantumShell::print_help()
   std::cout << "QUBO DEMO        : Run built-in QUBO exact+Grover-threshold demo\n";
   std::cout << "QUBO EXACT <n> <n*n matrix entries> : Solve QUBO exactly by brute force\n";
   std::cout << "QUBO GROVER <n> <threshold> <iterations> <n*n matrix entries> : Grover threshold search\n";
+  std::cout << "VQA DEMO         : Run built-in QAOA-on-QUBO demo\n";
+  std::cout << "VQA QAOA <n> <p> <shots> <iters> <step> <n*n matrix entries> : QAOA optimize QUBO\n";
   std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";

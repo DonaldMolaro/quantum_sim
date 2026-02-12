@@ -5,6 +5,7 @@
 #include "algorithms/deutsch_jozsa.hh"
 #include "algorithms/bernstein_vazirani.hh"
 #include "algorithms/qubo.hh"
+#include "algorithms/vqa_qaoa.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
 #include "algorithms/shor_classical.hh"
@@ -1475,6 +1476,135 @@ void test_qubo_error_paths()
     }
 }
 
+void test_vqa_qaoa_finds_good_candidate()
+{
+    const int n = 3;
+    const std::vector<double> q = {
+        -2.0,  0.0,  2.0,
+         0.0,  1.0,  0.0,
+         2.0,  0.0, -3.0
+    };
+
+    VqaQaoaOptions opts;
+    opts.p_layers = 1;
+    opts.max_iters = 50;
+    opts.shots = 0;
+    opts.step_size = 0.3;
+    opts.seed = 17u;
+
+    VqaQaoaResult result = run_vqa_qaoa_qubo(n, q, opts);
+    if (!result.ok) {
+        throw std::runtime_error("Expected VQA QAOA solve to succeed");
+    }
+    if (result.energy_history.empty()) {
+        throw std::runtime_error("Expected VQA QAOA to record optimization history");
+    }
+    if (result.evaluations <= 0) {
+        throw std::runtime_error("Expected VQA QAOA evaluations to be positive");
+    }
+
+    QuboExactResult exact = qubo_solve_exact(n, q);
+    if (!exact.ok) {
+        throw std::runtime_error("Expected exact QUBO solve to succeed");
+    }
+    if (result.best_energy > exact.min_value + 1.00) {
+        throw std::runtime_error("Expected VQA QAOA best energy to be close to exact minimum");
+    }
+}
+
+void test_vqa_qaoa_improves_over_initial_state()
+{
+    const int n = 2;
+    const std::vector<double> q = {
+        -1.0,  0.0,
+         0.0, -2.0
+    };
+
+    VqaQaoaOptions opts;
+    opts.p_layers = 1;
+    opts.max_iters = 30;
+    opts.shots = 0;
+    opts.step_size = 0.25;
+    opts.seed = 11u;
+
+    VqaQaoaResult result = run_vqa_qaoa_qubo(n, q, opts);
+    if (!result.ok) {
+        throw std::runtime_error("Expected VQA QAOA solve to succeed");
+    }
+    if (result.energy_history.size() < 2) {
+        throw std::runtime_error("Expected at least two energy history points");
+    }
+    if (result.best_energy > result.energy_history.front() + 1e-12) {
+        throw std::runtime_error("Expected VQA QAOA to not regress from initial energy");
+    }
+}
+
+void test_vqa_qaoa_error_paths()
+{
+    const std::vector<double> q2 = {
+        1.0, 0.0,
+        0.0, 1.0
+    };
+
+    VqaQaoaOptions bad_p;
+    bad_p.p_layers = -1;
+    VqaQaoaResult p_result = run_vqa_qaoa_qubo(2, q2, bad_p);
+    if (p_result.ok || p_result.error.empty()) {
+        throw std::runtime_error("Expected VQA QAOA to reject negative p_layers");
+    }
+
+    VqaQaoaOptions bad_step;
+    bad_step.step_size = 0.0;
+    VqaQaoaResult step_result = run_vqa_qaoa_qubo(2, q2, bad_step);
+    if (step_result.ok || step_result.error.empty()) {
+        throw std::runtime_error("Expected VQA QAOA to reject non-positive step_size");
+    }
+
+    VqaQaoaOptions bad_shots;
+    bad_shots.shots = -4;
+    VqaQaoaResult shot_result = run_vqa_qaoa_qubo(2, q2, bad_shots);
+    if (shot_result.ok || shot_result.error.empty()) {
+        throw std::runtime_error("Expected VQA QAOA to reject negative shots");
+    }
+
+    VqaQaoaOptions bad_iters;
+    bad_iters.max_iters = -2;
+    VqaQaoaResult iter_result = run_vqa_qaoa_qubo(2, q2, bad_iters);
+    if (iter_result.ok || iter_result.error.empty()) {
+        throw std::runtime_error("Expected VQA QAOA to reject negative max_iters");
+    }
+
+    std::vector<double> bad_matrix = {1.0, 0.0, 0.0};
+    VqaQaoaResult matrix_result = run_vqa_qaoa_qubo(2, bad_matrix, VqaQaoaOptions());
+    if (matrix_result.ok || matrix_result.error.empty()) {
+        throw std::runtime_error("Expected VQA QAOA to reject invalid matrix size");
+    }
+}
+
+void test_vqa_qaoa_shot_mode_path()
+{
+    const int n = 2;
+    const std::vector<double> q = {
+        -1.0, 0.0,
+         0.0, -2.0
+    };
+
+    VqaQaoaOptions opts;
+    opts.p_layers = 1;
+    opts.max_iters = 3;
+    opts.shots = 64;
+    opts.step_size = 0.2;
+    opts.seed = 123u;
+
+    VqaQaoaResult result = run_vqa_qaoa_qubo(n, q, opts);
+    if (!result.ok) {
+        throw std::runtime_error("Expected VQA QAOA shot-mode solve to succeed");
+    }
+    if (result.energy_history.size() != 4) {
+        throw std::runtime_error("Expected shot-mode history to include init + max_iters entries");
+    }
+}
+
 void test_logging_levels()
 {
     auto run_child = [](const char* key, const char* value, qsim_log::Level expected) {
@@ -1931,6 +2061,10 @@ int run_unit_tests()
   run_test("QUBO exact solver", test_qubo_exact_solver);
   run_test("QUBO Grover threshold", test_qubo_grover_threshold_solver);
   run_test("QUBO error paths", test_qubo_error_paths);
+  run_test("VQA QAOA good candidate", test_vqa_qaoa_finds_good_candidate);
+  run_test("VQA QAOA improves objective", test_vqa_qaoa_improves_over_initial_state);
+  run_test("VQA QAOA error paths", test_vqa_qaoa_error_paths);
+  run_test("VQA QAOA shot mode path", test_vqa_qaoa_shot_mode_path);
   run_test("Grover search helpers", test_grover_search_helpers);
   run_test("Grover API errors", test_grover_api_errors);
   run_test("Display output paths", test_display_output_paths);
