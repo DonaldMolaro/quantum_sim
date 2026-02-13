@@ -19,6 +19,7 @@
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
 #include "demos/vqa_demo.hh"
+#include "demos/anneal_demo.hh"
 #include "logging.hh"
 #include <algorithm>
 #include <cmath>
@@ -262,6 +263,55 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       return;
     }
     std::cerr << "Error: VQA mode must be DEMO or QAOA.\n";
+    return;
+  }
+
+  if (cmd == "ANNEAL") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: ANNEAL requires a mode (DEMO, QUBO).\n";
+      return;
+    }
+    const std::string mode = tokens[1];
+    if (mode == "DEMO") {
+      run_anneal_demo();
+      return;
+    }
+    if (mode == "QUBO") {
+      if (tokens.size() < 9) {
+        std::cerr << "Error: ANNEAL QUBO requires method, n, steps, sweeps, beta_start, beta_end, replicas, matrix.\n";
+        return;
+      }
+      const std::string method = tokens[2];
+      int n = cli::get_arg(tokens, 3, "ANNEAL QUBO");
+      int steps = cli::get_arg(tokens, 4, "ANNEAL QUBO");
+      int sweeps = cli::get_arg(tokens, 5, "ANNEAL QUBO");
+      double beta_start = cli::get_double_arg(tokens, 6, "ANNEAL QUBO");
+      double beta_end = cli::get_double_arg(tokens, 7, "ANNEAL QUBO");
+      int replicas = cli::get_arg(tokens, 8, "ANNEAL QUBO");
+      if (n == -1 || steps == -1 || sweeps == -1 || replicas == -1 ||
+          std::isnan(beta_start) || std::isnan(beta_end)) {
+        return;
+      }
+      if (n <= 0 || n >= 63) {
+        std::cerr << "Error: ANNEAL QUBO requires 1 <= n <= 62.\n";
+        return;
+      }
+      const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
+      if (tokens.size() != 9 + expected) {
+        std::cerr << "Error: ANNEAL QUBO requires n*n matrix entries.\n";
+        return;
+      }
+      std::vector<double> matrix;
+      matrix.reserve(expected);
+      for (size_t i = 0; i < expected; ++i) {
+        double v = cli::get_double_arg(tokens, 9 + i, "ANNEAL QUBO");
+        if (std::isnan(v)) return;
+        matrix.push_back(v);
+      }
+      run_anneal_qubo_cli(method, n, steps, sweeps, beta_start, beta_end, replicas, matrix);
+      return;
+    }
+    std::cerr << "Error: ANNEAL mode must be DEMO or QUBO.\n";
     return;
   }
 
@@ -578,6 +628,8 @@ void QuantumShell::print_help()
   std::cout << "QUBO GROVER <n> <threshold> <iterations> <n*n matrix entries> : Grover threshold search\n";
   std::cout << "VQA DEMO         : Run built-in QAOA-on-QUBO demo\n";
   std::cout << "VQA QAOA <n> <p> <shots> <iters> <step> <n*n matrix entries> : QAOA optimize QUBO\n";
+  std::cout << "ANNEAL DEMO      : Run built-in simulated quantum annealing demo\n";
+  std::cout << "ANNEAL QUBO <SA|SQA> <n> <steps> <sweeps> <beta_start> <beta_end> <replicas> <n*n matrix entries>\n";
   std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";

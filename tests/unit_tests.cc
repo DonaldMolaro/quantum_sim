@@ -6,6 +6,7 @@
 #include "algorithms/bernstein_vazirani.hh"
 #include "algorithms/qubo.hh"
 #include "algorithms/vqa_qaoa.hh"
+#include "algorithms/anneal.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
 #include "algorithms/shor_classical.hh"
@@ -1605,6 +1606,176 @@ void test_vqa_qaoa_shot_mode_path()
     }
 }
 
+void test_anneal_sa_finds_good_candidate()
+{
+    const int n = 3;
+    const std::vector<double> q = {
+        -2.0,  0.0,  2.0,
+         0.0,  1.0,  0.0,
+         2.0,  0.0, -3.0
+    };
+
+    AnnealOptions opts;
+    opts.method = AnnealMethod::SA;
+    opts.steps = 60;
+    opts.sweeps_per_step = 20;
+    opts.beta_start = 0.1;
+    opts.beta_end = 5.0;
+    opts.seed = 19u;
+
+    AnnealResult result = anneal_qubo(n, q, opts);
+    if (!result.ok) {
+        throw std::runtime_error("Expected SA anneal to succeed");
+    }
+    if (result.best_history.size() != static_cast<size_t>(opts.steps + 1)) {
+        throw std::runtime_error("Expected SA best history to match steps+1");
+    }
+    if (result.attempted_moves <= 0 || result.accepted_moves <= 0) {
+        throw std::runtime_error("Expected SA to attempt and accept moves");
+    }
+    if (result.best_value > -2.0) {
+        throw std::runtime_error("Expected SA to find a low-energy assignment");
+    }
+}
+
+void test_anneal_sqa_finds_good_candidate()
+{
+    const int n = 3;
+    const std::vector<double> q = {
+        -2.0,  0.0,  2.0,
+         0.0,  1.0,  0.0,
+         2.0,  0.0, -3.0
+    };
+
+    AnnealOptions opts;
+    opts.method = AnnealMethod::SQA;
+    opts.steps = 60;
+    opts.sweeps_per_step = 20;
+    opts.beta_start = 0.1;
+    opts.beta_end = 5.0;
+    opts.replicas = 8;
+    opts.seed = 19u;
+
+    AnnealResult result = anneal_qubo(n, q, opts);
+    if (!result.ok) {
+        throw std::runtime_error("Expected SQA anneal to succeed");
+    }
+    if (result.best_history.size() != static_cast<size_t>(opts.steps + 1)) {
+        throw std::runtime_error("Expected SQA best history to match steps+1");
+    }
+    if (result.attempted_moves <= 0 || result.accepted_moves <= 0) {
+        throw std::runtime_error("Expected SQA to attempt and accept moves");
+    }
+    if (result.best_value > -2.5) {
+        throw std::runtime_error("Expected SQA to find a low-energy assignment");
+    }
+}
+
+void test_anneal_options_and_parsing()
+{
+    const std::vector<double> q2 = {
+        1.0, 0.0,
+        0.0, 1.0
+    };
+    std::string error;
+
+    AnnealOptions bad_steps;
+    bad_steps.steps = 0;
+    if (anneal_options_valid(2, q2, bad_steps, error)) {
+        throw std::runtime_error("Expected anneal_options_valid to reject steps <= 0");
+    }
+
+    AnnealOptions bad_beta;
+    bad_beta.beta_end = 0.0;
+    if (anneal_options_valid(2, q2, bad_beta, error)) {
+        throw std::runtime_error("Expected anneal_options_valid to reject non-positive beta");
+    }
+
+    AnnealOptions bad_schedule;
+    bad_schedule.beta_start = 2.0;
+    bad_schedule.beta_end = 1.0;
+    if (anneal_options_valid(2, q2, bad_schedule, error)) {
+        throw std::runtime_error("Expected anneal_options_valid to reject beta_end < beta_start");
+    }
+
+    AnnealOptions bad_sqa;
+    bad_sqa.method = AnnealMethod::SQA;
+    bad_sqa.replicas = 1;
+    if (anneal_options_valid(2, q2, bad_sqa, error)) {
+        throw std::runtime_error("Expected anneal_options_valid to require replicas >= 2 for SQA");
+    }
+
+    AnnealOptions bad_sweeps;
+    bad_sweeps.sweeps_per_step = 0;
+    if (anneal_options_valid(2, q2, bad_sweeps, error)) {
+        throw std::runtime_error("Expected anneal_options_valid to reject sweeps_per_step <= 0");
+    }
+
+    AnnealOptions bad_replicas_sa;
+    bad_replicas_sa.method = AnnealMethod::SA;
+    bad_replicas_sa.replicas = 0;
+    if (anneal_options_valid(2, q2, bad_replicas_sa, error)) {
+        throw std::runtime_error("Expected anneal_options_valid to reject non-positive replicas in SA mode");
+    }
+
+    std::vector<double> bad_q = {1.0, 0.0, 0.0};
+    if (anneal_options_valid(2, bad_q, AnnealOptions(), error)) {
+        throw std::runtime_error("Expected anneal_options_valid to reject invalid matrix shape");
+    }
+
+    AnnealResult invalid_result = anneal_qubo(2, bad_q, AnnealOptions());
+    if (invalid_result.ok || invalid_result.error.empty()) {
+        throw std::runtime_error("Expected anneal_qubo to fail when options/matrix are invalid");
+    }
+
+    AnnealMethod method = AnnealMethod::SA;
+    if (!parse_anneal_method("SA", method) || method != AnnealMethod::SA) {
+        throw std::runtime_error("Expected parse_anneal_method to parse SA");
+    }
+    if (!parse_anneal_method("quantum", method) || method != AnnealMethod::SQA) {
+        throw std::runtime_error("Expected parse_anneal_method to parse SQA aliases");
+    }
+    if (parse_anneal_method("???", method)) {
+        throw std::runtime_error("Expected parse_anneal_method to reject unknown method");
+    }
+    if (std::string(anneal_method_name(AnnealMethod::SA)) != "SA") {
+        throw std::runtime_error("Expected anneal_method_name(SA) == SA");
+    }
+    if (std::string(anneal_method_name(static_cast<AnnealMethod>(99))) != "UNKNOWN") {
+        throw std::runtime_error("Expected anneal_method_name unknown enum to return UNKNOWN");
+    }
+}
+
+void test_anneal_sqa_improvement_branch()
+{
+    const int n = 1;
+    const std::vector<double> q = {-1.0};
+
+    bool observed_improvement = false;
+    for (unsigned seed = 1; seed <= 24; ++seed) {
+        AnnealOptions opts;
+        opts.method = AnnealMethod::SQA;
+        opts.steps = 4;
+        opts.sweeps_per_step = 4;
+        opts.beta_start = 0.1;
+        opts.beta_end = 2.0;
+        opts.replicas = 4;
+        opts.seed = seed;
+
+        AnnealResult result = anneal_qubo(n, q, opts);
+        if (!result.ok) {
+            throw std::runtime_error("Expected SQA anneal run to succeed in improvement branch test");
+        }
+        if (!result.best_history.empty() && result.best_value < result.best_history.front() - 1e-12) {
+            observed_improvement = true;
+            break;
+        }
+    }
+    if (!observed_improvement) {
+        throw std::runtime_error("Expected at least one SQA run to exercise best-value improvement path");
+    }
+}
+
 void test_logging_levels()
 {
     auto run_child = [](const char* key, const char* value, qsim_log::Level expected) {
@@ -2065,6 +2236,10 @@ int run_unit_tests()
   run_test("VQA QAOA improves objective", test_vqa_qaoa_improves_over_initial_state);
   run_test("VQA QAOA error paths", test_vqa_qaoa_error_paths);
   run_test("VQA QAOA shot mode path", test_vqa_qaoa_shot_mode_path);
+  run_test("Anneal SA finds good candidate", test_anneal_sa_finds_good_candidate);
+  run_test("Anneal SQA finds good candidate", test_anneal_sqa_finds_good_candidate);
+  run_test("Anneal option + parsing paths", test_anneal_options_and_parsing);
+  run_test("Anneal SQA improvement branch", test_anneal_sqa_improvement_branch);
   run_test("Grover search helpers", test_grover_search_helpers);
   run_test("Grover API errors", test_grover_api_errors);
   run_test("Display output paths", test_display_output_paths);

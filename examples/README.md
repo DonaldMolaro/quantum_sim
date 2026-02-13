@@ -17,6 +17,7 @@ protocols and algorithms supported by the simulator.
 - `bernstein_vazirani.md`: Bernstein-Vazirani hidden-string recovery
 - `qubo_usage.md`: QUBO exact and Grover-threshold solving
 - `vqa_qaoa.md`: VQA/QAOA optimization of QUBO instances
+- `anneal_usage.md`: Simulated annealing and SQA-style QUBO optimization
 
 ## Running the CLI
 
