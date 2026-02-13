@@ -26,9 +26,51 @@
 #include <complex>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+namespace {
+
+bool require_initialized_state(const std::unique_ptr<State>& state)
+{
+  if (!state || !state->is_initialized()) {
+    std::cerr << "Error: State must be initialized first. Use INIT <N> [C].\n";
+    return false;
+  }
+  return true;
+}
+
+bool parse_square_matrix(const std::vector<std::string>& tokens,
+                         size_t start_index,
+                         int n,
+                         const std::string& cmd,
+                         std::vector<double>& out)
+{
+  if (n <= 0 || n >= 63) {
+    std::cerr << "Error: " << cmd << " requires 1 <= n <= 62.\n";
+    return false;
+  }
+  const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
+  if (tokens.size() != start_index + expected) {
+    std::cerr << "Error: " << cmd << " requires n*n matrix entries.\n";
+    return false;
+  }
+  out.clear();
+  out.reserve(expected);
+  for (size_t i = 0; i < expected; ++i) {
+    const double v = cli::get_double_arg(tokens, start_index + i, cmd);
+    if (std::isnan(v)) {
+      out.clear();
+      return false;
+    }
+    out.push_back(v);
+  }
+  return true;
+}
+
+} // namespace
 
 
 static std::string bits_to_string(const std::vector<int>& bits)
@@ -51,6 +93,25 @@ static uint64_t bits_to_u64(const std::vector<int>& bits)
     }
   }
   return value;
+}
+
+static int infer_qubits_from_targets(const std::vector<Bitstring>& targets)
+{
+  Bitstring max_target = 0ULL;
+  for (size_t i = 0; i < targets.size(); ++i) {
+    if (targets[i] > max_target) {
+      max_target = targets[i];
+    }
+  }
+  if (max_target == 0ULL) {
+    return 1;
+  }
+  int n = 0;
+  while (max_target != 0ULL) {
+    ++n;
+    max_target >>= 1;
+  }
+  return std::max(1, n);
 }
 
 static const char* log_level_name(qsim_log::Level level)
@@ -78,8 +139,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     int C = (tokens.size() > 2) ? cli::get_arg(tokens, 2, "INIT") : 0;
 
     if (N > 0 && N <= 64) { // Arbitrary limit for Bitstring (ULL)
-      if (state != nullptr) delete state; // Cleanup old state
-      state = new State(N, C);
+      state.reset(new State(N, C));
       std::cout << "State initialized with " << N << " qubits and " << C << " classical register(s).\n";
     }
     return;
@@ -90,8 +150,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       std::cerr << "Error: QFTMODE requires DIRECT or GATE.\n";
       return;
     }
-    if (state == nullptr) {
-      std::cerr << "Error: State must be initialized first. Use INIT <N> [C].\n";
+    if (!require_initialized_state(state)) {
       return;
     }
     if (tokens[1] == "DIRECT") {
@@ -179,22 +238,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     if (mode == "EXACT") {
       int n = cli::get_arg(tokens, 2, "QUBO EXACT");
       if (n == -1) return;
-      if (n <= 0 || n >= 63) {
-        std::cerr << "Error: QUBO EXACT requires 1 <= n <= 62.\n";
-        return;
-      }
-      const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
-      if (tokens.size() != 3 + expected) {
-        std::cerr << "Error: QUBO EXACT requires n*n matrix entries.\n";
-        return;
-      }
       std::vector<double> matrix;
-      matrix.reserve(expected);
-      for (size_t i = 0; i < expected; ++i) {
-        double v = cli::get_double_arg(tokens, 3 + i, "QUBO EXACT");
-        if (std::isnan(v)) return;
-        matrix.push_back(v);
-      }
+      if (!parse_square_matrix(tokens, 3, n, "QUBO EXACT", matrix)) return;
       run_qubo_exact_cli(n, matrix);
       return;
     }
@@ -203,22 +248,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       double threshold = cli::get_double_arg(tokens, 3, "QUBO GROVER");
       int iterations = cli::get_arg(tokens, 4, "QUBO GROVER");
       if (n == -1 || iterations == -1 || std::isnan(threshold)) return;
-      if (n <= 0 || n >= 63) {
-        std::cerr << "Error: QUBO GROVER requires 1 <= n <= 62.\n";
-        return;
-      }
-      const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
-      if (tokens.size() != 5 + expected) {
-        std::cerr << "Error: QUBO GROVER requires n*n matrix entries.\n";
-        return;
-      }
       std::vector<double> matrix;
-      matrix.reserve(expected);
-      for (size_t i = 0; i < expected; ++i) {
-        double v = cli::get_double_arg(tokens, 5 + i, "QUBO GROVER");
-        if (std::isnan(v)) return;
-        matrix.push_back(v);
-      }
+      if (!parse_square_matrix(tokens, 5, n, "QUBO GROVER", matrix)) return;
       run_qubo_grover_cli(n, threshold, iterations, matrix);
       return;
     }
@@ -243,22 +274,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       int iters = cli::get_arg(tokens, 5, "VQA QAOA");
       double step = cli::get_double_arg(tokens, 6, "VQA QAOA");
       if (n == -1 || p_layers == -1 || shots == -1 || iters == -1 || std::isnan(step)) return;
-      if (n <= 0 || n >= 63) {
-        std::cerr << "Error: VQA QAOA requires 1 <= n <= 62.\n";
-        return;
-      }
-      const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
-      if (tokens.size() != 7 + expected) {
-        std::cerr << "Error: VQA QAOA requires n*n matrix entries.\n";
-        return;
-      }
       std::vector<double> matrix;
-      matrix.reserve(expected);
-      for (size_t i = 0; i < expected; ++i) {
-        double v = cli::get_double_arg(tokens, 7 + i, "VQA QAOA");
-        if (std::isnan(v)) return;
-        matrix.push_back(v);
-      }
+      if (!parse_square_matrix(tokens, 7, n, "VQA QAOA", matrix)) return;
       run_vqa_qaoa_cli(n, p_layers, shots, iters, step, matrix);
       return;
     }
@@ -292,22 +309,8 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
           std::isnan(beta_start) || std::isnan(beta_end)) {
         return;
       }
-      if (n <= 0 || n >= 63) {
-        std::cerr << "Error: ANNEAL QUBO requires 1 <= n <= 62.\n";
-        return;
-      }
-      const size_t expected = static_cast<size_t>(n) * static_cast<size_t>(n);
-      if (tokens.size() != 9 + expected) {
-        std::cerr << "Error: ANNEAL QUBO requires n*n matrix entries.\n";
-        return;
-      }
       std::vector<double> matrix;
-      matrix.reserve(expected);
-      for (size_t i = 0; i < expected; ++i) {
-        double v = cli::get_double_arg(tokens, 9 + i, "ANNEAL QUBO");
-        if (std::isnan(v)) return;
-        matrix.push_back(v);
-      }
+      if (!parse_square_matrix(tokens, 9, n, "ANNEAL QUBO", matrix)) return;
       run_anneal_qubo_cli(method, n, steps, sweeps, beta_start, beta_end, replicas, matrix);
       return;
     }
@@ -378,9 +381,41 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
 
+  // --- Algorithms that self-initialize their own state ---
+  if (cmd == "GROVER") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: GROVER requires at least one target.\n";
+      return;
+    }
+    std::vector<Bitstring> targets;
+    targets.reserve(tokens.size() - 1);
+    for (size_t i = 1; i < tokens.size(); ++i) {
+      int t = cli::get_arg(tokens, i, "GROVER");
+      if (t == -1) return;
+      if (t < 0) {
+        std::cerr << "Error: GROVER targets must be >= 0.\n";
+        return;
+      }
+      targets.push_back(static_cast<Bitstring>(t));
+    }
+
+    int n_qubits = infer_qubits_from_targets(targets);
+    if (state && state->is_initialized()) {
+      n_qubits = state->get_num_qubits();
+    }
+
+    GroverResult result = run_grover(n_qubits, targets);
+    if (!result.ok) {
+      std::cerr << "Grover error: " << result.error << "\n";
+      return;
+    }
+    std::cout << "Grover iterations used: " << result.iterations
+              << " (n=" << n_qubits << ")\n";
+    return;
+  }
+
   // Must be initialized before applying quantum operations
-  if (state == nullptr || !state->is_initialized()) {
-    std::cerr << "Error: State must be initialized first. Use INIT <N> [C].\n";
+  if (!require_initialized_state(state)) {
     return;
   }
 
@@ -532,27 +567,6 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     return;
   }
 
-  // --- Algorithims ---
-  if (cmd == "GROVER") {
-    if (tokens.size() < 2) {
-      std::cerr << "Error: GROVER requires at least one target.\n";
-      return;
-    }
-    std::vector<Bitstring> targets;
-    for (size_t i = 1; i < tokens.size(); ++i) {
-      int t = cli::get_arg(tokens, i, "GROVER");
-      if (t == -1) return;
-      targets.push_back(static_cast<Bitstring>(t));
-    }
-    GroverResult result = run_grover(*state, targets);
-    if (!result.ok) {
-      std::cerr << "Grover error: " << result.error << "\n";
-      return;
-    }
-    std::cout << "Grover iterations used: " << result.iterations << "\n";
-    return;
-  }
-
   // --- Measurement ---
   if (cmd == "MEASURE") {
     int j = cli::get_arg(tokens, 1, "MEASURE"); // Qubit index
@@ -582,16 +596,12 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   std::cout << "Unknown command: " << cmd << ". Use HELP for a list of commands.\n";
 }
 
-// Destructor to clean up the dynamically allocated State object
-QuantumShell::~QuantumShell()
-{
-  if (state != nullptr) delete state;
-}
-
 void QuantumShell::print_help()
 {
   std::cout << "\n--- Quantum Simulator Commands ---\n";
+  std::cout << "\n[Initialization]\n";
   std::cout << "INIT <N> [C]     : Initialize state with N qubits and C classical bits.\n";
+  std::cout << "\n[Simple Gates]\n";
   std::cout << "H <j>            : Hadamard gate on qubit j (Superposition).\n";
   std::cout << "X <j>            : NOT gate on qubit j.\n";
   std::cout << "Y <j>            : Y gate on qubit j.\n";
@@ -605,6 +615,7 @@ void QuantumShell::print_help()
   std::cout << "  Degrees: append DEG or add DEG token. Examples: RX 0 90 DEG, RY 1 45DEG\n";
   std::cout << "  Constants: PI, PI/2, PI/4, TAU (case-insensitive).\n";
   std::cout << "  Expressions: nPI, nPI/m (n,m numeric). Examples: RX 0 3PI/2, RZ 1 -PI/4\n";
+  std::cout << "\n[Multi-Qubit Gates]\n";
   std::cout << "CX <j> <k>       : Controlled-X (CNOT) where j is control, k is target.\n";
   std::cout << "CNOT <j> <k>     : Controlled-X alias.\n";
   std::cout << "CZ <j> <k>       : Controlled-Z where j is control, k is target.\n";
@@ -617,12 +628,11 @@ void QuantumShell::print_help()
   std::cout << "CCX <c1> <c2> <t>: Toffoli (double-controlled X).\n";
   std::cout << "TOFFOLI <c1> <c2> <t>: Alias for CCX.\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
-  std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
-  std::cout << "DISPLAY          : Show the current quantum state.\n";
-  std::cout << "GROVER <t...>    : Run Grover's algorithm searching for one or more targets\n";
-  std::cout << "VERBOSE <level>  : Set verbosity (QUIET, NORMAL, VERBOSE or 0/1/2)\n";
+  std::cout << "\n[Algorithms]\n";
+  std::cout << "GROVER <t...>    : Run Grover search (self-initialized; no INIT required)\n";
   std::cout << "DEUTSCH_JOZSA <n> <oracle> : Run Deutsch-Jozsa demo (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY)\n";
   std::cout << "BV <n> <secret> [bias]: Run Bernstein-Vazirani demo (bias defaults to 0)\n";
+  std::cout << "SHOR <N>         : Run Shor's algorithm demo to factor N\n";
   std::cout << "QUBO DEMO        : Run built-in QUBO exact+Grover-threshold demo\n";
   std::cout << "QUBO EXACT <n> <n*n matrix entries> : Solve QUBO exactly by brute force\n";
   std::cout << "QUBO GROVER <n> <threshold> <iterations> <n*n matrix entries> : Grover threshold search\n";
@@ -630,8 +640,6 @@ void QuantumShell::print_help()
   std::cout << "VQA QAOA <n> <p> <shots> <iters> <step> <n*n matrix entries> : QAOA optimize QUBO\n";
   std::cout << "ANNEAL DEMO      : Run built-in simulated quantum annealing demo\n";
   std::cout << "ANNEAL QUBO <SA|SQA> <n> <steps> <sweeps> <beta_start> <beta_end> <replicas> <n*n matrix entries>\n";
-  std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
-  std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
   std::cout << "LATIN DEMO [iters] [r0 r1 r2]: Demo with custom row0 permutation\n";
   std::cout << "LATIN COUNT [r0 r1 r2]       : Count solutions for row0 permutation\n";
@@ -642,9 +650,14 @@ void QuantumShell::print_help()
   std::cout << "    LATIN DEMO 6 0 2 1\n";
   std::cout << "    LATIN COUNT 2 0 1\n";
   std::cout << "    LATIN PRINT-ALL 1 2 0\n";
-  std::cout << "SHOR <N>         : Run Shor's algorithm demo to factor N\n";
+  std::cout << "\n[Utility]\n";
+  std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
+  std::cout << "DISPLAY          : Show the current quantum state.\n";
   std::cout << "HELP             : Show this help message.\n";
   std::cout << "QUIT             : Exit the simulator.\n";
+  std::cout << "VERBOSE <level>  : Set verbosity (QUIET, NORMAL, VERBOSE or 0/1/2)\n";
+  std::cout << "QFTMODE <mode>   : Set QFT mode (DIRECT or GATE, default DIRECT).\n";
+  std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
   std::cout << "----------------------------------\n";
 }
 

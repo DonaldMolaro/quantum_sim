@@ -6,8 +6,10 @@
  * the shell.
  */
 #pragma once
+#include "state.hh"
 #include <complex>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -15,12 +17,10 @@
 class QuantumShell
 {
 private:
-  // The core quantum state object we manipulate
-  State* state = nullptr; 
+  // The core quantum state object we manipulate.
+  std::unique_ptr<State> state;
   void handle_command(const std::vector<std::string>& tokens);
 public:
-  // Destructor to clean up the dynamically allocated State object
-  ~QuantumShell();
   void print_help();
   void run();
 };

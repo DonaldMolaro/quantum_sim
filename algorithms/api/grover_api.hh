@@ -12,3 +12,4 @@ struct GroverResult {
 };
 
 GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int iterations = -1);
+GroverResult run_grover(int n_qubits, const std::vector<Bitstring>& targets, int iterations = -1);

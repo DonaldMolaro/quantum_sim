@@ -96,3 +96,14 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
   result.ok = true;
   return result;
 }
+
+GroverResult run_grover(int n_qubits, const std::vector<Bitstring>& targets, int iterations)
+{
+  GroverResult result;
+  if (n_qubits <= 0 || n_qubits >= 63) {
+    result.error = "Grover supports 1..62 qubits.";
+    return result;
+  }
+  State s(n_qubits, 0);
+  return run_grover(s, targets, iterations);
+}

@@ -1836,6 +1836,11 @@ void test_grover_search_helpers() {
 }
 
 void test_grover_api_errors() {
+    GroverResult bad_n = run_grover(0, std::vector<Bitstring>{1});
+    if (bad_n.ok || bad_n.error.empty()) {
+        throw std::runtime_error("Expected error for invalid auto-created qubit count");
+    }
+
     State s(2, 0);
     GroverResult empty = run_grover(s, std::vector<Bitstring>());
     if (empty.ok || empty.error.empty()) {
