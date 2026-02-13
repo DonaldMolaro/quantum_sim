@@ -24,3 +24,13 @@ inline double qft_phase_exponent(unsigned long long j, unsigned long long k, uns
                          / static_cast<long double>(N);
   return static_cast<double>(exponent);
 }
+
+inline double qft_rotation_angle(int r, int sign)
+{
+  if (!qft_range_valid(r)) {
+    return 0.0;
+  }
+  unsigned long long N = 0ULL;
+  qft_dimension(r, N);
+  return qft_phase_exponent(1ULL, 1ULL, N, sign);
+}
