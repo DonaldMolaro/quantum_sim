@@ -1,20 +1,10 @@
 #include "demos/deutsch_jozsa_demo.hh"
 
 #include "algorithms/deutsch_jozsa.hh"
+#include "internal/format_utils.hh"
 #include <iostream>
 #include <string>
 #include <vector>
-
-static std::string bits_to_string(const std::vector<int>& bits)
-{
-  if (bits.empty()) return "0";
-  std::string out;
-  out.reserve(bits.size());
-  for (int i = static_cast<int>(bits.size()) - 1; i >= 0; --i) {
-    out.push_back(bits[i] ? '1' : '0');
-  }
-  return out;
-}
 
 void run_deutsch_jozsa_demo(int n_inputs, const std::string& oracle_token)
 {
@@ -33,7 +23,7 @@ void run_deutsch_jozsa_demo(int n_inputs, const std::string& oracle_token)
 
   std::cout << "Deutsch-Jozsa with n=" << n_inputs
             << " oracle=" << deutsch_jozsa_oracle_name(oracle) << "\n";
-  std::cout << "Measured input register: " << bits_to_string(result.input_measurement) << "\n";
+  std::cout << "Measured input register: " << qsim::format::bits_to_string_msb(result.input_measurement) << "\n";
   if (result.is_constant) {
     std::cout << "Result: CONSTANT function\n";
   } else {

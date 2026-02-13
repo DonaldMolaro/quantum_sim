@@ -13,11 +13,47 @@
 #include "demos/vqe_demo.hh"
 #include "cli/shell_detail.hh"
 #include <cmath>
+#include <functional>
 #include <iostream>
+#include <unordered_map>
 
 bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
-  if (cmd == "DEUTSCH_JOZSA" || cmd == "DEUTSCH") {
+  enum class AlgorithmCommand {
+    DeutschJozsa,
+    BernsteinVazirani,
+    Qubo,
+    Vqa,
+    Qaoa,
+    Vqe,
+    Anneal,
+    Latin,
+    Shor,
+    Grover
+  };
+
+  static const std::unordered_map<std::string, AlgorithmCommand> kCommandMap = {
+      {"DEUTSCH_JOZSA", AlgorithmCommand::DeutschJozsa},
+      {"DEUTSCH", AlgorithmCommand::DeutschJozsa},
+      {"BV", AlgorithmCommand::BernsteinVazirani},
+      {"BERNSTEIN_VAZIRANI", AlgorithmCommand::BernsteinVazirani},
+      {"QUBO", AlgorithmCommand::Qubo},
+      {"VQA", AlgorithmCommand::Vqa},
+      {"QAOA", AlgorithmCommand::Qaoa},
+      {"VQE", AlgorithmCommand::Vqe},
+      {"ANNEAL", AlgorithmCommand::Anneal},
+      {"LATIN", AlgorithmCommand::Latin},
+      {"SHOR", AlgorithmCommand::Shor},
+      {"GROVER", AlgorithmCommand::Grover},
+  };
+
+  std::unordered_map<std::string, AlgorithmCommand>::const_iterator it = kCommandMap.find(cmd);
+  if (it == kCommandMap.end()) {
+    return false;
+  }
+
+  switch (it->second) {
+  case AlgorithmCommand::DeutschJozsa: {
     int n_inputs = cli::get_arg(tokens, 1, cmd);
     if (n_inputs == -1) return true;
     if (tokens.size() < 3) {
@@ -28,7 +64,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
-  if (cmd == "BV" || cmd == "BERNSTEIN_VAZIRANI") {
+  case AlgorithmCommand::BernsteinVazirani: {
     int n_inputs = cli::get_arg(tokens, 1, cmd);
     int secret = cli::get_arg(tokens, 2, cmd);
     int bias = (tokens.size() > 3) ? cli::get_arg(tokens, 3, cmd) : 0;
@@ -37,7 +73,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
-  if (cmd == "QUBO") {
+  case AlgorithmCommand::Qubo: {
     if (tokens.size() < 2) {
       std::cerr << "Error: QUBO requires a mode (DEMO, EXACT, GROVER).\n";
       return true;
@@ -69,7 +105,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
-  if (cmd == "VQA") {
+  case AlgorithmCommand::Vqa: {
     if (tokens.size() < 2) {
       std::cerr << "Error: VQA requires a mode (DEMO, QAOA).\n";
       return true;
@@ -95,7 +131,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
-  if (cmd == "QAOA") {
+  case AlgorithmCommand::Qaoa: {
     if (tokens.size() < 2) {
       std::cerr << "Error: QAOA requires a mode (DEMO, QUBO).\n";
       return true;
@@ -121,7 +157,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
-  if (cmd == "VQE") {
+  case AlgorithmCommand::Vqe: {
     if (tokens.size() < 2) {
       std::cerr << "Error: VQE requires a mode (DEMO, RUN).\n";
       return true;
@@ -191,7 +227,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
-  if (cmd == "ANNEAL") {
+  case AlgorithmCommand::Anneal: {
     if (tokens.size() < 2) {
       std::cerr << "Error: ANNEAL requires a mode (DEMO, QUBO).\n";
       return true;
@@ -225,7 +261,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
-  if (cmd == "LATIN") {
+  case AlgorithmCommand::Latin: {
     size_t idx = 1;
     std::string mode = "demo";
     if (idx < tokens.size() && (tokens[idx] == "DEMO" || tokens[idx] == "COUNT" || tokens[idx] == "PRINT-ALL")) {
@@ -271,14 +307,14 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
-  if (cmd == "SHOR") {
+  case AlgorithmCommand::Shor: {
     int N = cli::get_arg(tokens, 1, "SHOR");
     if (N == -1) return true;
     run_shor_demo(static_cast<Bitstring>(N));
     return true;
   }
 
-  if (cmd == "GROVER") {
+  case AlgorithmCommand::Grover: {
     if (tokens.size() < 2) {
       std::cerr << "Error: GROVER requires at least one target.\n";
       return true;
@@ -305,6 +341,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     }
     std::cout << "Grover iterations used: " << result.iterations << " (n=" << n_qubits << ")\n";
     return true;
+  }
   }
   return false;
 }

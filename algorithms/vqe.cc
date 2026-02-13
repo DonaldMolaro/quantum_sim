@@ -1,5 +1,6 @@
 #include "algorithms/vqe.hh"
 
+#include "internal/limits.hh"
 #include "logging.hh"
 
 #include <algorithm>
@@ -68,7 +69,7 @@ double evaluate_energy_exact(const VqeHamiltonian& h, const std::vector<double>&
 
 bool vqe_hamiltonian_valid(const VqeHamiltonian& h, std::string& error)
 {
-  if (h.n_qubits <= 0 || h.n_qubits >= 63) {
+  if (!qsim::limits::valid_bitstring_qubit_count(h.n_qubits)) {
     error = "n_qubits must be in [1, 62]";
     return false;
   }

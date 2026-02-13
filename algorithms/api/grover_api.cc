@@ -1,4 +1,5 @@
 #include "algorithms/api/grover_api.hh"
+#include "internal/limits.hh"
 #include "logging.hh"
 #include <cmath>
 #include <cstdlib>
@@ -14,7 +15,7 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
   }
 
   int n_qubits = s.get_num_qubits();
-  if (n_qubits >= 63) {
+  if (!qsim::limits::valid_bitstring_qubit_count(n_qubits)) {
     result.error = "Grover supports up to 62 qubits.";
     return result;
   }
@@ -100,7 +101,7 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
 GroverResult run_grover(int n_qubits, const std::vector<Bitstring>& targets, int iterations)
 {
   GroverResult result;
-  if (n_qubits <= 0 || n_qubits >= 63) {
+  if (!qsim::limits::valid_bitstring_qubit_count(n_qubits)) {
     result.error = "Grover supports 1..62 qubits.";
     return result;
   }

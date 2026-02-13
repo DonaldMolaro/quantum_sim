@@ -104,6 +104,7 @@ install: $(LIB_NAME)
 	mkdir -p dist/lib dist/include/algorithms/api dist/include/math dist/include/demos
 	cp $(LIB_NAME) dist/lib/
 	cp include/quantum_sim.hh dist/include/
+	cp include/quantum_sim_demos.hh dist/include/
 	cp state.hh dist/include/
 	cp logging.hh dist/include/
 	cp modular_exp.hh dist/include/

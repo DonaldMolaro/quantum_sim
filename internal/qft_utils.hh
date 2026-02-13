@@ -1,9 +1,10 @@
 #pragma once
+#include "internal/limits.hh"
 #include <cmath>
 
 inline bool qft_range_valid(int n)
 {
-  return n > 0 && n < 63;
+  return qsim::limits::valid_bitstring_qubit_count(n);
 }
 
 inline bool qft_dimension(int n, unsigned long long& out_N)

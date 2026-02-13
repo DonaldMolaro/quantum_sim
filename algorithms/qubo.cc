@@ -1,5 +1,6 @@
 #include "algorithms/qubo.hh"
 #include "algorithms/api/grover_api.hh"
+#include "internal/limits.hh"
 #include "logging.hh"
 
 #include <cmath>
@@ -12,7 +13,7 @@ bool qubo_matrix_valid(int n, const std::vector<double>& q, std::string& error)
     error = "n must be > 0";
     return false;
   }
-  if (n >= 63) {
+  if (!qsim::limits::valid_bitstring_qubit_count(n)) {
     error = "n must be <= 62";
     return false;
   }

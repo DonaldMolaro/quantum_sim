@@ -1,20 +1,29 @@
 #include "cli/shell.hh"
 #include "cli/commands.hh"
 #include <cmath>
+#include <functional>
 #include <iostream>
+#include <unordered_map>
+
+namespace {
+
+using SingleQubitGate = State& (State::*)(int);
+using TwoQubitGate = State& (State::*)(int, int);
+
+} // namespace
 
 bool QuantumShell::handle_single_qubit_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
-  if (!(cmd == "H" || cmd == "X" || cmd == "Y" || cmd == "Z" || cmd == "S" || cmd == "T")) return false;
+  static const std::unordered_map<std::string, SingleQubitGate> kSingleQubitGates = {
+      {"H", &State::h}, {"X", &State::x}, {"Y", &State::y},
+      {"Z", &State::z}, {"S", &State::s}, {"T", &State::t}};
+  std::unordered_map<std::string, SingleQubitGate>::const_iterator it = kSingleQubitGates.find(cmd);
+  if (it == kSingleQubitGates.end()) return false;
+
   int j = cli::get_arg(tokens, 1, cmd);
   if (j == -1) return true;
   try {
-    if (cmd == "H") state->h(j);
-    else if (cmd == "X") state->x(j);
-    else if (cmd == "Y") state->y(j);
-    else if (cmd == "Z") state->z(j);
-    else if (cmd == "S") state->s(j);
-    else state->t(j);
+    (state.get()->*(it->second))(j);
     std::cout << cmd << "(" << j << ") applied.\n";
     state->display();
   } catch (const std::exception& e) {
@@ -101,26 +110,16 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
 
 bool QuantumShell::handle_multi_qubit_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
-  if (cmd == "CX" || cmd == "CZ" || cmd == "CY" || cmd == "CH" || cmd == "CNOT") {
+  static const std::unordered_map<std::string, TwoQubitGate> kTwoQubitGates = {
+      {"CX", &State::cx}, {"CZ", &State::cz}, {"CY", &State::cy},
+      {"CH", &State::ch}, {"CNOT", &State::cnot}};
+  std::unordered_map<std::string, TwoQubitGate>::const_iterator it = kTwoQubitGates.find(cmd);
+  if (it != kTwoQubitGates.end()) {
     int j = cli::get_arg(tokens, 1, cmd);
     int k = cli::get_arg(tokens, 2, cmd);
     if (j == -1 || k == -1) return true;
-    if (cmd == "CX") {
-      state->cx(j, k);
-      std::cout << "CX(" << j << ", " << k << ") applied.\n";
-    } else if (cmd == "CZ") {
-      state->cz(j, k);
-      std::cout << "CZ(" << j << ", " << k << ") applied.\n";
-    } else if (cmd == "CY") {
-      state->cy(j, k);
-      std::cout << "CY(" << j << ", " << k << ") applied.\n";
-    } else if (cmd == "CH") {
-      state->ch(j, k);
-      std::cout << "CH(" << j << ", " << k << ") applied.\n";
-    } else {
-      state->cnot(j, k);
-      std::cout << "CNOT(" << j << ", " << k << ") applied.\n";
-    }
+    (state.get()->*(it->second))(j, k);
+    std::cout << cmd << "(" << j << ", " << k << ") applied.\n";
     state->display();
     return true;
   }
