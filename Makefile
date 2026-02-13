@@ -22,7 +22,7 @@ DEMO_OBJECTS = $(DEMO_SOURCES:.cc=.o)
 CLI_SOURCES = cli/commands.cc cli/shell.cc cli/main.cc
 DRIVER_SOURCES = $(CLI_SOURCES)
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
-TEST_SOURCES = tests/unit_tests.cc tests/unit_algorithms_and_cli.cc tests/grover_test.cc tests/grover_bench.cc
+TEST_SOURCES = tests/unit_tests.cc tests/unit_algorithms_and_cli.cc tests/unit_cli_and_shor.cc tests/grover_test.cc tests/grover_bench.cc
 TEST_OBJECTS = $(TEST_SOURCES:.cc=.o)
 DEPS    = $(LIB_SOURCES:.cc=.d) $(DEMO_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) $(TEST_SOURCES:.cc=.d) tests/all_tests.d
 
