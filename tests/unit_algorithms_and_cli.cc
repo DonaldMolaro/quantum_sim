@@ -9,6 +9,7 @@
 #include "algorithms/qaoa.hh"
 #include "algorithms/vqe.hh"
 #include "algorithms/anneal.hh"
+#include "algorithms/tsp.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
 #include "algorithms/shor_classical.hh"
@@ -19,6 +20,7 @@
 #include "demos/latin_demo.hh"
 #include "demos/qaoa_demo.hh"
 #include "demos/shor_demo.hh"
+#include "demos/tsp_demo.hh"
 #include "modular_exp.hh"
 #include "math/mod_arith.hh"
 #include "math/bit_ops.hh"
@@ -294,6 +296,86 @@ void test_qubo_error_paths()
     if (grover_bad.ok || grover_bad.error.empty()) {
         throw std::runtime_error("Expected qubo_solve_grover_threshold to fail for invalid n");
     }
+}
+
+void test_tsp_qubo_and_exact_solver()
+{
+    const int n = 4;
+    const std::vector<double> d = {
+        0.0, 1.0, 2.0, 1.0,
+        1.0, 0.0, 1.0, 2.0,
+        2.0, 1.0, 0.0, 1.0,
+        1.0, 2.0, 1.0, 0.0
+    };
+
+    TspQuboBuildResult built = tsp_build_qubo(n, d, -1.0);
+    if (!built.ok) {
+        throw std::runtime_error("Expected tsp_build_qubo to succeed");
+    }
+    if (built.n_vars != 9) {
+        throw std::runtime_error("Expected fixed-start TSP vars to be (n-1)^2");
+    }
+
+    TspSolveResult solved = tsp_solve_exact(n, d, -1.0);
+    if (!solved.ok) {
+        throw std::runtime_error("Expected tsp_solve_exact to succeed");
+    }
+    if (solved.route.size() != 5) {
+        throw std::runtime_error("Expected decoded route size n+1");
+    }
+    if (solved.route.front() != 0 || solved.route.back() != 0) {
+        throw std::runtime_error("Expected TSP route to start and end at city 0");
+    }
+    if (std::abs(solved.route_cost - 4.0) > 1e-9) {
+        throw std::runtime_error("Expected TSP optimum tour cost 4 for square instance");
+    }
+
+    std::vector<double> bad_diag = d;
+    bad_diag[0] = 1.0;
+    TspQuboBuildResult bad1 = tsp_build_qubo(n, bad_diag, -1.0);
+    if (bad1.ok || bad1.error.empty()) {
+        throw std::runtime_error("Expected TSP build to reject non-zero diagonal");
+    }
+
+    std::vector<double> bad_size = {0.0, 1.0, 2.0};
+    TspQuboBuildResult bad2 = tsp_build_qubo(n, bad_size, -1.0);
+    if (bad2.ok || bad2.error.empty()) {
+        throw std::runtime_error("Expected TSP build to reject invalid matrix size");
+    }
+
+    std::string error;
+    if (tsp_distance_matrix_valid(2, d, error)) {
+        throw std::runtime_error("Expected TSP validation to reject n_cities < 3");
+    }
+    std::vector<double> d9(static_cast<size_t>(9 * 9), 0.0);
+    if (tsp_distance_matrix_valid(9, d9, error)) {
+        throw std::runtime_error("Expected TSP validation to reject too many cities");
+    }
+
+    std::vector<int> decoded;
+    if (tsp_decode_fixed_start_assignment(n, 0ULL, decoded)) {
+        throw std::runtime_error("Expected decode to fail when a position has no city");
+    }
+    Bitstring invalid_multi = 0ULL;
+    invalid_multi |= (1ULL << 0); // city1,pos1
+    invalid_multi |= (1ULL << 3); // city2,pos1, duplicate position
+    if (tsp_decode_fixed_start_assignment(n, invalid_multi, decoded)) {
+        throw std::runtime_error("Expected decode to fail when a position has multiple cities");
+    }
+}
+
+void test_tsp_demo_paths()
+{
+    const int n = 4;
+    const std::vector<double> d = {
+        0.0, 1.0, 2.0, 1.0,
+        1.0, 0.0, 1.0, 2.0,
+        2.0, 1.0, 0.0, 1.0,
+        1.0, 2.0, 1.0, 0.0
+    };
+    run_tsp_exact_cli(n, -1.0, d);
+    run_tsp_exact_cli(n, -1.0, std::vector<double>{1.0, 2.0});
+    run_tsp_demo();
 }
 
 void test_vqa_qaoa_finds_good_candidate()

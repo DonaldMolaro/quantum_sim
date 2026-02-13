@@ -12,12 +12,13 @@ LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	algorithms/grover.cc algorithms/deutsch_jozsa.cc algorithms/bernstein_vazirani.cc \
 	algorithms/qubo.cc algorithms/vqa_qaoa.cc algorithms/qaoa.cc algorithms/vqe.cc algorithms/anneal.cc \
 	algorithms/shor_classical.cc algorithms/shor_quantum.cc \
-	algorithms/latin_square.cc algorithms/qrng.cc algorithms/api/grover_api.cc \
+	algorithms/latin_square.cc algorithms/qrng.cc algorithms/tsp.cc algorithms/api/grover_api.cc \
 	algorithms/api/shor_api.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 DEMO_SOURCES = demos/latin_demo.cc demos/shor_demo.cc \
 	demos/grover_demo.cc demos/deutsch_jozsa_demo.cc demos/bernstein_vazirani_demo.cc \
-	demos/qubo_demo.cc demos/vqa_demo.cc demos/qaoa_demo.cc demos/vqe_demo.cc demos/anneal_demo.cc
+	demos/qubo_demo.cc demos/vqa_demo.cc demos/qaoa_demo.cc demos/vqe_demo.cc demos/anneal_demo.cc \
+	demos/tsp_demo.cc
 DEMO_OBJECTS = $(DEMO_SOURCES:.cc=.o)
 CLI_SOURCES = cli/commands.cc cli/shell.cc cli/shell_setup.cc cli/shell_algorithms.cc cli/shell_gates.cc cli/main.cc
 DRIVER_SOURCES = $(CLI_SOURCES)
@@ -117,6 +118,7 @@ install: $(LIB_NAME)
 	cp algorithms/vqe.hh dist/include/algorithms/
 	cp algorithms/anneal.hh dist/include/algorithms/
 	cp algorithms/qrng.hh dist/include/algorithms/
+	cp algorithms/tsp.hh dist/include/algorithms/
 	cp algorithms/api/grover_api.hh dist/include/algorithms/api/
 	cp algorithms/api/shor_api.hh dist/include/algorithms/api/
 	cp demos/latin_demo.hh dist/include/demos/
@@ -129,5 +131,6 @@ install: $(LIB_NAME)
 	cp demos/qaoa_demo.hh dist/include/demos/
 	cp demos/vqe_demo.hh dist/include/demos/
 	cp demos/anneal_demo.hh dist/include/demos/
+	cp demos/tsp_demo.hh dist/include/demos/
 	cp math/bit_ops.hh dist/include/math/
 	cp math/mod_arith.hh dist/include/math/

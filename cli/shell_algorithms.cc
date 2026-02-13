@@ -9,6 +9,7 @@
 #include "demos/qaoa_demo.hh"
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
+#include "demos/tsp_demo.hh"
 #include "demos/vqa_demo.hh"
 #include "demos/vqe_demo.hh"
 #include "cli/shell_detail.hh"
@@ -29,7 +30,8 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     Anneal,
     Latin,
     Shor,
-    Grover
+    Grover,
+    Tsp
   };
 
   static const std::unordered_map<std::string, AlgorithmCommand> kCommandMap = {
@@ -45,6 +47,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       {"LATIN", AlgorithmCommand::Latin},
       {"SHOR", AlgorithmCommand::Shor},
       {"GROVER", AlgorithmCommand::Grover},
+      {"TSP", AlgorithmCommand::Tsp},
   };
 
   std::unordered_map<std::string, AlgorithmCommand>::const_iterator it = kCommandMap.find(cmd);
@@ -340,6 +343,29 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       return true;
     }
     std::cout << "Grover iterations used: " << result.iterations << " (n=" << n_qubits << ")\n";
+    return true;
+  }
+
+  case AlgorithmCommand::Tsp: {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: TSP requires a mode (DEMO, EXACT).\n";
+      return true;
+    }
+    const std::string mode = tokens[1];
+    if (mode == "DEMO") {
+      run_tsp_demo();
+      return true;
+    }
+    if (mode == "EXACT") {
+      int n_cities = cli::get_arg(tokens, 2, "TSP EXACT");
+      double penalty = cli::get_double_arg(tokens, 3, "TSP EXACT");
+      if (n_cities == -1 || std::isnan(penalty)) return true;
+      std::vector<double> distance;
+      if (!shell_detail::parse_square_matrix(tokens, 4, n_cities, "TSP EXACT", distance)) return true;
+      run_tsp_exact_cli(n_cities, penalty, distance);
+      return true;
+    }
+    std::cerr << "Error: TSP mode must be DEMO or EXACT.\n";
     return true;
   }
   }

@@ -692,6 +692,8 @@ int run_unit_tests()
   run_test("QUBO exact solver", test_qubo_exact_solver);
   run_test("QUBO Grover threshold", test_qubo_grover_threshold_solver);
   run_test("QUBO error paths", test_qubo_error_paths);
+  run_test("TSP QUBO + exact solver", test_tsp_qubo_and_exact_solver);
+  run_test("TSP demo paths", test_tsp_demo_paths);
   run_test("VQA QAOA good candidate", test_vqa_qaoa_finds_good_candidate);
   run_test("VQA QAOA improves objective", test_vqa_qaoa_improves_over_initial_state);
   run_test("VQA QAOA error paths", test_vqa_qaoa_error_paths);

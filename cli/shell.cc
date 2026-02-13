@@ -78,6 +78,8 @@ void QuantumShell::print_help()
   std::cout << "VQE RUN <n> <layers> <iters> <step> <shots> <terms> <coeff op_count [op qubit]...>\n";
   std::cout << "ANNEAL DEMO      : Run built-in simulated quantum annealing demo\n";
   std::cout << "ANNEAL QUBO <SA|SQA> <n> <steps> <sweeps> <beta_start> <beta_end> <replicas> <n*n matrix entries>\n";
+  std::cout << "TSP DEMO         : Run built-in 4-city TSP-to-QUBO exact demo\n";
+  std::cout << "TSP EXACT <n> <penalty> <n*n distance entries> : Solve fixed-start TSP with exact QUBO search\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
   std::cout << "LATIN DEMO [iters] [r0 r1 r2]: Demo with custom row0 permutation\n";
   std::cout << "LATIN COUNT [r0 r1 r2]       : Count solutions for row0 permutation\n";

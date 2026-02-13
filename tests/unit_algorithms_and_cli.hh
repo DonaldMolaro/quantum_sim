@@ -10,6 +10,8 @@ void test_bernstein_vazirani_errors();
 void test_qubo_exact_solver();
 void test_qubo_grover_threshold_solver();
 void test_qubo_error_paths();
+void test_tsp_qubo_and_exact_solver();
+void test_tsp_demo_paths();
 void test_vqa_qaoa_finds_good_candidate();
 void test_vqa_qaoa_improves_over_initial_state();
 void test_vqa_qaoa_error_paths();
