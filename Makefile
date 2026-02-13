@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -I.
 LDFLAGS =
 CXXDEPFLAGS = -MMD -MP
 
-TARGETS = quantum_sim all_tests
+TARGETS = quantum_sim
 LIB_NAME = libquantum_sim.a
 LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	logging.cc \
