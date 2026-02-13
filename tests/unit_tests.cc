@@ -6,6 +6,7 @@
 #include "algorithms/bernstein_vazirani.hh"
 #include "algorithms/qubo.hh"
 #include "algorithms/vqa_qaoa.hh"
+#include "algorithms/qaoa.hh"
 #include "algorithms/vqe.hh"
 #include "algorithms/anneal.hh"
 #include "algorithms/api/grover_api.hh"
@@ -16,6 +17,7 @@
 #include "logging.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
+#include "demos/qaoa_demo.hh"
 #include "demos/shor_demo.hh"
 #include "modular_exp.hh"
 #include "math/mod_arith.hh"
@@ -1607,6 +1609,48 @@ void test_vqa_qaoa_shot_mode_path()
     }
 }
 
+void test_qaoa_wrapper_paths()
+{
+    const int n = 3;
+    const std::vector<double> q = {
+        -2.0,  0.0,  2.0,
+         0.0,  1.0,  0.0,
+         2.0,  0.0, -3.0
+    };
+
+    QaoaOptions opts;
+    opts.p_layers = 1;
+    opts.max_iters = 20;
+    opts.shots = 0;
+    opts.step_size = 0.25;
+
+    QaoaResult result = run_qaoa_qubo(n, q, opts);
+    if (!result.ok) {
+        throw std::runtime_error("Expected QAOA wrapper run to succeed");
+    }
+    if (result.energy_history.empty()) {
+        throw std::runtime_error("Expected QAOA wrapper to produce history");
+    }
+
+    QaoaOptions bad_step = opts;
+    bad_step.step_size = 0.0;
+    QaoaResult bad = run_qaoa_qubo(n, q, bad_step);
+    if (bad.ok || bad.error.empty()) {
+        throw std::runtime_error("Expected QAOA wrapper error propagation for bad options");
+    }
+}
+
+void test_qaoa_demo_paths()
+{
+    const std::vector<double> q = {
+        -2.0,  0.0,  2.0,
+         0.0,  1.0,  0.0,
+         2.0,  0.0, -3.0
+    };
+    run_qaoa_qubo_cli(3, 1, 0, 3, 0.2, q);
+    run_qaoa_demo();
+}
+
 void test_vqe_single_qubit_ground_state()
 {
     VqeHamiltonian h;
@@ -2411,6 +2455,8 @@ int run_unit_tests()
   run_test("VQA QAOA improves objective", test_vqa_qaoa_improves_over_initial_state);
   run_test("VQA QAOA error paths", test_vqa_qaoa_error_paths);
   run_test("VQA QAOA shot mode path", test_vqa_qaoa_shot_mode_path);
+  run_test("QAOA wrapper paths", test_qaoa_wrapper_paths);
+  run_test("QAOA demo paths", test_qaoa_demo_paths);
   run_test("VQE single-qubit ground state", test_vqe_single_qubit_ground_state);
   run_test("VQE expectation Pauli terms", test_vqe_expectation_pauli_terms);
   run_test("VQE error and edge paths", test_vqe_error_and_edge_paths);

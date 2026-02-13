@@ -19,6 +19,7 @@
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
 #include "demos/vqa_demo.hh"
+#include "demos/qaoa_demo.hh"
 #include "demos/vqe_demo.hh"
 #include "demos/anneal_demo.hh"
 #include "logging.hh"
@@ -281,6 +282,32 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       return;
     }
     std::cerr << "Error: VQA mode must be DEMO or QAOA.\n";
+    return;
+  }
+
+  if (cmd == "QAOA") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: QAOA requires a mode (DEMO, QUBO).\n";
+      return;
+    }
+    const std::string mode = tokens[1];
+    if (mode == "DEMO") {
+      run_qaoa_demo();
+      return;
+    }
+    if (mode == "QUBO") {
+      int n = cli::get_arg(tokens, 2, "QAOA QUBO");
+      int p_layers = cli::get_arg(tokens, 3, "QAOA QUBO");
+      int shots = cli::get_arg(tokens, 4, "QAOA QUBO");
+      int iters = cli::get_arg(tokens, 5, "QAOA QUBO");
+      double step = cli::get_double_arg(tokens, 6, "QAOA QUBO");
+      if (n == -1 || p_layers == -1 || shots == -1 || iters == -1 || std::isnan(step)) return;
+      std::vector<double> matrix;
+      if (!parse_square_matrix(tokens, 7, n, "QAOA QUBO", matrix)) return;
+      run_qaoa_qubo_cli(n, p_layers, shots, iters, step, matrix);
+      return;
+    }
+    std::cerr << "Error: QAOA mode must be DEMO or QUBO.\n";
     return;
   }
 
@@ -710,6 +737,8 @@ void QuantumShell::print_help()
   std::cout << "QUBO DEMO        : Run built-in QUBO exact+Grover-threshold demo\n";
   std::cout << "QUBO EXACT <n> <n*n matrix entries> : Solve QUBO exactly by brute force\n";
   std::cout << "QUBO GROVER <n> <threshold> <iterations> <n*n matrix entries> : Grover threshold search\n";
+  std::cout << "QAOA DEMO        : Run built-in QAOA-on-QUBO demo\n";
+  std::cout << "QAOA QUBO <n> <p> <shots> <iters> <step> <n*n matrix entries> : QAOA optimize QUBO\n";
   std::cout << "VQA DEMO         : Run built-in QAOA-on-QUBO demo\n";
   std::cout << "VQA QAOA <n> <p> <shots> <iters> <step> <n*n matrix entries> : QAOA optimize QUBO\n";
   std::cout << "VQE DEMO         : Run built-in VQE demo (H=-Z0)\n";
