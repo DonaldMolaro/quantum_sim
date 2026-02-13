@@ -18,6 +18,7 @@ protocols and algorithms supported by the simulator.
 - `qubo_usage.md`: QUBO exact and Grover-threshold solving
 - `vqa_qaoa.md`: VQA/QAOA optimization of QUBO instances
 - `anneal_usage.md`: Simulated annealing and SQA-style QUBO optimization
+- `max_cut.md`: Max-Cut encoded and solved as QUBO
 
 ## Running the CLI
 
