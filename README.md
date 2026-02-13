@@ -50,6 +50,9 @@ Notes:
 - Bit ordering uses little-endian indexing: qubit 0 is the least-significant bit.
 - Registers are laid out as contiguous ranges; for Shor, target comes first, then control.
 - Register ranges are represented by `QubitRange` (`start`, `end`, `size()`), used in `RegisterLayout`.
+- QFT has two equivalent simulator paths selected with `QFTMODE`:
+  - `DIRECT` (default): direct matrix-style transform, usually faster here.
+  - `GATE`: explicit gate decomposition with controlled phase rotations.
 
 ## Gate Index (CLI)
 

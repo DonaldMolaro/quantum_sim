@@ -25,42 +25,16 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
-#include <cstdlib>
-#include <functional>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <sys/wait.h>
-#include <unistd.h>
 
 using test_helpers::assert_complex_equal;
 using test_helpers::assert_complex_close;
 using test_helpers::assert_equal;
 using test_helpers::assert_amplitude_match;
 using test_helpers::assert_amplitude_magnitude;
-
-struct ScopedEnv {
-    std::string key;
-    std::string old_value;
-    bool had_old;
-
-    ScopedEnv(const std::string& k, const std::string& v) : key(k) {
-        const char* old = std::getenv(key.c_str());
-        had_old = (old != nullptr);
-        if (had_old) {
-            old_value = old;
-        }
-        setenv(key.c_str(), v.c_str(), 1);
-    }
-
-    ~ScopedEnv() {
-        if (had_old) {
-            setenv(key.c_str(), old_value.c_str(), 1);
-        } else {
-            unsetenv(key.c_str());
-        }
-    }
-};
+using test_helpers::ScopedEnv;
 
 void test_mod_arith_gcd_basic() {
     assert_equal(gcd_bitstring(0, 7), 7ULL, "gcd(0,7)=7");

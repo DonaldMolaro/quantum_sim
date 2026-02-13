@@ -2,8 +2,12 @@
 #include "state.hh"
 #include <cmath>
 #include <complex>
+#include <cstdlib>
+#include <functional>
 #include <stdexcept>
 #include <string>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace test_helpers {
 
@@ -62,6 +66,57 @@ inline void assert_amplitude_magnitude(const State& s,
         throw std::runtime_error("Amplitude check failed for " + msg + " (Bitstring " + std::to_string(b) +
                                  "). Expected magnitude: " + std::to_string(expected_mag) +
                                  ", Actual: " + std::to_string(actual_mag));
+    }
+}
+
+struct ScopedEnv {
+    std::string key;
+    std::string old_value;
+    bool had_old;
+
+    ScopedEnv(const std::string& k, const std::string& v) : key(k) {
+        const char* old = std::getenv(key.c_str());
+        had_old = (old != nullptr);
+        if (had_old) {
+            old_value = old;
+        }
+        setenv(key.c_str(), v.c_str(), 1);
+    }
+
+    ~ScopedEnv() {
+        if (had_old) {
+            setenv(key.c_str(), old_value.c_str(), 1);
+        } else {
+            unsetenv(key.c_str());
+        }
+    }
+};
+
+inline void assert_double_close(double actual, double expected, double tol, const std::string& message)
+{
+    if (std::abs(actual - expected) > tol) {
+        throw std::runtime_error("Assertion failed: " + message +
+                                 " Expected: " + std::to_string(expected) +
+                                 " Actual: " + std::to_string(actual));
+    }
+}
+
+inline void assert_exits_with_failure(const std::function<void()>& fn)
+{
+    pid_t pid = fork();
+    if (pid == 0) {
+        fn();
+        std::exit(0);
+    }
+    if (pid < 0) {
+        throw std::runtime_error("fork failed for exit test");
+    }
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0) {
+        throw std::runtime_error("waitpid failed for exit test");
+    }
+    if (!WIFEXITED(status) || WEXITSTATUS(status) == 0) {
+        throw std::runtime_error("expected child to exit with failure");
     }
 }
 

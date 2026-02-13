@@ -8,65 +8,13 @@
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"
 #include <cmath>
-#include <cstdlib>
-#include <functional>
 #include <stdexcept>
 #include <string>
-#include <sys/wait.h>
-#include <unistd.h>
 
 using test_helpers::assert_equal;
-
-struct ScopedEnv {
-    std::string key;
-    std::string old_value;
-    bool had_old;
-
-    ScopedEnv(const std::string& k, const std::string& v) : key(k) {
-        const char* old = std::getenv(key.c_str());
-        had_old = (old != nullptr);
-        if (had_old) {
-            old_value = old;
-        }
-        setenv(key.c_str(), v.c_str(), 1);
-    }
-
-    ~ScopedEnv() {
-        if (had_old) {
-            setenv(key.c_str(), old_value.c_str(), 1);
-        } else {
-            unsetenv(key.c_str());
-        }
-    }
-};
-
-static void assert_double_close(double actual, double expected, double tol, const std::string& message)
-{
-    if (std::abs(actual - expected) > tol) {
-        throw std::runtime_error("Assertion failed: " + message +
-                                 " Expected: " + std::to_string(expected) +
-                                 " Actual: " + std::to_string(actual));
-    }
-}
-
-static void assert_exits_with_failure(const std::function<void()>& fn)
-{
-    pid_t pid = fork();
-    if (pid == 0) {
-        fn();
-        std::exit(0);
-    }
-    if (pid < 0) {
-        throw std::runtime_error("fork failed for exit test");
-    }
-    int status = 0;
-    if (waitpid(pid, &status, 0) < 0) {
-        throw std::runtime_error("waitpid failed for exit test");
-    }
-    if (!WIFEXITED(status) || WEXITSTATUS(status) == 0) {
-        throw std::runtime_error("expected child to exit with failure");
-    }
-}
+using test_helpers::ScopedEnv;
+using test_helpers::assert_double_close;
+using test_helpers::assert_exits_with_failure;
 
 void test_display_output_paths() {
     State s(2, 2);
@@ -390,5 +338,4 @@ void test_shor_demo_branches() {
         run_shor_demo((1ULL << 32) + 1);
     }
 }
-
 

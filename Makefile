@@ -19,10 +19,10 @@ DEMO_SOURCES = demos/latin_demo.cc demos/shor_demo.cc \
 	demos/grover_demo.cc demos/deutsch_jozsa_demo.cc demos/bernstein_vazirani_demo.cc \
 	demos/qubo_demo.cc demos/vqa_demo.cc demos/qaoa_demo.cc demos/vqe_demo.cc demos/anneal_demo.cc
 DEMO_OBJECTS = $(DEMO_SOURCES:.cc=.o)
-CLI_SOURCES = cli/commands.cc cli/shell.cc cli/main.cc
+CLI_SOURCES = cli/commands.cc cli/shell.cc cli/shell_setup.cc cli/shell_algorithms.cc cli/shell_gates.cc cli/main.cc
 DRIVER_SOURCES = $(CLI_SOURCES)
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
-TEST_SOURCES = tests/unit_tests.cc tests/unit_algorithms_and_cli.cc tests/unit_cli_and_shor.cc tests/grover_test.cc tests/grover_bench.cc
+TEST_SOURCES = tests/unit_tests.cc tests/unit_qft_modexp.cc tests/unit_algorithms_and_cli.cc tests/unit_cli_and_shor.cc tests/grover_test.cc tests/grover_bench.cc
 TEST_OBJECTS = $(TEST_SOURCES:.cc=.o)
 DEPS    = $(LIB_SOURCES:.cc=.d) $(DEMO_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) $(TEST_SOURCES:.cc=.d) tests/all_tests.d
 
