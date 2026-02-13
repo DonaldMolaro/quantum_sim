@@ -225,10 +225,3 @@ int run_grover_tests()
   std::cout << "Grover tests passed.\n";
   return 0;
 }
-
-#ifndef ALL_TESTS
-int main()
-{
-  return run_grover_tests();
-}
-#endif

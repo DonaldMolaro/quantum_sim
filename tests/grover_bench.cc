@@ -79,10 +79,3 @@ int run_grover_bench()
   std::cout << "Grover bench elapsed: " << elapsed.count() << "s\n";
   return 0;
 }
-
-#ifndef ALL_TESTS
-int main()
-{
-  return run_grover_bench();
-}
-#endif

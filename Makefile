@@ -13,14 +13,18 @@ LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	algorithms/qubo.cc algorithms/vqa_qaoa.cc algorithms/qaoa.cc algorithms/vqe.cc algorithms/anneal.cc \
 	algorithms/shor_classical.cc algorithms/shor_quantum.cc \
 	algorithms/latin_square.cc algorithms/qrng.cc algorithms/api/grover_api.cc \
-	algorithms/api/shor_api.cc demos/latin_demo.cc demos/shor_demo.cc \
+	algorithms/api/shor_api.cc
+LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
+DEMO_SOURCES = demos/latin_demo.cc demos/shor_demo.cc \
 	demos/grover_demo.cc demos/deutsch_jozsa_demo.cc demos/bernstein_vazirani_demo.cc \
 	demos/qubo_demo.cc demos/vqa_demo.cc demos/qaoa_demo.cc demos/vqe_demo.cc demos/anneal_demo.cc
-LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
+DEMO_OBJECTS = $(DEMO_SOURCES:.cc=.o)
 CLI_SOURCES = cli/commands.cc cli/shell.cc cli/main.cc
 DRIVER_SOURCES = $(CLI_SOURCES)
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
-DEPS    = $(LIB_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) tests/all_tests.d
+TEST_SOURCES = tests/unit_tests.cc tests/unit_algorithms_and_cli.cc tests/grover_test.cc tests/grover_bench.cc
+TEST_OBJECTS = $(TEST_SOURCES:.cc=.o)
+DEPS    = $(LIB_SOURCES:.cc=.d) $(DEMO_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) $(TEST_SOURCES:.cc=.d) tests/all_tests.d
 
 ALL_TESTS_SRC = tests/all_tests.cc
 TEST_EXTRA_OBJECTS = cli/commands.o
@@ -33,11 +37,11 @@ all: $(TARGETS)
 $(LIB_NAME): $(LIB_OBJECTS)
 	ar rcs $(LIB_NAME) $(LIB_OBJECTS)
 
-quantum_sim : $(LIB_NAME) $(DRIVER_OBJECTS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DRIVER_OBJECTS) $(LIB_NAME) -o quantum_sim
+quantum_sim : $(LIB_NAME) $(DEMO_OBJECTS) $(DRIVER_OBJECTS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DRIVER_OBJECTS) $(DEMO_OBJECTS) $(LIB_NAME) -o quantum_sim
 
-all_tests : tests/all_tests.o $(LIB_NAME) $(TEST_EXTRA_OBJECTS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) tests/all_tests.o $(LIB_NAME) $(TEST_EXTRA_OBJECTS) -o all_tests
+all_tests : tests/all_tests.o $(TEST_OBJECTS) $(LIB_NAME) $(DEMO_OBJECTS) $(TEST_EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) tests/all_tests.o $(TEST_OBJECTS) $(DEMO_OBJECTS) $(LIB_NAME) $(TEST_EXTRA_OBJECTS) -o all_tests
 
 # Rule to compile .cc files into .o files (using implicit rule)
 .cc.o:
@@ -48,7 +52,7 @@ all_tests : tests/all_tests.o $(LIB_NAME) $(TEST_EXTRA_OBJECTS)
 
 # Cleanup target
 clean:
-	rm -f $(LIB_OBJECTS) $(DRIVER_OBJECTS) $(DEPS) $(TARGETS) $(LIB_NAME) tests/all_tests.o all_tests unit_tests grover_test grover_bench tests/unit_tests.o tests/grover_test.o tests/grover_bench.o
+	rm -f $(LIB_OBJECTS) $(DEMO_OBJECTS) $(DRIVER_OBJECTS) $(DEPS) $(TARGETS) $(LIB_NAME) tests/all_tests.o all_tests unit_tests grover_test grover_bench tests/unit_tests.o tests/grover_test.o tests/grover_bench.o
 	rm -f *.o *.d
 	find . -name "*.gcda" -delete
 	find . -name "*.gcno" -delete

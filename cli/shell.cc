@@ -129,32 +129,24 @@ static const char* log_level_name(qsim_log::Level level)
   return "UNKNOWN";
 }
 
-void QuantumShell::handle_command(const std::vector<std::string>& tokens)
+bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
-  if (tokens.empty()) return;
-
-  const std::string cmd = tokens[0];
-
-  // --- Initialization ---
   if (cmd == "INIT") {
     int N = cli::get_arg(tokens, 1, "INIT");
     int C = (tokens.size() > 2) ? cli::get_arg(tokens, 2, "INIT") : 0;
-
-    if (N > 0 && N <= 64) { // Arbitrary limit for Bitstring (ULL)
+    if (N > 0 && N <= 64) {
       state.reset(new State(N, C));
       std::cout << "State initialized with " << N << " qubits and " << C << " classical register(s).\n";
     }
-    return;
+    return true;
   }
 
   if (cmd == "QFTMODE") {
     if (tokens.size() < 2) {
       std::cerr << "Error: QFTMODE requires DIRECT or GATE.\n";
-      return;
+      return true;
     }
-    if (!require_initialized_state(state)) {
-      return;
-    }
+    if (!require_initialized_state(state)) return true;
     if (tokens[1] == "DIRECT") {
       state->set_qft_mode(State::QftMode::Direct);
       std::cout << "QFT mode set to DIRECT.\n";
@@ -164,7 +156,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     } else {
       std::cerr << "Error: QFTMODE must be DIRECT or GATE.\n";
     }
-    return;
+    return true;
   }
 
   if (cmd == "QRNG") {
@@ -172,102 +164,103 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     int count = (tokens.size() > 2) ? cli::get_arg(tokens, 2, "QRNG") : 1;
     if (n <= 0) {
       std::cerr << "Error: QRNG requires n > 0.\n";
-      return;
+      return true;
     }
     if (count <= 0) {
       std::cerr << "Error: QRNG count must be > 0.\n";
-      return;
+      return true;
     }
     if (n > 63) {
       std::cout << "Note: QRNG displays integer values using only the lowest 63 bits.\n";
     }
-
     for (int i = 0; i < count; ++i) {
       std::vector<int> bits = qrng_bits(n);
       std::cout << "QRNG[" << i << "] bits=" << bits_to_string(bits)
                 << " value=" << bits_to_u64(bits) << "\n";
     }
-    return;
+    return true;
   }
 
   if (cmd == "VERBOSE" || cmd == "LOGLEVEL") {
     if (tokens.size() < 2) {
       std::cout << "Verbosity: " << log_level_name(qsim_log::get_level()) << "\n";
-      return;
+      return true;
     }
     qsim_log::Level level;
     if (!qsim_log::parse_level(tokens[1], level)) {
       std::cerr << "Error: VERBOSE expects QUIET, NORMAL, VERBOSE, or 0/1/2.\n";
-      return;
+      return true;
     }
     qsim_log::set_level(level);
     std::cout << "Verbosity set to " << log_level_name(level) << ".\n";
-    return;
+    return true;
   }
+  return false;
+}
 
+bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tokens, const std::string& cmd)
+{
   if (cmd == "DEUTSCH_JOZSA" || cmd == "DEUTSCH") {
     int n_inputs = cli::get_arg(tokens, 1, cmd);
-    if (n_inputs == -1) return;
+    if (n_inputs == -1) return true;
     if (tokens.size() < 3) {
       std::cerr << "Error: " << cmd << " requires an oracle (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY).\n";
-      return;
+      return true;
     }
     run_deutsch_jozsa_demo(n_inputs, tokens[2]);
-    return;
+    return true;
   }
 
   if (cmd == "BV" || cmd == "BERNSTEIN_VAZIRANI") {
     int n_inputs = cli::get_arg(tokens, 1, cmd);
     int secret = cli::get_arg(tokens, 2, cmd);
     int bias = (tokens.size() > 3) ? cli::get_arg(tokens, 3, cmd) : 0;
-    if (n_inputs == -1 || secret == -1 || bias == -1) return;
-    run_bernstein_vazirani_demo(n_inputs,
-                                static_cast<Bitstring>(secret),
-                                bias);
-    return;
+    if (n_inputs == -1 || secret == -1 || bias == -1) return true;
+    run_bernstein_vazirani_demo(n_inputs, static_cast<Bitstring>(secret), bias);
+    return true;
   }
 
   if (cmd == "QUBO") {
     if (tokens.size() < 2) {
       std::cerr << "Error: QUBO requires a mode (DEMO, EXACT, GROVER).\n";
-      return;
+      return true;
     }
     const std::string mode = tokens[1];
     if (mode == "DEMO") {
       run_qubo_demo();
-      return;
+      return true;
     }
     if (mode == "EXACT") {
       int n = cli::get_arg(tokens, 2, "QUBO EXACT");
-      if (n == -1) return;
+      if (n == -1) return true;
       std::vector<double> matrix;
-      if (!parse_square_matrix(tokens, 3, n, "QUBO EXACT", matrix)) return;
+      if (!parse_square_matrix(tokens, 3, n, "QUBO EXACT", matrix)) return true;
       run_qubo_exact_cli(n, matrix);
-      return;
+      return true;
     }
     if (mode == "GROVER") {
       int n = cli::get_arg(tokens, 2, "QUBO GROVER");
       double threshold = cli::get_double_arg(tokens, 3, "QUBO GROVER");
       int iterations = cli::get_arg(tokens, 4, "QUBO GROVER");
-      if (n == -1 || iterations == -1 || std::isnan(threshold)) return;
+      if (n == -1 || iterations == -1 || std::isnan(threshold)) return true;
       std::vector<double> matrix;
-      if (!parse_square_matrix(tokens, 5, n, "QUBO GROVER", matrix)) return;
+      if (!parse_square_matrix(tokens, 5, n, "QUBO GROVER", matrix)) return true;
       run_qubo_grover_cli(n, threshold, iterations, matrix);
-      return;
+      return true;
     }
     std::cerr << "Error: QUBO mode must be DEMO, EXACT, or GROVER.\n";
-    return;
+    return true;
   }
 
   if (cmd == "VQA") {
     if (tokens.size() < 2) {
       std::cerr << "Error: VQA requires a mode (DEMO, QAOA).\n";
-      return;
+      return true;
     }
     const std::string mode = tokens[1];
     if (mode == "DEMO") {
       run_vqa_demo();
-      return;
+      return true;
     }
     if (mode == "QAOA") {
       int n = cli::get_arg(tokens, 2, "VQA QAOA");
@@ -275,25 +268,25 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       int shots = cli::get_arg(tokens, 4, "VQA QAOA");
       int iters = cli::get_arg(tokens, 5, "VQA QAOA");
       double step = cli::get_double_arg(tokens, 6, "VQA QAOA");
-      if (n == -1 || p_layers == -1 || shots == -1 || iters == -1 || std::isnan(step)) return;
+      if (n == -1 || p_layers == -1 || shots == -1 || iters == -1 || std::isnan(step)) return true;
       std::vector<double> matrix;
-      if (!parse_square_matrix(tokens, 7, n, "VQA QAOA", matrix)) return;
+      if (!parse_square_matrix(tokens, 7, n, "VQA QAOA", matrix)) return true;
       run_vqa_qaoa_cli(n, p_layers, shots, iters, step, matrix);
-      return;
+      return true;
     }
     std::cerr << "Error: VQA mode must be DEMO or QAOA.\n";
-    return;
+    return true;
   }
 
   if (cmd == "QAOA") {
     if (tokens.size() < 2) {
       std::cerr << "Error: QAOA requires a mode (DEMO, QUBO).\n";
-      return;
+      return true;
     }
     const std::string mode = tokens[1];
     if (mode == "DEMO") {
       run_qaoa_demo();
-      return;
+      return true;
     }
     if (mode == "QUBO") {
       int n = cli::get_arg(tokens, 2, "QAOA QUBO");
@@ -301,25 +294,25 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       int shots = cli::get_arg(tokens, 4, "QAOA QUBO");
       int iters = cli::get_arg(tokens, 5, "QAOA QUBO");
       double step = cli::get_double_arg(tokens, 6, "QAOA QUBO");
-      if (n == -1 || p_layers == -1 || shots == -1 || iters == -1 || std::isnan(step)) return;
+      if (n == -1 || p_layers == -1 || shots == -1 || iters == -1 || std::isnan(step)) return true;
       std::vector<double> matrix;
-      if (!parse_square_matrix(tokens, 7, n, "QAOA QUBO", matrix)) return;
+      if (!parse_square_matrix(tokens, 7, n, "QAOA QUBO", matrix)) return true;
       run_qaoa_qubo_cli(n, p_layers, shots, iters, step, matrix);
-      return;
+      return true;
     }
     std::cerr << "Error: QAOA mode must be DEMO or QUBO.\n";
-    return;
+    return true;
   }
 
   if (cmd == "VQE") {
     if (tokens.size() < 2) {
       std::cerr << "Error: VQE requires a mode (DEMO, RUN).\n";
-      return;
+      return true;
     }
     const std::string mode = tokens[1];
     if (mode == "DEMO") {
       run_vqe_demo();
-      return;
+      return true;
     }
     if (mode == "RUN") {
       int n = cli::get_arg(tokens, 2, "VQE RUN");
@@ -329,11 +322,11 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       int shots = cli::get_arg(tokens, 6, "VQE RUN");
       int term_count = cli::get_arg(tokens, 7, "VQE RUN");
       if (n == -1 || layers == -1 || iters == -1 || shots == -1 || term_count == -1 || std::isnan(step)) {
-        return;
+        return true;
       }
       if (term_count <= 0) {
         std::cerr << "Error: VQE RUN requires term_count > 0.\n";
-        return;
+        return true;
       }
 
       VqeHamiltonian h;
@@ -341,31 +334,29 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       size_t idx = 8;
       for (int t = 0; t < term_count; ++t) {
         double coeff = cli::get_double_arg(tokens, idx, "VQE RUN");
-        if (std::isnan(coeff)) return;
+        if (std::isnan(coeff)) return true;
         ++idx;
-
         int op_count = cli::get_arg(tokens, idx, "VQE RUN");
-        if (op_count == -1) return;
+        if (op_count == -1) return true;
         if (op_count < 0) {
           std::cerr << "Error: VQE RUN term op_count must be >= 0.\n";
-          return;
+          return true;
         }
         ++idx;
-
         VqePauliTerm term;
         term.coeff = coeff;
         for (int k = 0; k < op_count; ++k) {
           if (idx >= tokens.size()) {
             std::cerr << "Error: VQE RUN missing Pauli op token.\n";
-            return;
+            return true;
           }
           const std::string op_token = tokens[idx++];
           if (op_token.size() != 1) {
             std::cerr << "Error: VQE RUN Pauli op must be one of X,Y,Z.\n";
-            return;
+            return true;
           }
           int q = cli::get_arg(tokens, idx, "VQE RUN");
-          if (q == -1) return;
+          if (q == -1) return true;
           ++idx;
           term.ops.push_back(VqePauliOp{op_token[0], q});
         }
@@ -374,30 +365,29 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 
       if (idx != tokens.size()) {
         std::cerr << "Error: VQE RUN has extra trailing tokens.\n";
-        return;
+        return true;
       }
-
       run_vqe_cli(h, layers, iters, step, shots);
-      return;
+      return true;
     }
     std::cerr << "Error: VQE mode must be DEMO or RUN.\n";
-    return;
+    return true;
   }
 
   if (cmd == "ANNEAL") {
     if (tokens.size() < 2) {
       std::cerr << "Error: ANNEAL requires a mode (DEMO, QUBO).\n";
-      return;
+      return true;
     }
     const std::string mode = tokens[1];
     if (mode == "DEMO") {
       run_anneal_demo();
-      return;
+      return true;
     }
     if (mode == "QUBO") {
       if (tokens.size() < 9) {
         std::cerr << "Error: ANNEAL QUBO requires method, n, steps, sweeps, beta_start, beta_end, replicas, matrix.\n";
-        return;
+        return true;
       }
       const std::string method = tokens[2];
       int n = cli::get_arg(tokens, 3, "ANNEAL QUBO");
@@ -406,145 +396,128 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       double beta_start = cli::get_double_arg(tokens, 6, "ANNEAL QUBO");
       double beta_end = cli::get_double_arg(tokens, 7, "ANNEAL QUBO");
       int replicas = cli::get_arg(tokens, 8, "ANNEAL QUBO");
-      if (n == -1 || steps == -1 || sweeps == -1 || replicas == -1 ||
-          std::isnan(beta_start) || std::isnan(beta_end)) {
-        return;
+      if (n == -1 || steps == -1 || sweeps == -1 || replicas == -1 || std::isnan(beta_start) || std::isnan(beta_end)) {
+        return true;
       }
       std::vector<double> matrix;
-      if (!parse_square_matrix(tokens, 9, n, "ANNEAL QUBO", matrix)) return;
+      if (!parse_square_matrix(tokens, 9, n, "ANNEAL QUBO", matrix)) return true;
       run_anneal_qubo_cli(method, n, steps, sweeps, beta_start, beta_end, replicas, matrix);
-      return;
+      return true;
     }
     std::cerr << "Error: ANNEAL mode must be DEMO or QUBO.\n";
-    return;
+    return true;
   }
 
   if (cmd == "LATIN") {
     size_t idx = 1;
     std::string mode = "demo";
-    if (idx < tokens.size()) {
-      if (tokens[idx] == "DEMO" || tokens[idx] == "COUNT" || tokens[idx] == "PRINT-ALL") {
-        mode = tokens[idx];
-        ++idx;
-      }
+    if (idx < tokens.size() && (tokens[idx] == "DEMO" || tokens[idx] == "COUNT" || tokens[idx] == "PRINT-ALL")) {
+      mode = tokens[idx];
+      ++idx;
     }
-
     int iters = -1;
     std::vector<int> row0;
-
     if (idx < tokens.size()) {
       int maybe_iters = cli::get_arg(tokens, idx, "LATIN");
-      if (maybe_iters == -1) return;
+      if (maybe_iters == -1) return true;
       if (mode == "DEMO") {
         iters = maybe_iters;
         ++idx;
       }
     }
-
     while (idx < tokens.size()) {
       int v = cli::get_arg(tokens, idx, "LATIN");
-      if (v == -1) return;
+      if (v == -1) return true;
       row0.push_back(v);
       ++idx;
     }
-
     int row_vals[3] = {0, 1, 2};
     if (!row0.empty()) {
       if (row0.size() != 3) {
         std::cerr << "LATIN row0 must have exactly 3 values.\n";
-        return;
+        return true;
       }
       row_vals[0] = row0[0];
       row_vals[1] = row0[1];
       row_vals[2] = row0[2];
     }
-
     if (mode == "COUNT") {
       run_latin3_count_row0(row_vals);
-      return;
+      return true;
     }
     if (mode == "PRINT-ALL") {
       run_latin3_print_all_row0(row_vals);
-      return;
+      return true;
     }
-
-    if (!row0.empty() || iters >= 0) {
-      run_latin3_grover_demo_row0(row_vals, iters);
-    } else {
-      run_latin3_grover_demo(-1);
-    }
-    return;
+    if (!row0.empty() || iters >= 0) run_latin3_grover_demo_row0(row_vals, iters);
+    else run_latin3_grover_demo(-1);
+    return true;
   }
+
   if (cmd == "SHOR") {
     int N = cli::get_arg(tokens, 1, "SHOR");
-    if (N == -1) return;
+    if (N == -1) return true;
     run_shor_demo(static_cast<Bitstring>(N));
-    return;
+    return true;
   }
 
-  // --- Algorithms that self-initialize their own state ---
   if (cmd == "GROVER") {
     if (tokens.size() < 2) {
       std::cerr << "Error: GROVER requires at least one target.\n";
-      return;
+      return true;
     }
     std::vector<Bitstring> targets;
     targets.reserve(tokens.size() - 1);
     for (size_t i = 1; i < tokens.size(); ++i) {
       int t = cli::get_arg(tokens, i, "GROVER");
-      if (t == -1) return;
+      if (t == -1) return true;
       if (t < 0) {
         std::cerr << "Error: GROVER targets must be >= 0.\n";
-        return;
+        return true;
       }
       targets.push_back(static_cast<Bitstring>(t));
     }
-
     int n_qubits = infer_qubits_from_targets(targets);
     if (state && state->is_initialized()) {
       n_qubits = state->get_num_qubits();
     }
-
     GroverResult result = run_grover(n_qubits, targets);
     if (!result.ok) {
       std::cerr << "Grover error: " << result.error << "\n";
-      return;
+      return true;
     }
-    std::cout << "Grover iterations used: " << result.iterations
-              << " (n=" << n_qubits << ")\n";
-    return;
+    std::cout << "Grover iterations used: " << result.iterations << " (n=" << n_qubits << ")\n";
+    return true;
   }
+  return false;
+}
 
-  // Must be initialized before applying quantum operations
-  if (!require_initialized_state(state)) {
-    return;
+bool QuantumShell::handle_single_qubit_commands(const std::vector<std::string>& tokens, const std::string& cmd)
+{
+  if (!(cmd == "H" || cmd == "X" || cmd == "Y" || cmd == "Z" || cmd == "S" || cmd == "T")) return false;
+  int j = cli::get_arg(tokens, 1, cmd);
+  if (j == -1) return true;
+  try {
+    if (cmd == "H") state->h(j);
+    else if (cmd == "X") state->x(j);
+    else if (cmd == "Y") state->y(j);
+    else if (cmd == "Z") state->z(j);
+    else if (cmd == "S") state->s(j);
+    else state->t(j);
+    std::cout << cmd << "(" << j << ") applied.\n";
+    state->display();
+  } catch (const std::exception& e) {
+    std::cerr << "Operation failed: " << e.what() << "\n";
   }
+  return true;
+}
 
-  // --- Gate Operations (Single Qubit) ---
-  if (cmd == "H" || cmd == "X" || cmd == "Y" || cmd == "Z" || cmd == "S" || cmd == "T") {
-    int j = cli::get_arg(tokens, 1, cmd);
-    if (j == -1) return; 
-
-    try {
-      if (cmd == "H") state->h(j); // Implements flatMap + reduceByKey
-      else if (cmd == "X") state->x(j); // Implements s.map(λb, a. (b¬j , a))
-      else if (cmd == "Y") state->y(j); // Implements RZ(pi/2) X RZ(-pi/2)
-      else if (cmd == "Z") state->z(j); // Implements RZ(pi)
-      else if (cmd == "S") state->s(j); // Implements s.map(λb, a. (b, aibj ))
-      else if (cmd == "T") state->t(j); // Implements s.map(λb, a. (b, a((1+i)/sqrt(2))^bj ))
-      std::cout << cmd << "(" << j << ") applied.\n";
-      state->display();
-    } catch (const std::exception& e) {
-      std::cerr << "Operation failed: " << e.what() << "\n";
-    }
-    return;
-  }
-
+bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string>& tokens, const std::string& cmd)
+{
   if (cmd == "RX" || cmd == "RY" || cmd == "RZ") {
     int j = cli::get_arg(tokens, 1, cmd);
     double theta = cli::get_angle_arg_required(tokens, 2, cmd);
-    if (j == -1 || std::isnan(theta)) return;
-
+    if (j == -1 || std::isnan(theta)) return true;
     try {
       if (cmd == "RX") state->rx(j, theta);
       else if (cmd == "RY") state->ry(j, theta);
@@ -554,7 +527,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
     }
-    return;
+    return true;
   }
 
   if (cmd == "RU") {
@@ -562,8 +535,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     double theta = cli::get_angle_arg_required(tokens, 2, cmd);
     double phi = cli::get_angle_arg_required(tokens, 3, cmd);
     double lambda = cli::get_angle_arg_required(tokens, 4, cmd);
-    if (j == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return;
-
+    if (j == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return true;
     try {
       state->ru(j, theta, phi, lambda);
       std::cout << "RU(" << j << ", " << theta << ", " << phi << ", " << lambda << ") applied.\n";
@@ -571,15 +543,14 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
     }
-    return;
+    return true;
   }
 
   if (cmd == "CRZ" || cmd == "CRX" || cmd == "CRY") {
     int j = cli::get_arg(tokens, 1, cmd);
     int k = cli::get_arg(tokens, 2, cmd);
     double theta = cli::get_angle_arg_required(tokens, 3, cmd);
-    if (j == -1 || k == -1 || std::isnan(theta)) return;
-
+    if (j == -1 || k == -1 || std::isnan(theta)) return true;
     try {
       if (cmd == "CRZ") {
         state->crz(j, k, theta);
@@ -595,7 +566,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
     }
-    return;
+    return true;
   }
 
   if (cmd == "CU") {
@@ -604,8 +575,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     double theta = cli::get_angle_arg_required(tokens, 3, cmd);
     double phi = cli::get_angle_arg_required(tokens, 4, cmd);
     double lambda = cli::get_angle_arg_required(tokens, 5, cmd);
-    if (j == -1 || k == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return;
-
+    if (j == -1 || k == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return true;
     try {
       state->cu(j, k, theta, phi, lambda);
       std::cout << "CU(" << j << ", " << k << ", " << theta << ", " << phi << ", " << lambda << ") applied.\n";
@@ -613,17 +583,19 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
     }
-    return;
+    return true;
   }
+  return false;
+}
 
-  // --- Gate Operations (Two Qubits) ---
+bool QuantumShell::handle_multi_qubit_commands(const std::vector<std::string>& tokens, const std::string& cmd)
+{
   if (cmd == "CX" || cmd == "CZ" || cmd == "CY" || cmd == "CH" || cmd == "CNOT") {
     int j = cli::get_arg(tokens, 1, cmd);
     int k = cli::get_arg(tokens, 2, cmd);
-    if (j == -1 || k == -1) return;
-
+    if (j == -1 || k == -1) return true;
     if (cmd == "CX") {
-      state->cx(j, k); // Implements s.map(λb, a. (ite(bj , b ¬k, b), a))
+      state->cx(j, k);
       std::cout << "CX(" << j << ", " << k << ") applied.\n";
     } else if (cmd == "CZ") {
       state->cz(j, k);
@@ -639,15 +611,14 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       std::cout << "CNOT(" << j << ", " << k << ") applied.\n";
     }
     state->display();
-    return;
+    return true;
   }
 
   if (cmd == "CCX" || cmd == "TOFFOLI") {
     int c1 = cli::get_arg(tokens, 1, cmd);
     int c2 = cli::get_arg(tokens, 2, cmd);
     int t = cli::get_arg(tokens, 3, cmd);
-    if (c1 == -1 || c2 == -1 || t == -1) return;
-
+    if (c1 == -1 || c2 == -1 || t == -1) return true;
     try {
       state->ccx(c1, c2, t);
       std::cout << cmd << "(" << c1 << ", " << c2 << ", " << t << ") applied.\n";
@@ -655,45 +626,55 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
     }
-    return;
+    return true;
   }
+
   if (cmd == "SWAP") {
     int j = cli::get_arg(tokens, 1, "SWAP");
     int k = cli::get_arg(tokens, 2, "SWAP");
-    if (j == -1 || k == -1) return;
-
-    state->swap(j, k); 
+    if (j == -1 || k == -1) return true;
+    state->swap(j, k);
     std::cout << "SWAP(" << j << ", " << k << ") applied.\n";
     state->display();
-    return;
+    return true;
   }
+  return false;
+}
 
-  // --- Measurement ---
+bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std::string>& tokens, const std::string& cmd)
+{
   if (cmd == "MEASURE") {
-    int j = cli::get_arg(tokens, 1, "MEASURE"); // Qubit index
-    int c = cli::get_arg(tokens, 2, "MEASURE"); // Classical register index
-    if (j == -1 || c == -1) return;
-
-    state->measure(j, c); // Probability computation, collapse, and renormalization
-    std::cout << "Qubit " << j << " measured.";    
-    if (!state->get_cbits().empty())
-      {
-	std::cout << " Result stored in c[" << c << "]: " << state->get_cbits()[c] << "\n";
-      }
-    else
-      {
-	std::cout << " No Register to store in \n";
-      }
+    int j = cli::get_arg(tokens, 1, "MEASURE");
+    int c = cli::get_arg(tokens, 2, "MEASURE");
+    if (j == -1 || c == -1) return true;
+    state->measure(j, c);
+    std::cout << "Qubit " << j << " measured.";
+    if (!state->get_cbits().empty()) {
+      std::cout << " Result stored in c[" << c << "]: " << state->get_cbits()[c] << "\n";
+    } else {
+      std::cout << " No Register to store in \n";
+    }
     state->display();
-    return;
+    return true;
   }
-
-  // --- Display ---
   if (cmd == "DISPLAY") {
     state->display();
-    return;
+    return true;
   }
+  return false;
+}
 
+void QuantumShell::handle_command(const std::vector<std::string>& tokens)
+{
+  if (tokens.empty()) return;
+  const std::string cmd = tokens[0];
+  if (handle_setup_commands(tokens, cmd)) return;
+  if (handle_algorithm_commands(tokens, cmd)) return;
+  if (!require_initialized_state(state)) return;
+  if (handle_single_qubit_commands(tokens, cmd)) return;
+  if (handle_parametric_gate_commands(tokens, cmd)) return;
+  if (handle_multi_qubit_commands(tokens, cmd)) return;
+  if (handle_measurement_and_display_commands(tokens, cmd)) return;
   std::cout << "Unknown command: " << cmd << ". Use HELP for a list of commands.\n";
 }
 

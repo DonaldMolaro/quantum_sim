@@ -1,8 +1,8 @@
-#define ALL_TESTS
+#include <cstdlib>
 
-#include "unit_tests.cc"
-#include "grover_test.cc"
-#include "grover_bench.cc"
+int run_unit_tests();
+int run_grover_tests();
+int run_grover_bench();
 
 int main()
 {
