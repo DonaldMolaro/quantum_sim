@@ -19,6 +19,7 @@
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
 #include "demos/vqa_demo.hh"
+#include "demos/vqe_demo.hh"
 #include "demos/anneal_demo.hh"
 #include "logging.hh"
 #include <algorithm>
@@ -280,6 +281,79 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
       return;
     }
     std::cerr << "Error: VQA mode must be DEMO or QAOA.\n";
+    return;
+  }
+
+  if (cmd == "VQE") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: VQE requires a mode (DEMO, RUN).\n";
+      return;
+    }
+    const std::string mode = tokens[1];
+    if (mode == "DEMO") {
+      run_vqe_demo();
+      return;
+    }
+    if (mode == "RUN") {
+      int n = cli::get_arg(tokens, 2, "VQE RUN");
+      int layers = cli::get_arg(tokens, 3, "VQE RUN");
+      int iters = cli::get_arg(tokens, 4, "VQE RUN");
+      double step = cli::get_double_arg(tokens, 5, "VQE RUN");
+      int shots = cli::get_arg(tokens, 6, "VQE RUN");
+      int term_count = cli::get_arg(tokens, 7, "VQE RUN");
+      if (n == -1 || layers == -1 || iters == -1 || shots == -1 || term_count == -1 || std::isnan(step)) {
+        return;
+      }
+      if (term_count <= 0) {
+        std::cerr << "Error: VQE RUN requires term_count > 0.\n";
+        return;
+      }
+
+      VqeHamiltonian h;
+      h.n_qubits = n;
+      size_t idx = 8;
+      for (int t = 0; t < term_count; ++t) {
+        double coeff = cli::get_double_arg(tokens, idx, "VQE RUN");
+        if (std::isnan(coeff)) return;
+        ++idx;
+
+        int op_count = cli::get_arg(tokens, idx, "VQE RUN");
+        if (op_count == -1) return;
+        if (op_count < 0) {
+          std::cerr << "Error: VQE RUN term op_count must be >= 0.\n";
+          return;
+        }
+        ++idx;
+
+        VqePauliTerm term;
+        term.coeff = coeff;
+        for (int k = 0; k < op_count; ++k) {
+          if (idx >= tokens.size()) {
+            std::cerr << "Error: VQE RUN missing Pauli op token.\n";
+            return;
+          }
+          const std::string op_token = tokens[idx++];
+          if (op_token.size() != 1) {
+            std::cerr << "Error: VQE RUN Pauli op must be one of X,Y,Z.\n";
+            return;
+          }
+          int q = cli::get_arg(tokens, idx, "VQE RUN");
+          if (q == -1) return;
+          ++idx;
+          term.ops.push_back(VqePauliOp{op_token[0], q});
+        }
+        h.terms.push_back(term);
+      }
+
+      if (idx != tokens.size()) {
+        std::cerr << "Error: VQE RUN has extra trailing tokens.\n";
+        return;
+      }
+
+      run_vqe_cli(h, layers, iters, step, shots);
+      return;
+    }
+    std::cerr << "Error: VQE mode must be DEMO or RUN.\n";
     return;
   }
 
@@ -638,6 +712,8 @@ void QuantumShell::print_help()
   std::cout << "QUBO GROVER <n> <threshold> <iterations> <n*n matrix entries> : Grover threshold search\n";
   std::cout << "VQA DEMO         : Run built-in QAOA-on-QUBO demo\n";
   std::cout << "VQA QAOA <n> <p> <shots> <iters> <step> <n*n matrix entries> : QAOA optimize QUBO\n";
+  std::cout << "VQE DEMO         : Run built-in VQE demo (H=-Z0)\n";
+  std::cout << "VQE RUN <n> <layers> <iters> <step> <shots> <terms> <coeff op_count [op qubit]...>\n";
   std::cout << "ANNEAL DEMO      : Run built-in simulated quantum annealing demo\n";
   std::cout << "ANNEAL QUBO <SA|SQA> <n> <steps> <sweeps> <beta_start> <beta_end> <replicas> <n*n matrix entries>\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";

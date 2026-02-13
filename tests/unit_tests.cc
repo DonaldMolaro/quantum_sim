@@ -6,6 +6,7 @@
 #include "algorithms/bernstein_vazirani.hh"
 #include "algorithms/qubo.hh"
 #include "algorithms/vqa_qaoa.hh"
+#include "algorithms/vqe.hh"
 #include "algorithms/anneal.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
@@ -1606,6 +1607,175 @@ void test_vqa_qaoa_shot_mode_path()
     }
 }
 
+void test_vqe_single_qubit_ground_state()
+{
+    VqeHamiltonian h;
+    h.n_qubits = 1;
+    VqePauliTerm z_term;
+    z_term.coeff = 1.0;
+    z_term.ops.push_back(VqePauliOp{'Z', 0});
+    h.terms.push_back(z_term);
+
+    VqeOptions opts;
+    opts.layers = 1;
+    opts.max_iters = 30;
+    opts.step_size = 0.3;
+    opts.shots = 0;
+
+    VqeResult result = run_vqe(h, opts);
+    if (!result.ok) {
+        throw std::runtime_error("Expected VQE run to succeed");
+    }
+    if (result.best_energy > -0.95) {
+        throw std::runtime_error("Expected VQE to approach Z ground-state energy -1");
+    }
+}
+
+void test_vqe_expectation_pauli_terms()
+{
+    VqeHamiltonian hx;
+    hx.n_qubits = 1;
+    VqePauliTerm x_term;
+    x_term.coeff = 1.0;
+    x_term.ops.push_back(VqePauliOp{'X', 0});
+    hx.terms.push_back(x_term);
+
+    State plus(1, 0);
+    plus.h(0);
+    if (std::abs(vqe_expectation_exact(plus, hx) - 1.0) > 1e-9) {
+        throw std::runtime_error("Expected <+|X|+> = 1");
+    }
+
+    VqeHamiltonian hy;
+    hy.n_qubits = 1;
+    VqePauliTerm y_term;
+    y_term.coeff = 1.0;
+    y_term.ops.push_back(VqePauliOp{'Y', 0});
+    hy.terms.push_back(y_term);
+
+    State zero(1, 0);
+    if (std::abs(vqe_expectation_exact(zero, hy)) > 1e-9) {
+        throw std::runtime_error("Expected <0|Y|0> = 0");
+    }
+
+    VqeHamiltonian hz;
+    hz.n_qubits = 1;
+    VqePauliTerm z_term;
+    z_term.coeff = 1.0;
+    z_term.ops.push_back(VqePauliOp{'Z', 0});
+    hz.terms.push_back(z_term);
+
+    State one(1, 0);
+    one.x(0);
+    if (std::abs(vqe_expectation_exact(one, hz) - (-1.0)) > 1e-9) {
+        throw std::runtime_error("Expected <1|Z|1> = -1");
+    }
+}
+
+void test_vqe_error_and_edge_paths()
+{
+    VqeHamiltonian bad_h;
+    bad_h.n_qubits = 0;
+    std::string error;
+    if (vqe_hamiltonian_valid(bad_h, error)) {
+        throw std::runtime_error("Expected VQE Hamiltonian validation to reject n_qubits=0");
+    }
+
+    VqeHamiltonian empty_terms;
+    empty_terms.n_qubits = 1;
+    if (vqe_hamiltonian_valid(empty_terms, error)) {
+        throw std::runtime_error("Expected VQE Hamiltonian validation to reject empty term list");
+    }
+
+    VqeResult invalid_h_run = run_vqe(empty_terms, VqeOptions());
+    if (invalid_h_run.ok || invalid_h_run.error.empty()) {
+        throw std::runtime_error("Expected run_vqe to fail on invalid Hamiltonian");
+    }
+
+    VqeHamiltonian bad_op;
+    bad_op.n_qubits = 1;
+    VqePauliTerm bad_term;
+    bad_term.coeff = 1.0;
+    bad_term.ops.push_back(VqePauliOp{'Q', 0});
+    bad_op.terms.push_back(bad_term);
+    if (vqe_hamiltonian_valid(bad_op, error)) {
+        throw std::runtime_error("Expected VQE Hamiltonian validation to reject invalid Pauli op");
+    }
+
+    VqeHamiltonian out_of_range;
+    out_of_range.n_qubits = 1;
+    VqePauliTerm oob_term;
+    oob_term.coeff = 1.0;
+    oob_term.ops.push_back(VqePauliOp{'X', 3});
+    out_of_range.terms.push_back(oob_term);
+    if (vqe_hamiltonian_valid(out_of_range, error)) {
+        throw std::runtime_error("Expected VQE Hamiltonian validation to reject out-of-range qubit");
+    }
+
+    VqeHamiltonian simple;
+    simple.n_qubits = 1;
+    VqePauliTerm z_term;
+    z_term.coeff = 1.0;
+    z_term.ops.push_back(VqePauliOp{'Z', 0});
+    simple.terms.push_back(z_term);
+
+    VqeOptions bad_layers;
+    bad_layers.layers = -1;
+    VqeResult r_layers = run_vqe(simple, bad_layers);
+    if (r_layers.ok || r_layers.error.empty()) {
+        throw std::runtime_error("Expected VQE to reject negative layers");
+    }
+
+    VqeOptions bad_iters;
+    bad_iters.max_iters = -1;
+    VqeResult r_iters = run_vqe(simple, bad_iters);
+    if (r_iters.ok || r_iters.error.empty()) {
+        throw std::runtime_error("Expected VQE to reject negative max_iters");
+    }
+
+    VqeOptions bad_step;
+    bad_step.step_size = 0.0;
+    VqeResult r_step = run_vqe(simple, bad_step);
+    if (r_step.ok || r_step.error.empty()) {
+        throw std::runtime_error("Expected VQE to reject non-positive step_size");
+    }
+
+    VqeOptions bad_shots;
+    bad_shots.shots = 16;
+    VqeResult r_shots = run_vqe(simple, bad_shots);
+    if (r_shots.ok || r_shots.error.empty()) {
+        throw std::runtime_error("Expected VQE to reject shots!=0 for now");
+    }
+
+    VqeOptions zero_layer_opts;
+    zero_layer_opts.layers = 0;
+    zero_layer_opts.max_iters = 2;
+    zero_layer_opts.step_size = 0.2;
+    VqeResult zero_layer = run_vqe(simple, zero_layer_opts);
+    if (!zero_layer.ok) {
+        throw std::runtime_error("Expected VQE with zero layers to succeed");
+    }
+    if (zero_layer.energy_history.size() != 3) {
+        throw std::runtime_error("Expected VQE zero-layer history to include init + max_iters");
+    }
+
+    // Exercise 2-qubit ansatz entangler path.
+    VqeHamiltonian two_qubit;
+    two_qubit.n_qubits = 2;
+    VqePauliTerm t2;
+    t2.coeff = 1.0;
+    t2.ops.push_back(VqePauliOp('Z', 0));
+    two_qubit.terms.push_back(t2);
+    VqeOptions two_opts;
+    two_opts.layers = 1;
+    two_opts.max_iters = 1;
+    two_opts.step_size = 0.2;
+    VqeResult two_result = run_vqe(two_qubit, two_opts);
+    if (!two_result.ok) {
+        throw std::runtime_error("Expected 2-qubit VQE run to succeed");
+    }
+}
+
 void test_anneal_sa_finds_good_candidate()
 {
     const int n = 3;
@@ -2241,6 +2411,9 @@ int run_unit_tests()
   run_test("VQA QAOA improves objective", test_vqa_qaoa_improves_over_initial_state);
   run_test("VQA QAOA error paths", test_vqa_qaoa_error_paths);
   run_test("VQA QAOA shot mode path", test_vqa_qaoa_shot_mode_path);
+  run_test("VQE single-qubit ground state", test_vqe_single_qubit_ground_state);
+  run_test("VQE expectation Pauli terms", test_vqe_expectation_pauli_terms);
+  run_test("VQE error and edge paths", test_vqe_error_and_edge_paths);
   run_test("Anneal SA finds good candidate", test_anneal_sa_finds_good_candidate);
   run_test("Anneal SQA finds good candidate", test_anneal_sqa_finds_good_candidate);
   run_test("Anneal option + parsing paths", test_anneal_options_and_parsing);
