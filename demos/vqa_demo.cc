@@ -33,10 +33,6 @@ void run_vqa_qaoa_cli(int n,
   }
 
   QuboExactResult exact = qubo_solve_exact(n, matrix);
-  if (!exact.ok) {
-    std::cerr << "QUBO exact reference error: " << exact.error << "\n";
-    return;
-  }
 
   std::cout << "VQA QAOA result:\n";
   std::cout << "  best_energy=" << result.best_energy << "\n";

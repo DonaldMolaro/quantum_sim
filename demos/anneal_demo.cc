@@ -43,10 +43,6 @@ void run_anneal_qubo_cli(const std::string& method_token,
   }
 
   QuboExactResult exact = qubo_solve_exact(n, matrix);
-  if (!exact.ok) {
-    std::cerr << "QUBO exact reference error: " << exact.error << "\n";
-    return;
-  }
 
   std::cout << "Anneal result (" << anneal_method_name(method) << "):\n";
   std::cout << "  best_energy=" << result.best_value << "\n";

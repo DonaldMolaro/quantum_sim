@@ -9,14 +9,12 @@
 static bool run_shor_algorithm(Bitstring N, std::ostream& out)
 {
   static bool seeded = false;
-  if (!seeded) {
+  if (const char* env = std::getenv("QSIM_RNG_SEED")) {
+    unsigned int seed = static_cast<unsigned int>(std::strtoul(env, nullptr, 10));
+    std::srand(seed);
+  } else if (!seeded) {
     seeded = true;
-    if (const char* env = std::getenv("QSIM_RNG_SEED")) {
-      unsigned int seed = static_cast<unsigned int>(std::strtoul(env, nullptr, 10));
-      std::srand(seed);
-    } else {
-      std::srand(static_cast<unsigned int>(std::time(nullptr)));
-    }
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
   }
   if (N < 2) {
     out << "N must be >= 2.\n";

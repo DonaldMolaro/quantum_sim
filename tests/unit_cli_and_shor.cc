@@ -5,11 +5,23 @@
 #include "algorithms/shor_classical.hh"
 #include "algorithms/shor_quantum.hh"
 #include "cli/commands.hh"
+#include "demos/anneal_demo.hh"
+#include "demos/bernstein_vazirani_demo.hh"
+#include "demos/deutsch_jozsa_demo.hh"
+#include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
+#include "demos/qaoa_demo.hh"
+#include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
+#include "demos/vqa_demo.hh"
+#include "demos/vqe_demo.hh"
+#include <cstdlib>
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <vector>
 
 using test_helpers::assert_equal;
 using test_helpers::ScopedEnv;
@@ -339,3 +351,75 @@ void test_shor_demo_branches() {
     }
 }
 
+void test_algorithm_demo_wrappers() {
+    const std::vector<double> q3 = {
+        -2.0,  0.0,  2.0,
+         0.0,  1.0,  0.0,
+         2.0,  0.0, -3.0
+    };
+
+    run_deutsch_jozsa_demo(3, "CONST0");
+    run_deutsch_jozsa_demo(3, "BALANCED_PARITY");
+    run_deutsch_jozsa_demo(0, "CONST0");
+    run_deutsch_jozsa_demo(3, "NOT_AN_ORACLE");
+
+    run_bernstein_vazirani_demo(3, 0b101, 0);
+    run_bernstein_vazirani_demo(0, 0, 0);
+
+    run_grover_search_multi(3, std::vector<Bitstring>());
+    run_grover_search_multi(3, std::vector<Bitstring>{3});
+    run_grover_search_multi(static_cast<State*>(nullptr), std::vector<Bitstring>{0});
+    run_grover_search_multi(static_cast<State*>(nullptr), std::vector<Bitstring>{5});
+
+    run_qubo_exact_cli(3, q3);
+    run_qubo_exact_cli(3, std::vector<double>{1.0, 0.0});
+    run_qubo_grover_cli(3, -3.0, -1, q3);
+    run_qubo_grover_cli(3, -100.0, -1, q3);
+    run_qubo_grover_cli(3, -3.0, -1, std::vector<double>{1.0, 0.0});
+    run_qubo_demo();
+
+    run_vqa_qaoa_cli(3, 1, 0, 5, 0.2, q3);
+    run_vqa_qaoa_cli(3, -1, 0, 5, 0.2, q3);
+    run_vqa_demo();
+
+    run_qaoa_qubo_cli(3, 1, 0, 5, 0.2, q3);
+    run_qaoa_qubo_cli(3, -1, 0, 5, 0.2, q3);
+    run_qaoa_demo();
+
+    run_anneal_qubo_cli("SQA", 3, 8, 4, 0.1, 2.0, 4, q3);
+    run_anneal_qubo_cli("BAD", 3, 8, 4, 0.1, 2.0, 4, q3);
+    run_anneal_qubo_cli("SQA", 3, 0, 4, 0.1, 2.0, 4, q3);
+    run_anneal_demo();
+
+    VqeHamiltonian h;
+    h.n_qubits = 1;
+    VqePauliTerm term;
+    term.coeff = -1.0;
+    term.ops.push_back(VqePauliOp{'Z', 0});
+    h.terms.push_back(term);
+    run_vqe_cli(h, 1, 3, 0.25, 0);
+    run_vqe_cli(VqeHamiltonian(), 1, 3, 0.25, 0);
+    run_vqe_demo();
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        throw std::runtime_error("fork failed in shor seeded branch test");
+    }
+    if (pid == 0) {
+        setenv("QSIM_RNG_SEED", "1234", 1);
+        setenv("QSIM_SHOR_MAX_ATTEMPTS", "1", 1);
+        setenv("QSIM_SHOR_FORCE_A", "7", 1);
+        setenv("QSIM_SHOR_FORCE_X", "1", 1);
+        setenv("QSIM_SHOR_FORCE_NC", "4", 1);
+        setenv("QSIM_SHOR_FORCE_R", "4", 1);
+        run_shor_demo(15);
+        std::exit(0);
+    }
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0) {
+        throw std::runtime_error("waitpid failed in shor seeded branch test");
+    }
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        throw std::runtime_error("child failed in shor seeded branch test");
+    }
+}

@@ -39,3 +39,4 @@ void test_shor_api_paths();
 void test_shor_classical_estimate_order();
 void test_shor_quantum_free_function_paths();
 void test_shor_demo_branches();
+void test_algorithm_demo_wrappers();

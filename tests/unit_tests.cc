@@ -733,6 +733,7 @@ int run_unit_tests()
   }
   if (demo) {
     run_test("Shor demo branches", test_shor_demo_branches);
+    run_test("Algorithm demo wrappers", test_algorithm_demo_wrappers);
   } else {
     std::cout << "Shor demo branches skipped. Set QSIM_DEMO_TESTS=1 to run them.\n";
   }
