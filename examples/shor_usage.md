@@ -9,6 +9,21 @@ Optional: enable step-by-step logs while you run commands:
 VERBOSE VERBOSE
 ```
 
+## Classical Computing View
+
+Factoring is easy to verify but hard to solve quickly in general.
+
+- Input: composite `N`.
+- Goal: find non-trivial factors `p, q` such that `N = p*q`.
+- Classical baseline in this project size range: trial division / heuristics.
+- Shor structure: reduce factoring to order-finding:
+  - choose `a` with `gcd(a,N)=1`
+  - find period `r` where `a^r mod N = 1`
+  - use `gcd(a^(r/2) ± 1, N)` to extract factors
+
+The quantum part accelerates the period-finding subproblem; the final factor
+extraction is classical number theory.
+
 ## 1) Start the CLI
 
 ```

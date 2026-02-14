@@ -8,6 +8,20 @@ Optional: enable step-by-step logs while you run commands:
 VERBOSE VERBOSE
 ```
 
+## Classical Computing View
+
+QUBO is a binary optimization model:
+
+- Minimize `x^T Q x` over bit vectors `x in {0,1}^n`.
+- It is equivalent to many NP-hard combinatorial problems after encoding.
+- Classical exact solve: brute force `2^n` assignments (feasible only for small
+  `n`).
+- Approximate solve: heuristics (local search, simulated annealing, etc.).
+
+In this simulator, you can compare:
+- exact ground truth (`QUBO EXACT`)
+- Grover-threshold search (`QUBO GROVER`) as a quantum-inspired search path.
+
 ## 1) Built-in demo
 
 ```

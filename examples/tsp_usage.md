@@ -9,6 +9,17 @@ Optional: enable step-by-step logs while you run commands:
 VERBOSE VERBOSE
 ```
 
+## Classical Computing View
+
+TSP is a constrained combinatorial search problem.
+
+- Objective: minimize route cost visiting each city exactly once.
+- Classical exact methods scale poorly (factorial growth or exponential DP).
+- QUBO reformulation converts constraints + objective into one binary energy.
+
+In this simulator, the value is educational: see how a familiar NP-hard problem
+becomes a binary optimization instance that can be solved by multiple backends.
+
 ## 1) Built-in TSP demo
 
 ```

@@ -8,6 +8,17 @@ Optional verbose logs:
 VERBOSE VERBOSE
 ```
 
+## Classical Computing View
+
+Annealing here is a stochastic local-search family for binary optimization.
+
+- SA: one replica, temperature schedule controls hill-climbing vs exploration.
+- SQA-style: multiple coupled replicas to improve basin traversal.
+- Baseline comparison: exact brute force for small `n`.
+
+Use this when you want scalable approximate solutions and a familiar
+meta-heuristic workflow.
+
 ## 1) Built-in anneal demo
 
 ```

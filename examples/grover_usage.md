@@ -8,6 +8,21 @@ Optional: enable step-by-step logs while you run commands:
 VERBOSE VERBOSE
 ```
 
+## Classical Computing View
+
+Treat this as unstructured search over `N=2^n` candidates.
+
+- Classical baseline: check candidates one by one; average cost is `O(N/M)`
+  when `M` targets are valid.
+- Grover baseline: amplitude amplification finds a marked state in
+  `O(sqrt(N/M))` oracle rounds.
+- Practical caveat: you need a reversible oracle (`is_target(x)`) and a good
+  iteration count; too many rounds can overshoot and reduce success.
+
+If you think in terms of randomized algorithms, Grover is a probability-mass
+reweighting loop: oracle marks winners by phase, diffusion redistributes
+amplitude toward them.
+
 ## 1) Run the Grover demo
 
 Start the CLI:

@@ -8,6 +8,22 @@ Optional: enable step-by-step logs while you run commands:
 VERBOSE VERBOSE
 ```
 
+## Classical Computing View
+
+Think of this as a black-box function classification problem.
+
+- Input: a function `f(x)` promised to be either:
+  - `CONSTANT`: same output for all inputs
+  - `BALANCED`: output `1` for exactly half the inputs
+- Classical deterministic strategy: in the worst case, you need `2^(n-1)+1`
+  queries to be certain.
+- Deutsch-Jozsa strategy: uses interference so one oracle query is enough to
+  distinguish the two promised classes.
+
+If you are coming from classical testing/property checking, this is like a
+promise-problem accelerator: we are not learning the full truth table; we only
+decide which class the function belongs to.
+
 ## 1) Start the CLI
 
 ```

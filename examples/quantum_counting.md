@@ -6,6 +6,19 @@ without enumerating every state.
 In this simulator, `QCOUNT` estimates the number of marked targets using
 Grover-iteration success probabilities and a fitted angle `theta`.
 
+## Classical Computing View
+
+This is cardinality estimation for a predicate.
+
+- Problem: estimate `M = |{x : is_target(x)=true}|` over `N=2^n`.
+- Classical exact method: evaluate all `N` states.
+- Classical approximate method: random sampling, then extrapolate.
+- Quantum counting idea: infer `M` from Grover dynamics (the rotation angle
+  depends on `M/N`) instead of direct enumeration.
+
+In this simulator, counting is implemented with an educational fit over
+Grover-success traces rather than full phase-estimation hardware logic.
+
 ## Why it is useful
 
 - Grover Search answers: "find one marked state."

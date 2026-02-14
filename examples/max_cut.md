@@ -2,6 +2,17 @@
 
 This example shows how to solve a small Max-Cut instance using the simulator's QUBO tools.
 
+## Classical Computing View
+
+Max-Cut is a graph partition optimization problem:
+
+- Assign each vertex to one of two sets.
+- Maximize total weight of crossing edges.
+- This maps directly to a binary objective, so QUBO is a natural encoding.
+
+For classical engineers, this is useful because once encoded as QUBO, you can
+benchmark multiple solvers (exact, annealing, variational) on the same model.
+
 ## Problem
 
 Use a triangle graph with 3 vertices and unit edge weights:

@@ -9,6 +9,20 @@ Optional: enable step-by-step logs while you run commands:
 VERBOSE VERBOSE
 ```
 
+## Classical Computing View
+
+This is a hidden-parameter identification task.
+
+- Unknowns: secret vector `s` and optional bias `b`.
+- Oracle: returns one bit `f(x) = s·x xor b`.
+- Classical approach: query basis vectors to recover each bit of `s`, so `n`
+  queries are needed (plus one if you also want `b` explicitly).
+- BV approach: prepares all basis vectors at once in superposition, then uses
+  phase kickback and Hadamards to recover all bits of `s` in one oracle call.
+
+From a classical lens, BV is like SIMD-style batch probing of all coordinates,
+followed by a transform that decodes the hidden linear coefficients.
+
 ## 1) Start the CLI
 
 ```

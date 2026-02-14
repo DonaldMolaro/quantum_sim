@@ -8,6 +8,19 @@ Optional: enable algorithm logs:
 VERBOSE VERBOSE
 ```
 
+## Classical Computing View
+
+Think of QAOA as a tunable heuristic optimizer, similar to classical meta-heuristics.
+
+- Input: objective function (QUBO here).
+- Parameters: layer count `p`, optimizer iterations, step size, shot budget.
+- Output: best assignment found, not always globally optimal.
+- Classical analogy: gradient-free iterative tuning of a parameterized search
+  policy.
+
+Key engineering mindset: treat QAOA runs like hyperparameter tuning against an
+exact baseline where possible.
+
 ## 1) Built-in VQA demo
 
 ```

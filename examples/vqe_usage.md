@@ -2,6 +2,21 @@
 
 This file shows two illustrative Variational Quantum Eigensolver (VQE) examples.
 
+## Classical Computing View
+
+VQE is an optimization loop around a costly objective evaluation.
+
+- Objective: minimize expected energy of a Hamiltonian.
+- Classical loop:
+  1. propose parameters
+  2. evaluate objective (here via quantum-state simulation)
+  3. update parameters
+- This is comparable to derivative-free numerical optimization where objective
+  calls are expensive and noisy.
+
+For teaching/prototyping, VQE is best viewed as a hybrid optimizer with
+physics-structured objective functions.
+
 ## Command format
 
 ```

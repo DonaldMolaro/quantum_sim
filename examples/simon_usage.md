@@ -3,6 +3,19 @@
 Simon solves a hidden-xor-mask problem: find `s` such that
 `f(x) = f(x xor s)` for all `x`.
 
+## Classical Computing View
+
+This is hidden-period discovery over bit strings.
+
+- Unknown parameter: xor-mask `s`.
+- Oracle promise: `f(x) = f(x xor s)`.
+- Classical randomized approach needs many samples/collision checks.
+- Simon approach: converts oracle behavior into linear equations `y·s=0 (mod 2)`
+  and solves a small GF(2) linear system.
+
+From a classical perspective, the interesting part is not magic guessing of `s`,
+but efficient equation generation and elimination over bits.
+
 ## Commands
 
 Run built-in demo:
