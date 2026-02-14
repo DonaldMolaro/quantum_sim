@@ -105,6 +105,7 @@ void QuantumShell::print_help()
   std::cout << "\n[Utility]\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
+  std::cout << "CHECK <mode> ... : Run quick state sanity checks (NORMALIZED, BASIS, TARGETS, BELL)\n";
   std::cout << "HELP             : Show this help message.\n";
   std::cout << "QUIT             : Exit the simulator.\n";
   std::cout << "VERBOSE <level>  : Set verbosity (QUIET, NORMAL, VERBOSE or 0/1/2)\n";
@@ -113,6 +114,7 @@ void QuantumShell::print_help()
   std::cout << "QFTMODE <mode>   : Set QFT implementation mode (DIRECT matrix transform or GATE decomposition).\n";
   std::cout << "                   DIRECT is the default and is generally faster for this simulator.\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";
+  std::cout << "Debug tips       : Qubit indexing is little-endian (q0 is LSB); use CHECK for fast validation.\n";
   std::cout << "----------------------------------\n";
 }
 

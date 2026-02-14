@@ -21,6 +21,10 @@ protocols and algorithms supported by the simulator.
 - `simon_usage.md`: Simon's hidden-mask recovery (`SIMON`)
 - `algorithm_comparison.md`: quick algorithm-selection and workflow guide
 - `lesson_plan.md`: module-by-module teaching plan with commands/checkpoints
+- `prerequisites.md`: what to know before each algorithm
+- `glossary.md`: key terms mapped to classical intuition
+- `visual_walkthroughs.md`: diagrammed dataflow and state-snapshot intuition
+- `debugging.md`: common mistakes and fast validation checks
 - `vqa_qaoa.md`: VQA/QAOA optimization of QUBO instances
 - `anneal_usage.md`: Simulated annealing and SQA-style QUBO optimization
 - `max_cut.md`: Max-Cut encoded and solved as QUBO
@@ -51,6 +55,13 @@ For guided teaching narration in CLI:
 
 ```
 TUTOR ON
+```
+
+For quick state debugging in CLI:
+
+```
+CHECK NORMALIZED
+CHECK TARGETS 3 5
 ```
 
 ## Smoke-run examples

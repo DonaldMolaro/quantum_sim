@@ -157,6 +157,11 @@ void test_cli_command_parsing()
     if (seed.size() != 2 || seed[0] != "SEED" || seed[1] != "1234") {
         throw std::runtime_error("CLI parse_command failed on SEED command");
     }
+
+    std::vector<std::string> check = cli::parse_command("CHECK TARGETS 3 5");
+    if (check.size() != 4 || check[0] != "CHECK" || check[1] != "TARGETS") {
+        throw std::runtime_error("CLI parse_command failed on CHECK command");
+    }
 }
 
 void test_latin_square_validations() {
