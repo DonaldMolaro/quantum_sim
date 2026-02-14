@@ -16,7 +16,7 @@ fi
 
 gcov -b -c $objs >/tmp/gcov.out 2>/dev/null || true
 
-root=$(pwd)
+root="${SOURCE_ROOT:-$(pwd)}"
 gcov_files=$(find . -name "*.gcov" -print)
 if [ -z "$gcov_files" ]; then
   echo "coverage_check: no gcov files produced"

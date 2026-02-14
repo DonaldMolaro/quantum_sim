@@ -7,26 +7,32 @@ Aws has an implementation in Python, but this one is in C++.
 
 Much of the code was created by NotebookLM, with subsequent additions and refactors by Codex (OpenAI).
 
-## Build
+## Build (CMake)
 
 ```bash
-make
+cmake -S . -B build
+cmake --build build -j
 ```
 
-## Tests
+## Tests (CMake)
 
 ```bash
-make test          # fast suite + 100% coverage (library)
-make test-slow     # includes slow Shor coverage paths
-./all_tests        # direct runner (no coverage gate)
+ctest --test-dir build --output-on-failure
+ctest --test-dir build -R test-slow --output-on-failure
+ctest --test-dir build -R test-demo --output-on-failure
 
-# Optional Grover benchmark sweep
-QSIM_GROVER_BENCH=1 ./all_tests
+# Example smoke/lab checks
+cmake --build build --target test-examples
+cmake --build build --target test-labs
 ```
 
-Notes:
-- `make test` and `make test-slow` enforce 100% coverage using `gcov`.
-- `make clean` removes build artifacts and `gcov` files.
+## Coverage Gate (CMake)
+
+```bash
+cmake -S . -B build-cov -DQSIM_ENABLE_COVERAGE=ON
+cmake --build build-cov -j
+cmake --build build-cov --target coverage-check
+```
 
 ## Project Layout
 

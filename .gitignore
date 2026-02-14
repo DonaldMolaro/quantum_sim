@@ -6,5 +6,15 @@ unit_tests
 grover_test
 libquantum_sim.a
 
+# CMake artifacts
+build/
+build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+
 # Editor backups
 *~
