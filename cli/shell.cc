@@ -16,6 +16,12 @@
 #include <string>
 #include <vector>
 
+void QuantumShell::tutor_note(const std::string& msg) const
+{
+  if (!tutor_mode) return;
+  std::cout << "[TUTOR] " << msg << "\n";
+}
+
 void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 {
   if (tokens.empty()) return;
@@ -102,6 +108,7 @@ void QuantumShell::print_help()
   std::cout << "HELP             : Show this help message.\n";
   std::cout << "QUIT             : Exit the simulator.\n";
   std::cout << "VERBOSE <level>  : Set verbosity (QUIET, NORMAL, VERBOSE or 0/1/2)\n";
+  std::cout << "TUTOR <ON|OFF>   : Enable or disable guided teaching narration\n";
   std::cout << "QFTMODE <mode>   : Set QFT implementation mode (DIRECT matrix transform or GATE decomposition).\n";
   std::cout << "                   DIRECT is the default and is generally faster for this simulator.\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";

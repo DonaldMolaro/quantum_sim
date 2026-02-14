@@ -25,6 +25,13 @@ bool QuantumShell::handle_single_qubit_commands(const std::vector<std::string>& 
   try {
     (state.get()->*(it->second))(j);
     std::cout << cmd << "(" << j << ") applied.\n";
+    if (cmd == "H") {
+      tutor_note("H creates equal superposition from a basis state (up to phase).");
+    } else if (cmd == "X") {
+      tutor_note("X flips computational basis states |0> <-> |1>.");
+    } else if (cmd == "Z") {
+      tutor_note("Z keeps probabilities but flips phase on |1> components.");
+    }
     state->display();
   } catch (const std::exception& e) {
     std::cerr << "Operation failed: " << e.what() << "\n";
@@ -164,6 +171,7 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
     } else {
       std::cout << " No Register to store in \n";
     }
+    tutor_note("Measurement collapses superposition on qubit j and records a classical bit.");
     state->display();
     return true;
   }

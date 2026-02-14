@@ -96,6 +96,7 @@ test-demo:
 
 .PHONY: test-examples
 test-examples:
+	$(MAKE) clean
 	$(MAKE) quantum_sim
 	./examples/run_examples.sh
 

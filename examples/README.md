@@ -24,6 +24,8 @@ protocols and algorithms supported by the simulator.
 - `anneal_usage.md`: Simulated annealing and SQA-style QUBO optimization
 - `max_cut.md`: Max-Cut encoded and solved as QUBO
 - `vqe_usage.md`: VQE examples (`H=Z0` and a two-qubit toy Hamiltonian)
+- `lab_bell_states.md`: guided Bell-state lab with checkpoints
+- `lab_grover_counting.md`: guided Grover + QCOUNT lab with checkpoints
 
 ## Running the CLI
 
@@ -39,6 +41,12 @@ Tip: set verbosity to see algorithm steps as they run:
 
 ```
 VERBOSE VERBOSE
+```
+
+For guided teaching narration in CLI:
+
+```
+TUTOR ON
 ```
 
 ## Smoke-run examples

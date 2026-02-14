@@ -70,6 +70,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: " << cmd << " requires an oracle (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY).\n";
       return true;
     }
+    tutor_note("Deutsch-Jozsa determines constant vs balanced with one oracle call in the ideal model.");
     run_deutsch_jozsa_demo(n_inputs, tokens[2]);
     return true;
   }
@@ -79,6 +80,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     int secret = cli::get_arg(tokens, 2, cmd);
     int bias = (tokens.size() > 3) ? cli::get_arg(tokens, 3, cmd) : 0;
     if (n_inputs == -1 || secret == -1 || bias == -1) return true;
+    tutor_note("Bernstein-Vazirani recovers the hidden bit string via phase kickback.");
     run_bernstein_vazirani_demo(n_inputs, static_cast<Bitstring>(secret), bias);
     return true;
   }
@@ -320,12 +322,14 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   case AlgorithmCommand::Shor: {
     int N = cli::get_arg(tokens, 1, "SHOR");
     if (N == -1) return true;
+    tutor_note("Shor runs period finding plus number-theory post-processing; this implementation is educational scale.");
     run_shor_demo(static_cast<Bitstring>(N));
     return true;
   }
 
   case AlgorithmCommand::Simon: {
     if (tokens.size() >= 2 && tokens[1] == "DEMO") {
+      tutor_note("Simon collects equations y·s=0 (mod 2) and solves for the secret mask s.");
       run_simon_demo();
       return true;
     }
@@ -337,6 +341,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       shots = cli::get_arg(tokens, 3, "SIMON");
       if (shots == -1) return true;
     }
+    tutor_note("Simon uses linear constraints over GF(2) to recover the hidden xor mask.");
     run_simon_cli(n_inputs, static_cast<Bitstring>(secret), shots);
     return true;
   }
@@ -370,6 +375,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
                 << " (estimated targets=" << result.estimated_targets
                 << ", real=" << result.estimated_targets_real
                 << ", counting iterations=" << result.counting_iterations << ")\n";
+      tutor_note("AUTO mode first estimates marked-count, then chooses Grover iteration depth.");
       return true;
     }
 
@@ -398,6 +404,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       return true;
     }
     std::cout << "Grover iterations used: " << result.iterations << " (n=" << n_qubits << ")\n";
+    tutor_note("Grover alternates oracle and diffusion to amplify marked-state probability.");
     return true;
   }
 
@@ -426,6 +433,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
 
   case AlgorithmCommand::QuantumCounting: {
     if (tokens.size() >= 2 && tokens[1] == "DEMO") {
+      tutor_note("Quantum counting estimates how many marked states exist without full enumeration.");
       run_quantum_counting_demo();
       return true;
     }
@@ -449,6 +457,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
         targets.push_back(static_cast<Bitstring>(t));
       }
       run_quantum_counting_cli(n_qubits, targets, max_iterations);
+      tutor_note("RUN mode fixes the fitting window so you can compare estimator stability.");
       return true;
     }
     int n_qubits = cli::get_arg(tokens, 1, "QCOUNT");
@@ -469,6 +478,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       targets.push_back(static_cast<Bitstring>(t));
     }
     run_quantum_counting_cli(n_qubits, targets, -1);
+    tutor_note("Counting output estimates M (number of marked states) from Grover dynamics.");
     return true;
   }
   }

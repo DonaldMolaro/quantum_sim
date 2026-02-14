@@ -19,6 +19,8 @@ class QuantumShell
 private:
   // The core quantum state object we manipulate.
   std::unique_ptr<State> state;
+  bool tutor_mode = false;
+  void tutor_note(const std::string& msg) const;
   void handle_command(const std::vector<std::string>& tokens);
   bool handle_setup_commands(const std::vector<std::string>& tokens, const std::string& cmd);
   bool handle_algorithm_commands(const std::vector<std::string>& tokens, const std::string& cmd);

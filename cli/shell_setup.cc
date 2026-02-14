@@ -8,12 +8,31 @@
 
 bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
+  if (cmd == "TUTOR") {
+    if (tokens.size() < 2) {
+      std::cout << "Tutor mode is " << (tutor_mode ? "ON" : "OFF") << ".\n";
+      return true;
+    }
+    if (tokens[1] == "ON") {
+      tutor_mode = true;
+      std::cout << "Tutor mode enabled.\n";
+      tutor_note("I will explain intent and expected outcomes for key commands.");
+    } else if (tokens[1] == "OFF") {
+      tutor_mode = false;
+      std::cout << "Tutor mode disabled.\n";
+    } else {
+      std::cerr << "Error: TUTOR must be ON or OFF.\n";
+    }
+    return true;
+  }
+
   if (cmd == "INIT") {
     int N = cli::get_arg(tokens, 1, "INIT");
     int C = (tokens.size() > 2) ? cli::get_arg(tokens, 2, "INIT") : 0;
     if (N > 0 && N <= 64) {
       state.reset(new State(N, C));
       std::cout << "State initialized with " << N << " qubits and " << C << " classical register(s).\n";
+      tutor_note("INIT sets the Hilbert space size to 2^N and resets amplitudes to |0...0>.");
     }
     return true;
   }
@@ -27,9 +46,11 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
     if (tokens[1] == "DIRECT") {
       state->set_qft_mode(State::QftMode::Direct);
       std::cout << "QFT mode set to DIRECT.\n";
+      tutor_note("DIRECT applies QFT as a transform; it is faster in this simulator.");
     } else if (tokens[1] == "GATE") {
       state->set_qft_mode(State::QftMode::Gate);
       std::cout << "QFT mode set to GATE.\n";
+      tutor_note("GATE applies decomposed gates; use it to inspect algorithm structure.");
     } else {
       std::cerr << "Error: QFTMODE must be DIRECT or GATE.\n";
     }
@@ -55,6 +76,7 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
       std::cout << "QRNG[" << i << "] bits=" << shell_detail::bits_to_string(bits)
                 << " value=" << shell_detail::bits_to_u64(bits) << "\n";
     }
+    tutor_note("QRNG uses Hadamard + measurement; each output bit is sampled from a superposition.");
     return true;
   }
 
