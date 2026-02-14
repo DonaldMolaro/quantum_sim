@@ -82,6 +82,22 @@ DISPLAY
 If probability mass concentrates heavily onto one basis state after one iteration,
 that behavior is consistent with `M=1` marked state out of `N=4`.
 
+## 4) Hand-tooled workflow for `QCOUNT RUN`
+
+Use this sequence when you want to compare manual intuition with the built-in
+fitter over a fixed number of samples.
+
+1. Build a small marked-state experiment by hand (as above) and inspect with `DISPLAY`.
+2. Run the estimator with explicit fitting samples:
+
+```
+QCOUNT RUN 2 4 3
+```
+
+3. Compare:
+- Manual observation: one marked state appears strongly after one Grover step.
+- Estimator output: `estimated_targets` should be close to `1`.
+
 ## Output fields
 
 - `estimated_targets`: rounded integer estimate

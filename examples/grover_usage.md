@@ -120,3 +120,30 @@ DISPLAY
 - For 2 qubits, one Grover iteration is enough to maximize success.
 - The built-in `GROVER` command handles all of this automatically for larger N.
 - This manual approach is useful for learning or verifying oracle behavior.
+
+---
+
+## 4) Hand-tooled flow for `GROVER AUTO`
+
+`GROVER AUTO` does two things: estimate marked-count, then choose Grover
+iterations. You can mirror that flow manually:
+
+1. Count first:
+
+```
+QCOUNT RUN 3 6 3 5
+```
+
+2. Run Grover with those targets:
+
+```
+GROVER 3 5
+```
+
+3. Compare with one-shot auto mode:
+
+```
+GROVER AUTO 3 6 3 5
+```
+
+You should see similar iteration choice and amplification behavior.
