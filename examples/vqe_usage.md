@@ -53,3 +53,29 @@ Try adjusting:
 - `step`
 
 to see how optimization quality changes.
+
+## 3) Hand-tooled VQE workflow
+
+A practical manual loop:
+
+1. Start with a very small ansatz:
+
+```
+VQE RUN 2 1 20 0.3 0 3 1.0 1 Z 0 1.0 1 Z 1 0.5 2 X 0 X 1
+```
+
+2. Increase optimization budget:
+
+```
+VQE RUN 2 1 80 0.2 0 3 1.0 1 Z 0 1.0 1 Z 1 0.5 2 X 0 X 1
+```
+
+3. Increase ansatz expressivity:
+
+```
+VQE RUN 2 2 80 0.2 0 3 1.0 1 Z 0 1.0 1 Z 1 0.5 2 X 0 X 1
+```
+
+4. Compare the final `best_energy` values. Lower is better.
+
+This is the recommended hand-tuned path before automating sweeps.

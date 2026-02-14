@@ -137,6 +137,21 @@ void test_cli_command_parsing()
     if (simon.size() != 4 || simon[0] != "SIMON") {
         throw std::runtime_error("CLI parse_command failed on SIMON");
     }
+
+    std::vector<std::string> vqa = cli::parse_command("VQA QAOA 3 1 0 40 0.25 -2 0 2 0 1 0 2 0 -3");
+    if (vqa.size() != 16 || vqa[0] != "VQA" || vqa[1] != "QAOA") {
+        throw std::runtime_error("CLI parse_command failed on VQA QAOA transcript");
+    }
+
+    std::vector<std::string> vqe = cli::parse_command("VQE RUN 2 2 50 0.2 0 3 1.0 1 Z 0 1.0 1 Z 1 0.5 2 X 0 X 1");
+    if (vqe.size() != 22 || vqe[0] != "VQE" || vqe[1] != "RUN") {
+        throw std::runtime_error("CLI parse_command failed on VQE transcript");
+    }
+
+    std::vector<std::string> qubo = cli::parse_command("QUBO EXACT 3 -2 0 2 0 1 0 2 0 -3");
+    if (qubo.size() != 12 || qubo[0] != "QUBO" || qubo[1] != "EXACT") {
+        throw std::runtime_error("CLI parse_command failed on QUBO EXACT transcript");
+    }
 }
 
 void test_latin_square_validations() {
