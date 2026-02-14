@@ -3,6 +3,12 @@
 These visuals are aimed at readers with classical-software background: think of
 each algorithm as a dataflow pipeline with state snapshots.
 
+To export these Mermaid blocks as SVG files:
+
+```bash
+./examples/render_visuals.sh
+```
+
 ## Grover (High-Level Dataflow)
 
 ```mermaid

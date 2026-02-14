@@ -77,3 +77,9 @@ You can run guided-lab auto checks:
 ```bash
 ./examples/check_labs.sh
 ```
+
+Render Mermaid walkthrough diagrams to SVG:
+
+```bash
+./examples/render_visuals.sh
+```
