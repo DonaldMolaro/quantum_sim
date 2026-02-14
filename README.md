@@ -34,6 +34,16 @@ cmake --build build-cov -j
 cmake --build build-cov --target coverage-check
 ```
 
+## Benchmark CSV
+
+Generate Grover benchmark output in CSV format:
+
+```bash
+./scripts/benchmark_csv.sh
+```
+
+Default output: `benchmarks/grover_bench.csv`.
+
 ## Project Layout
 
 - `state.hh`, `state.cc`: core quantum state and gates

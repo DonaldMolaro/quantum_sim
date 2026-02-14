@@ -16,6 +16,7 @@ CTestTestfile.cmake
 Testing/
 compile_commands.json
 examples/diagrams/
+benchmarks/*.csv
 
 # Editor backups
 *~
