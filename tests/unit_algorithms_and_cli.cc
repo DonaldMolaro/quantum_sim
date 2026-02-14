@@ -11,6 +11,7 @@
 #include "algorithms/anneal.hh"
 #include "algorithms/tsp.hh"
 #include "algorithms/quantum_counting.hh"
+#include "algorithms/simon.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
 #include "algorithms/shor_classical.hh"
@@ -23,6 +24,7 @@
 #include "demos/shor_demo.hh"
 #include "demos/tsp_demo.hh"
 #include "demos/quantum_counting_demo.hh"
+#include "demos/simon_demo.hh"
 #include "modular_exp.hh"
 #include "math/mod_arith.hh"
 #include "math/bit_ops.hh"
@@ -417,6 +419,11 @@ void test_quantum_counting_paths()
     if (two.estimated_targets != 2ULL) {
         throw std::runtime_error("Expected QCOUNT to estimate two marked states");
     }
+
+    QuantumCountingResult explicit_iters = run_quantum_counting(3, std::vector<Bitstring>{1, 6}, 6);
+    if (!explicit_iters.ok || explicit_iters.iterations_used != 6) {
+        throw std::runtime_error("Expected QCOUNT explicit max_iterations path to succeed");
+    }
 }
 
 void test_quantum_counting_demo_paths()
@@ -424,6 +431,49 @@ void test_quantum_counting_demo_paths()
     run_quantum_counting_cli(3, std::vector<Bitstring>{1, 6}, -1);
     run_quantum_counting_cli(3, std::vector<Bitstring>{8}, -1);
     run_quantum_counting_demo();
+}
+
+void test_simon_paths()
+{
+    SimonResult bad_n = run_simon(0, 0b1, 4);
+    if (bad_n.ok || bad_n.error.empty()) {
+        throw std::runtime_error("Expected SIMON to reject n_inputs <= 0");
+    }
+
+    SimonResult bad_n_hi = run_simon(17, 0b1, 4);
+    if (bad_n_hi.ok || bad_n_hi.error.empty()) {
+        throw std::runtime_error("Expected SIMON to reject n_inputs > 16");
+    }
+
+    SimonResult bad_secret = run_simon(3, 8, 4);
+    if (bad_secret.ok || bad_secret.error.empty()) {
+        throw std::runtime_error("Expected SIMON to reject out-of-range secret");
+    }
+
+    SimonResult bad_shots = run_simon(4, 0b1010, 0);
+    if (bad_shots.ok || bad_shots.error.empty()) {
+        throw std::runtime_error("Expected SIMON to reject shots <= 0");
+    }
+
+    SimonResult ok = run_simon(4, 0b1010, 8);
+    if (!ok.ok) {
+        throw std::runtime_error("Expected SIMON run to succeed");
+    }
+    if (!ok.verified || ok.recovered_secret != 0b1010ULL) {
+        throw std::runtime_error("Expected SIMON to recover secret exactly");
+    }
+
+    SimonResult zero = run_simon(4, 0ULL, 4);
+    if (!zero.ok || zero.recovered_secret != 0ULL || !zero.verified) {
+        throw std::runtime_error("Expected SIMON to support s=0 path");
+    }
+}
+
+void test_simon_demo_paths()
+{
+    run_simon_cli(4, 0b1010, -1);
+    run_simon_cli(4, 32, -1);
+    run_simon_demo();
 }
 
 void test_vqa_qaoa_finds_good_candidate()
@@ -1030,5 +1080,25 @@ void test_grover_api_errors() {
         if (!forced.ok) {
             throw std::runtime_error("Expected forced set oracle Grover run to succeed");
         }
+    }
+}
+
+void test_grover_auto_tuned_paths() {
+    GroverResult bad_n = run_grover_auto_tuned(0, std::vector<Bitstring>{1}, 4);
+    if (bad_n.ok || bad_n.error.empty()) {
+        throw std::runtime_error("Expected GROVER AUTO to reject invalid n");
+    }
+
+    GroverResult bad_targets = run_grover_auto_tuned(3, std::vector<Bitstring>(), 4);
+    if (bad_targets.ok || bad_targets.error.empty()) {
+        throw std::runtime_error("Expected GROVER AUTO to reject empty target list");
+    }
+
+    GroverResult ok = run_grover_auto_tuned(3, std::vector<Bitstring>{1, 6}, 4);
+    if (!ok.ok) {
+        throw std::runtime_error("Expected GROVER AUTO to succeed");
+    }
+    if (!ok.auto_tuned || ok.counting_iterations <= 0) {
+        throw std::runtime_error("Expected GROVER AUTO to report tuning metadata");
     }
 }

@@ -64,8 +64,11 @@ void QuantumShell::print_help()
   std::cout << "SWAP <j> <k>     : SWAP qubits j and, k maintaining amplitudes.\n";
   std::cout << "\n[Algorithms]\n";
   std::cout << "GROVER <t...>    : Run Grover search (self-initialized; no INIT required)\n";
+  std::cout << "GROVER AUTO <n> <count_iters> <t...> : Auto-tune Grover iterations using quantum counting\n";
   std::cout << "DEUTSCH_JOZSA <n> <oracle> : Run Deutsch-Jozsa demo (CONST0, CONST1, BALANCED_XOR0, BALANCED_PARITY)\n";
   std::cout << "BV <n> <secret> [bias]: Run Bernstein-Vazirani demo (bias defaults to 0)\n";
+  std::cout << "SIMON DEMO       : Run built-in Simon's algorithm demo\n";
+  std::cout << "SIMON <n> <secret> [shots]: Recover hidden xor-mask secret string\n";
   std::cout << "SHOR <N>         : Run Shor's algorithm demo to factor N\n";
   std::cout << "QUBO DEMO        : Run built-in QUBO exact+Grover-threshold demo\n";
   std::cout << "QUBO EXACT <n> <n*n matrix entries> : Solve QUBO exactly by brute force\n";
@@ -81,6 +84,7 @@ void QuantumShell::print_help()
   std::cout << "TSP DEMO         : Run built-in 4-city TSP-to-QUBO exact demo\n";
   std::cout << "TSP EXACT <n> <penalty> <n*n distance entries> : Solve fixed-start TSP with exact QUBO search\n";
   std::cout << "QCOUNT DEMO      : Run built-in quantum counting demo\n";
+  std::cout << "QCOUNT RUN <n> <iters> <t1> [t2 ...] : Estimate marked-state count with explicit fit iterations\n";
   std::cout << "QCOUNT <n> <t1> [t2 ...] : Estimate number of marked states for targets in n-qubit space\n";
   std::cout << "LATIN [iters]               : Grover demo for 3x3 Latin squares (row0 fixed 0 1 2)\n";
   std::cout << "LATIN DEMO [iters] [r0 r1 r2]: Demo with custom row0 permutation\n";

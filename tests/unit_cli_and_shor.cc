@@ -11,8 +11,10 @@
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/qaoa_demo.hh"
+#include "demos/quantum_counting_demo.hh"
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
+#include "demos/simon_demo.hh"
 #include "demos/vqa_demo.hh"
 #include "demos/vqe_demo.hh"
 #include <cstdlib>
@@ -119,6 +121,21 @@ void test_cli_command_parsing()
     int arg = cli::get_arg(missing, 1, "X");
     if (arg != -1) {
         throw std::runtime_error("CLI get_arg should return -1 on missing argument");
+    }
+
+    std::vector<std::string> qcount_run = cli::parse_command("QCOUNT RUN 3 6 1 6");
+    if (qcount_run.size() != 6 || qcount_run[0] != "QCOUNT" || qcount_run[1] != "RUN") {
+        throw std::runtime_error("CLI parse_command failed on QCOUNT RUN");
+    }
+
+    std::vector<std::string> grover_auto = cli::parse_command("GROVER AUTO 3 6 1 6");
+    if (grover_auto.size() != 6 || grover_auto[1] != "AUTO") {
+        throw std::runtime_error("CLI parse_command failed on GROVER AUTO");
+    }
+
+    std::vector<std::string> simon = cli::parse_command("SIMON 4 10 8");
+    if (simon.size() != 4 || simon[0] != "SIMON") {
+        throw std::runtime_error("CLI parse_command failed on SIMON");
     }
 }
 
@@ -400,6 +417,10 @@ void test_algorithm_demo_wrappers() {
     run_vqe_cli(h, 1, 3, 0.25, 0);
     run_vqe_cli(VqeHamiltonian(), 1, 3, 0.25, 0);
     run_vqe_demo();
+    run_quantum_counting_cli(3, std::vector<Bitstring>{1, 6}, 4);
+    run_quantum_counting_demo();
+    run_simon_cli(4, 0b1010, 8);
+    run_simon_demo();
 
     pid_t pid = fork();
     if (pid < 0) {

@@ -1,4 +1,5 @@
 #include "algorithms/api/grover_api.hh"
+#include "algorithms/quantum_counting.hh"
 #include "internal/limits.hh"
 #include "logging.hh"
 #include <cmath>
@@ -107,4 +108,34 @@ GroverResult run_grover(int n_qubits, const std::vector<Bitstring>& targets, int
   }
   State s(n_qubits, 0);
   return run_grover(s, targets, iterations);
+}
+
+GroverResult run_grover_auto_tuned(int n_qubits,
+                                   const std::vector<Bitstring>& targets,
+                                   int counting_iterations)
+{
+  GroverResult result;
+  if (!qsim::limits::valid_bitstring_qubit_count(n_qubits)) {
+    result.error = "Grover supports 1..62 qubits.";
+    return result;
+  }
+
+  QuantumCountingResult count = run_quantum_counting(n_qubits, targets, counting_iterations);
+  if (!count.ok) {
+    result.error = "Quantum counting failed: " + count.error;
+    return result;
+  }
+
+  const Bitstring estimated_m = (count.estimated_targets == 0ULL) ? 1ULL : count.estimated_targets;
+
+  const double N = std::ldexp(1.0, n_qubits);
+  const int tuned_iterations =
+      static_cast<int>(std::floor((std::acos(-1.0) / 4.0) * std::sqrt(N / static_cast<double>(estimated_m))));
+
+  GroverResult grover = run_grover(n_qubits, targets, tuned_iterations);
+  grover.auto_tuned = true;
+  grover.estimated_targets = count.estimated_targets;
+  grover.estimated_targets_real = count.estimated_targets_real;
+  grover.counting_iterations = count.iterations_used;
+  return grover;
 }

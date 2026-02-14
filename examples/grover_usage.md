@@ -24,6 +24,14 @@ GROVER 3 5
 
 The demo prints the marked items and the amplified probabilities.
 
+If target count is unknown, auto-tune iterations with counting first:
+
+```
+GROVER AUTO 3 6 3 5
+```
+
+Format: `GROVER AUTO <n_qubits> <count_iterations> <targets...>`.
+
 ---
 
 ## 2) Build a 2-qubit Grover oracle by hand (target = |11>)

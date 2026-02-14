@@ -18,6 +18,7 @@ protocols and algorithms supported by the simulator.
 - `qubo_usage.md`: QUBO exact and Grover-threshold solving
 - `tsp_usage.md`: Traveling Salesman as QUBO (fixed-start encoding)
 - `quantum_counting.md`: Estimate number of marked states (`QCOUNT`)
+- `simon_usage.md`: Simon's hidden-mask recovery (`SIMON`)
 - `vqa_qaoa.md`: VQA/QAOA optimization of QUBO instances
 - `anneal_usage.md`: Simulated annealing and SQA-style QUBO optimization
 - `max_cut.md`: Max-Cut encoded and solved as QUBO

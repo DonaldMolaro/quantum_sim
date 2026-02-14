@@ -10,6 +10,7 @@
 #include "demos/quantum_counting_demo.hh"
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
+#include "demos/simon_demo.hh"
 #include "demos/tsp_demo.hh"
 #include "demos/vqa_demo.hh"
 #include "demos/vqe_demo.hh"
@@ -31,6 +32,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     Anneal,
     Latin,
     Shor,
+    Simon,
     Grover,
     Tsp,
     QuantumCounting
@@ -48,6 +50,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       {"ANNEAL", AlgorithmCommand::Anneal},
       {"LATIN", AlgorithmCommand::Latin},
       {"SHOR", AlgorithmCommand::Shor},
+      {"SIMON", AlgorithmCommand::Simon},
       {"GROVER", AlgorithmCommand::Grover},
       {"TSP", AlgorithmCommand::Tsp},
       {"QCOUNT", AlgorithmCommand::QuantumCounting},
@@ -321,7 +324,55 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return true;
   }
 
+  case AlgorithmCommand::Simon: {
+    if (tokens.size() >= 2 && tokens[1] == "DEMO") {
+      run_simon_demo();
+      return true;
+    }
+    int n_inputs = cli::get_arg(tokens, 1, "SIMON");
+    int secret = cli::get_arg(tokens, 2, "SIMON");
+    if (n_inputs == -1 || secret == -1) return true;
+    int shots = -1;
+    if (tokens.size() >= 4) {
+      shots = cli::get_arg(tokens, 3, "SIMON");
+      if (shots == -1) return true;
+    }
+    run_simon_cli(n_inputs, static_cast<Bitstring>(secret), shots);
+    return true;
+  }
+
   case AlgorithmCommand::Grover: {
+    if (tokens.size() >= 2 && tokens[1] == "AUTO") {
+      int n_qubits = cli::get_arg(tokens, 2, "GROVER AUTO");
+      int count_iters = cli::get_arg(tokens, 3, "GROVER AUTO");
+      if (n_qubits == -1 || count_iters == -1) return true;
+      if (tokens.size() < 5) {
+        std::cerr << "Error: GROVER AUTO requires at least one target.\n";
+        return true;
+      }
+      std::vector<Bitstring> targets;
+      targets.reserve(tokens.size() - 4);
+      for (size_t i = 4; i < tokens.size(); ++i) {
+        int t = cli::get_arg(tokens, i, "GROVER AUTO");
+        if (t == -1) return true;
+        if (t < 0) {
+          std::cerr << "Error: GROVER AUTO targets must be >= 0.\n";
+          return true;
+        }
+        targets.push_back(static_cast<Bitstring>(t));
+      }
+      GroverResult result = run_grover_auto_tuned(n_qubits, targets, count_iters);
+      if (!result.ok) {
+        std::cerr << "Grover error: " << result.error << "\n";
+        return true;
+      }
+      std::cout << "Grover AUTO iterations used: " << result.iterations
+                << " (estimated targets=" << result.estimated_targets
+                << ", real=" << result.estimated_targets_real
+                << ", counting iterations=" << result.counting_iterations << ")\n";
+      return true;
+    }
+
     if (tokens.size() < 2) {
       std::cerr << "Error: GROVER requires at least one target.\n";
       return true;
@@ -376,6 +427,28 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   case AlgorithmCommand::QuantumCounting: {
     if (tokens.size() >= 2 && tokens[1] == "DEMO") {
       run_quantum_counting_demo();
+      return true;
+    }
+    if (tokens.size() >= 2 && tokens[1] == "RUN") {
+      int n_qubits = cli::get_arg(tokens, 2, "QCOUNT RUN");
+      int max_iterations = cli::get_arg(tokens, 3, "QCOUNT RUN");
+      if (n_qubits == -1 || max_iterations == -1) return true;
+      if (tokens.size() < 5) {
+        std::cerr << "Error: QCOUNT RUN requires at least one target.\n";
+        return true;
+      }
+      std::vector<Bitstring> targets;
+      targets.reserve(tokens.size() - 4);
+      for (size_t i = 4; i < tokens.size(); ++i) {
+        int t = cli::get_arg(tokens, i, "QCOUNT RUN");
+        if (t == -1) return true;
+        if (t < 0) {
+          std::cerr << "Error: QCOUNT RUN targets must be >= 0.\n";
+          return true;
+        }
+        targets.push_back(static_cast<Bitstring>(t));
+      }
+      run_quantum_counting_cli(n_qubits, targets, max_iterations);
       return true;
     }
     int n_qubits = cli::get_arg(tokens, 1, "QCOUNT");

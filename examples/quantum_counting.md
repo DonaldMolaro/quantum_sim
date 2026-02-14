@@ -18,6 +18,7 @@ choose better Grover iteration counts.
 
 ```
 QCOUNT <n_qubits> <target1> [target2 ...]
+QCOUNT RUN <n_qubits> <fit_iterations> <target1> [target2 ...]
 ```
 
 Where:
@@ -47,6 +48,39 @@ QCOUNT 3 1 6
 ```
 
 Expected estimate near `2`.
+
+Explicit fitting window (advanced mode):
+
+```
+QCOUNT RUN 3 6 1 6
+```
+
+This forces the estimator to use exactly 6 Grover-iteration samples (`k=0..5`).
+
+## 3) "By hand" counting intuition (2 qubits)
+
+For `n=2`, let the only marked state be `|11>`. We can run one Grover iteration
+manually and inspect the amplitude concentration.
+
+```
+INIT 2
+H 0
+H 1
+CZ 0 1
+H 0
+H 1
+X 0
+X 1
+CZ 0 1
+X 0
+X 1
+H 0
+H 1
+DISPLAY
+```
+
+If probability mass concentrates heavily onto one basis state after one iteration,
+that behavior is consistent with `M=1` marked state out of `N=4`.
 
 ## Output fields
 
