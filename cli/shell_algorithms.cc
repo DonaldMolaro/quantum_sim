@@ -7,6 +7,7 @@
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/qaoa_demo.hh"
+#include "demos/quantum_counting_demo.hh"
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
 #include "demos/tsp_demo.hh"
@@ -31,7 +32,8 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     Latin,
     Shor,
     Grover,
-    Tsp
+    Tsp,
+    QuantumCounting
   };
 
   static const std::unordered_map<std::string, AlgorithmCommand> kCommandMap = {
@@ -48,6 +50,8 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       {"SHOR", AlgorithmCommand::Shor},
       {"GROVER", AlgorithmCommand::Grover},
       {"TSP", AlgorithmCommand::Tsp},
+      {"QCOUNT", AlgorithmCommand::QuantumCounting},
+      {"QUANTUM_COUNTING", AlgorithmCommand::QuantumCounting},
   };
 
   std::unordered_map<std::string, AlgorithmCommand>::const_iterator it = kCommandMap.find(cmd);
@@ -366,6 +370,32 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       return true;
     }
     std::cerr << "Error: TSP mode must be DEMO or EXACT.\n";
+    return true;
+  }
+
+  case AlgorithmCommand::QuantumCounting: {
+    if (tokens.size() >= 2 && tokens[1] == "DEMO") {
+      run_quantum_counting_demo();
+      return true;
+    }
+    int n_qubits = cli::get_arg(tokens, 1, "QCOUNT");
+    if (n_qubits == -1) return true;
+    if (tokens.size() < 3) {
+      std::cerr << "Error: QCOUNT requires at least one target.\n";
+      return true;
+    }
+    std::vector<Bitstring> targets;
+    targets.reserve(tokens.size() - 2);
+    for (size_t i = 2; i < tokens.size(); ++i) {
+      int t = cli::get_arg(tokens, i, "QCOUNT");
+      if (t == -1) return true;
+      if (t < 0) {
+        std::cerr << "Error: QCOUNT targets must be >= 0.\n";
+        return true;
+      }
+      targets.push_back(static_cast<Bitstring>(t));
+    }
+    run_quantum_counting_cli(n_qubits, targets, -1);
     return true;
   }
   }

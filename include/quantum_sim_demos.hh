@@ -9,5 +9,6 @@
 #include "demos/vqe_demo.hh"
 #include "demos/anneal_demo.hh"
 #include "demos/tsp_demo.hh"
+#include "demos/quantum_counting_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"

@@ -12,6 +12,7 @@
 #include "algorithms/anneal.hh"
 #include "algorithms/qrng.hh"
 #include "algorithms/tsp.hh"
+#include "algorithms/quantum_counting.hh"
 #include "algorithms/oracle.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"

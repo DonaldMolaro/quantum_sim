@@ -10,6 +10,7 @@
 #include "algorithms/vqe.hh"
 #include "algorithms/anneal.hh"
 #include "algorithms/tsp.hh"
+#include "algorithms/quantum_counting.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/api/shor_api.hh"
 #include "algorithms/shor_classical.hh"
@@ -21,6 +22,7 @@
 #include "demos/qaoa_demo.hh"
 #include "demos/shor_demo.hh"
 #include "demos/tsp_demo.hh"
+#include "demos/quantum_counting_demo.hh"
 #include "modular_exp.hh"
 #include "math/mod_arith.hh"
 #include "math/bit_ops.hh"
@@ -376,6 +378,52 @@ void test_tsp_demo_paths()
     run_tsp_exact_cli(n, -1.0, d);
     run_tsp_exact_cli(n, -1.0, std::vector<double>{1.0, 2.0});
     run_tsp_demo();
+}
+
+void test_quantum_counting_paths()
+{
+    QuantumCountingResult bad_n = run_quantum_counting(0, std::vector<Bitstring>{1});
+    if (bad_n.ok || bad_n.error.empty()) {
+        throw std::runtime_error("Expected QCOUNT to reject invalid n_qubits");
+    }
+
+    QuantumCountingResult bad_empty = run_quantum_counting(3, std::vector<Bitstring>());
+    if (bad_empty.ok || bad_empty.error.empty()) {
+        throw std::runtime_error("Expected QCOUNT to reject empty targets");
+    }
+
+    QuantumCountingResult bad_iters = run_quantum_counting(3, std::vector<Bitstring>{1}, 0);
+    if (bad_iters.ok || bad_iters.error.empty()) {
+        throw std::runtime_error("Expected QCOUNT to reject max_iterations < 1");
+    }
+
+    QuantumCountingResult bad_target = run_quantum_counting(3, std::vector<Bitstring>{8});
+    if (bad_target.ok || bad_target.error.empty()) {
+        throw std::runtime_error("Expected QCOUNT to reject out-of-range targets");
+    }
+
+    QuantumCountingResult one = run_quantum_counting(3, std::vector<Bitstring>{5});
+    if (!one.ok) {
+        throw std::runtime_error("Expected QCOUNT single-target run to succeed");
+    }
+    if (one.estimated_targets != 1ULL) {
+        throw std::runtime_error("Expected QCOUNT to estimate one marked state");
+    }
+
+    QuantumCountingResult two = run_quantum_counting(3, std::vector<Bitstring>{1, 6});
+    if (!two.ok) {
+        throw std::runtime_error("Expected QCOUNT multi-target run to succeed");
+    }
+    if (two.estimated_targets != 2ULL) {
+        throw std::runtime_error("Expected QCOUNT to estimate two marked states");
+    }
+}
+
+void test_quantum_counting_demo_paths()
+{
+    run_quantum_counting_cli(3, std::vector<Bitstring>{1, 6}, -1);
+    run_quantum_counting_cli(3, std::vector<Bitstring>{8}, -1);
+    run_quantum_counting_demo();
 }
 
 void test_vqa_qaoa_finds_good_candidate()
