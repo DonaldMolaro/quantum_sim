@@ -152,6 +152,11 @@ void test_cli_command_parsing()
     if (qubo.size() != 12 || qubo[0] != "QUBO" || qubo[1] != "EXACT") {
         throw std::runtime_error("CLI parse_command failed on QUBO EXACT transcript");
     }
+
+    std::vector<std::string> seed = cli::parse_command("SEED 1234");
+    if (seed.size() != 2 || seed[0] != "SEED" || seed[1] != "1234") {
+        throw std::runtime_error("CLI parse_command failed on SEED command");
+    }
 }
 
 void test_latin_square_validations() {

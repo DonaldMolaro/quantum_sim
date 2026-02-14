@@ -109,6 +109,7 @@ void QuantumShell::print_help()
   std::cout << "QUIT             : Exit the simulator.\n";
   std::cout << "VERBOSE <level>  : Set verbosity (QUIET, NORMAL, VERBOSE or 0/1/2)\n";
   std::cout << "TUTOR <ON|OFF>   : Enable or disable guided teaching narration\n";
+  std::cout << "SEED <n>         : Set deterministic RNG seed for reproducible demos/runs\n";
   std::cout << "QFTMODE <mode>   : Set QFT implementation mode (DIRECT matrix transform or GATE decomposition).\n";
   std::cout << "                   DIRECT is the default and is generally faster for this simulator.\n";
   std::cout << "QRNG <n> [count] : Quantum random numbers from n qubits (count default 1)\n";

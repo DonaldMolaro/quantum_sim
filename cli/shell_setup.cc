@@ -3,8 +3,10 @@
 #include "algorithms/qrng.hh"
 #include "cli/shell_detail.hh"
 #include "logging.hh"
+#include <cstdlib>
 #include <cmath>
 #include <iostream>
+#include <string>
 
 bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
@@ -77,6 +79,20 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
                 << " value=" << shell_detail::bits_to_u64(bits) << "\n";
     }
     tutor_note("QRNG uses Hadamard + measurement; each output bit is sampled from a superposition.");
+    return true;
+  }
+
+  if (cmd == "SEED") {
+    int seed = cli::get_arg(tokens, 1, "SEED");
+    if (seed < 0) {
+      std::cerr << "Error: SEED requires a non-negative integer.\n";
+      return true;
+    }
+    std::srand(static_cast<unsigned int>(seed));
+    std::string seed_s = std::to_string(seed);
+    setenv("QSIM_RNG_SEED", seed_s.c_str(), 1);
+    std::cout << "Random seed set to " << seed << ".\n";
+    tutor_note("Using a fixed seed makes demos reproducible for teaching and grading.");
     return true;
   }
 

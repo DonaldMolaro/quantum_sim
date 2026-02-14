@@ -100,6 +100,10 @@ test-examples:
 	$(MAKE) quantum_sim
 	./examples/run_examples.sh
 
+.PHONY: test-labs
+test-labs:
+	./examples/check_labs.sh
+
 .PHONY: coverage
 coverage:
 	$(MAKE) COVERAGE=1 all_tests

@@ -20,12 +20,16 @@ protocols and algorithms supported by the simulator.
 - `quantum_counting.md`: Estimate number of marked states (`QCOUNT`)
 - `simon_usage.md`: Simon's hidden-mask recovery (`SIMON`)
 - `algorithm_comparison.md`: quick algorithm-selection and workflow guide
+- `lesson_plan.md`: module-by-module teaching plan with commands/checkpoints
 - `vqa_qaoa.md`: VQA/QAOA optimization of QUBO instances
 - `anneal_usage.md`: Simulated annealing and SQA-style QUBO optimization
 - `max_cut.md`: Max-Cut encoded and solved as QUBO
 - `vqe_usage.md`: VQE examples (`H=Z0` and a two-qubit toy Hamiltonian)
 - `lab_bell_states.md`: guided Bell-state lab with checkpoints
 - `lab_grover_counting.md`: guided Grover + QCOUNT lab with checkpoints
+- `lab_shor.md`: guided Shor lab for small composites
+- `lab_qaoa.md`: guided QAOA lab vs exact QUBO baseline
+- `lab_vqe.md`: guided VQE tuning lab
 
 ## Running the CLI
 
@@ -55,4 +59,10 @@ You can run a lightweight examples smoke test:
 
 ```bash
 ./examples/run_examples.sh
+```
+
+You can run guided-lab auto checks:
+
+```bash
+./examples/check_labs.sh
 ```
