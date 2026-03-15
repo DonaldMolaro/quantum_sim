@@ -2,6 +2,7 @@
 #include "math/bit_ops.hh"
 #include "internal/qft_utils.hh"
 #include <iostream>
+#include <unordered_map>
 
 State& State::controlled_Rr(int control_j, int target_k, int r)
 {

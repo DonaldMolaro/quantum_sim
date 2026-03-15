@@ -21,7 +21,7 @@
 #include <algorithm> // For std::remove_if
 #include <cmath>
 #include <complex>
-#include <cstdlib> // For std::rand and RAND_MAX
+#include <random>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -29,6 +29,14 @@
 #include <vector>
 
 std::ostream* State::default_log_stream_ = nullptr;
+
+// Internal RNG for non-deterministic measurements.
+static std::mt19937 s_rng{std::random_device{}()};
+static std::uniform_real_distribution<double> s_unit_dist(0.0, 1.0);
+
+void State::seed_rng(unsigned int seed) {
+  s_rng.seed(seed);
+}
 // --- Type Definitions based on Source Material ---
 
 // Amplitude is a complex number (using C++11 std::complex<double>)
@@ -510,7 +518,7 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
   return *this; }
 
 State& State::measure(int j, unsigned long cbit_index) {
-  double random_val = (double)std::rand() / RAND_MAX;
+  double random_val = s_unit_dist(s_rng);
   return measure_with_rng(j, cbit_index, random_val);
 }
 
@@ -519,7 +527,7 @@ State& State::measure_all_with_rng(const std::vector<double>& random_vals, std::
   out.resize(num_qubits_, 0);
 
   for (int j = 0; j < num_qubits_; ++j) {
-    double rv = (j < (int)random_vals.size()) ? random_vals[j] : ((double)std::rand() / RAND_MAX);
+    double rv = (j < (int)random_vals.size()) ? random_vals[j] : s_unit_dist(s_rng);
     unsigned long cbit_index = cbits_.empty() ? 0 : static_cast<unsigned long>(j);
     measure_with_rng(j, cbit_index, rv);
 

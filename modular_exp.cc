@@ -1,6 +1,7 @@
 #include "modular_exp.hh"
 
 #include <map>
+#include <unordered_map>
 
 // Assume ComplexNumber, Bitstring, and the sparse representation QuantumState
 // (e.g., std::map<Bitstring, ComplexNumber>) are defined.

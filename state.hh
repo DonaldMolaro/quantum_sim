@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <iosfwd>
 #include <map>
@@ -286,5 +287,8 @@ public:
   State& grover_oracle_Uf(Bitstring solution_w);
   State& grover_oracle_Uf_multi(const std::unordered_set<Bitstring>& solutions);
   State& grover_oracle_Uf_mask(const std::vector<uint8_t>& solution_mask);
-  State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);  
+  State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);
+
+  /** Seed the internal RNG used by measure() and measure_all(). */
+  static void seed_rng(unsigned int seed);
 };
