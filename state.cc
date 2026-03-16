@@ -323,19 +323,18 @@ State& State::t(int j)
 /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
 State& State::h(int j)
 {
-  auto h_transformation = [j](const Bitstring& b, const ComplexNumber& a) -> IntermediateState {
+  s_flatMap_and_reduce([j](const Bitstring& b, const ComplexNumber& a) -> IntermediateState {
     int bj = get_jth_bit(b, j);
     IntermediateState generated_set;
 
     // Pair 1: b_j=0, Amplitude: a / sqrt(2)
     generated_set.push_back(std::make_pair(set_jth_bit(b, j, 0), a * ONE_OVER_SQRT_TWO));
-            
+
     // Pair 2: b_j=1, Amplitude: a * (1 - 2*b_j) / sqrt(2)
     double coefficient = (1.0 - 2.0 * (double)bj) * ONE_OVER_SQRT_TWO;
     generated_set.push_back(std::make_pair(set_jth_bit(b, j, 1), a * coefficient));
     return generated_set;
-  };
-  s_flatMap_and_reduce(h_transformation);
+  });
   (void)j;
   return *this; }
 

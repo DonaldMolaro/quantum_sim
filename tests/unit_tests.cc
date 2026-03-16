@@ -706,6 +706,27 @@ void test_gate_on_high_qubit_index_no_throw() {
     }
 }
 
+void test_seed_rng_deterministic() {
+    // seed_rng with the same seed should produce identical measurement outcomes.
+    State::seed_rng(42);
+    State s1(1, 1);
+    s1.set_basis_state(0b0, 1.0);
+    s1.h(0);
+    s1.measure(0, 0);
+    int result1 = s1.get_cbit(0);
+
+    State::seed_rng(42);
+    State s2(1, 1);
+    s2.set_basis_state(0b0, 1.0);
+    s2.h(0);
+    s2.measure(0, 0);
+    int result2 = s2.get_cbit(0);
+
+    if (result1 != result2) {
+        throw std::runtime_error("seed_rng: same seed should produce same measurement outcome");
+    }
+}
+
 int run_unit_tests()
 {
   bool verbose = false;
@@ -731,6 +752,7 @@ int run_unit_tests()
   run_test("get_cbit no classical bits throws", test_get_cbit_no_classical_bits);
   run_test("measure out-of-range cbit_index ignored", test_measure_out_of_range_cbit_index_ignored);
   run_test("gate on high qubit index no throw", test_gate_on_high_qubit_index_no_throw);
+  run_test("seed_rng produces deterministic outcomes", test_seed_rng_deterministic);
   run_test("Logging levels", test_logging_levels);
   qsim_log::set_level(qsim_log::Level::Verbose);
   main_test_controlled_Rr();
