@@ -38,21 +38,6 @@ static std::uniform_real_distribution<double> s_unit_dist(0.0, 1.0);
 void State::seed_rng(unsigned int seed) {
   s_rng.seed(seed);
 }
-// --- Type Definitions based on Source Material ---
-
-// Amplitude is a complex number (using C++11 std::complex<double>)
-using ComplexNumber = std::complex<double>; 
-// Bitstring represents the combination of qubit values (the key)
-using Bitstring = unsigned long long; 
-// Each element of the state set is a (bitstring, amplitude) pair
-using QubitAmplitudePair = std::pair<Bitstring, ComplexNumber>;
-// The QuantumState is the set/vector of these pairs
-using QuantumState = std::vector<QubitAmplitudePair>;
-// Intermediate state used during flatMap, potentially containing duplicate keys
-using IntermediateState = QuantumState; 
-
-// Global Constants
-
 // --- Helper Functions (used internally by gates) ---
 
 /** Reads the jth bit (b_j) of the bitstring b. */
@@ -77,17 +62,15 @@ Bitstring set_jth_bit(const Bitstring& b, int j, int value) {
 
 
 /**
- * s.map(λb, a. (b', ca)) 
- * Applies a transformation independently to every element.
+ * s.map(λb, a. (b', ca))
+ * Applies a bijective transformation independently to every element in-place.
+ * All callers use bijective transforms so no deduplication is needed.
  */
 void State::s_map(const std::function<QubitAmplitudePair(const Bitstring&, const ComplexNumber&)>& transformation_func)
 {
-  QuantumState new_state;
-  // Use C++11 range-based for loop
-  for (const auto& pair : state_) {
-    new_state.push_back(transformation_func(pair.first, pair.second));
+  for (auto& pair : state_) {
+    pair = transformation_func(pair.first, pair.second);
   }
-  state_ = new_state;
 }
     
 /**
@@ -149,20 +132,20 @@ State& State::x(int j)
     Bitstring b_prime = flip_jth_bit(b, j);
     return std::make_pair(b_prime, a);
   });
-  (void)j;
-  return *this; }
+  return *this;
+}
 
 /** Z Gate (Phase flip): equivalent to RZ(pi). */
 State& State::z(int j)
 {
-  const double pi = std::acos(-1.0);
+  constexpr double pi = qsim::limits::PI;
   return rz(j, pi);
 }
 
 /** Y Gate: composite via RZ(pi/2), X, RZ(-pi/2). */
 State& State::y(int j)
 {
-  const double pi = std::acos(-1.0);
+  constexpr double pi = qsim::limits::PI;
   rz(j, pi / 2.0);
   x(j);
   rz(j, -pi / 2.0);
@@ -187,7 +170,7 @@ State& State::cnot(int j_control, int k_target)
 /** CY Gate (Controlled Y): RZ(-pi/2), CX, RZ(pi/2) on target. */
 State& State::cy(int j_control, int k_target)
 {
-  const double pi = std::acos(-1.0);
+  constexpr double pi = qsim::limits::PI;
   rz(k_target, -pi / 2.0);
   cx(j_control, k_target);
   rz(k_target, pi / 2.0);
@@ -197,7 +180,7 @@ State& State::cy(int j_control, int k_target)
 /** CH Gate (Controlled H): composite decomposition using RZ/RY and CX. */
 State& State::ch(int j_control, int k_target)
 {
-  const double pi = std::acos(-1.0);
+  constexpr double pi = qsim::limits::PI;
   // Decomposition using A, B, C such that A X B X C = H and ABC = I.
   // For H = RZ(0) RY(pi/2) RZ(pi) (up to global phase):
   // A = RY(pi/4)
@@ -262,7 +245,7 @@ State& State::cu(int j_control, int k_target, double theta, double phi, double l
 /** CCX Gate (Toffoli): composite using H, CNOT, and phase rotations. */
 State& State::ccx(int c1, int c2, int target)
 {
-  const double pi = std::acos(-1.0);
+  constexpr double pi = qsim::limits::PI;
   h(target);
   cnot(c2, target);
   rz(target, -pi / 4.0); // T†
@@ -293,8 +276,8 @@ State& State::cx(int j_control, int k_target)
     // Otherwise, b remains unchanged
     return std::make_pair(b, a);
   });
-  (void)j_control;
-  return *this; }
+  return *this;
+}
     
 /** S Gate (Phase): s.map(λb, a. (b, a * i^b_j)) */
 State& State::s(int j)
@@ -304,8 +287,8 @@ State& State::s(int j)
     ComplexNumber phase_factor = (get_jth_bit(b, j) == 1) ? IMAGINARY_UNIT_I : ONE_COMPLEX;
     return std::make_pair(b, a * phase_factor);
   });
-  (void)j;
-  return *this; }
+  return *this;
+}
     
 /** T Gate (Phase): s.map(λb, a. (b, a * ((1+i)/sqrt(2))^b_j)) */
 State& State::t(int j)
@@ -317,8 +300,8 @@ State& State::t(int j)
     ComplexNumber phase_factor = (get_jth_bit(b, j) == 1) ? T_GATE_CONSTANT : ONE_COMPLEX;
     return std::make_pair(b, a * phase_factor);
   });
-  (void)j;
-  return *this; }
+  return *this;
+}
     
 /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
 State& State::h(int j)
@@ -335,8 +318,8 @@ State& State::h(int j)
     generated_set.push_back(std::make_pair(set_jth_bit(b, j, 1), a * coefficient));
     return generated_set;
   });
-  (void)j;
-  return *this; }
+  return *this;
+}
 
 State& State::rx(int j, double theta)
 {
@@ -351,9 +334,8 @@ State& State::rx(int j, double theta)
     generated_set.push_back(std::make_pair(b_flip, a * minus_i_s));
     return generated_set;
   });
-
-  (void)theta;
-  return *this; }
+  return *this;
+}
 
 State& State::ry(int j, double theta)
 {
@@ -374,9 +356,8 @@ State& State::ry(int j, double theta)
     }
     return generated_set;
   });
-
-  (void)theta;
-  return *this; }
+  return *this;
+}
 
 State& State::rz(int j, double theta)
 {
@@ -387,9 +368,8 @@ State& State::rz(int j, double theta)
     int bj = get_jth_bit(b, j);
     return std::make_pair(b, a * (bj ? phase1 : phase0));
   });
-
-  (void)theta;
-  return *this; }
+  return *this;
+}
 
 State& State::ru(int j, double theta, double phi, double lambda)
 {
@@ -416,9 +396,8 @@ State& State::ru(int j, double theta, double phi, double lambda)
 
     return generated_set;
   });
-
-  (void)theta;
-  return *this; }
+  return *this;
+}
 
 State& State::phase_flip_if(const Oracle& predicate)
 {
@@ -428,8 +407,8 @@ State& State::phase_flip_if(const Oracle& predicate)
     }
     return std::make_pair(b, a);
   });
-  (void)predicate;
-  return *this; }
+  return *this;
+}
 
     
 // --- Measurement Method ---
@@ -514,8 +493,8 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
     {
       // No classical register; measurement result is not stored.
     }
-  (void)cbit_index;
-  return *this; }
+  return *this;
+}
 
 State& State::measure(int j, unsigned long cbit_index) {
   double random_val = s_unit_dist(s_rng);

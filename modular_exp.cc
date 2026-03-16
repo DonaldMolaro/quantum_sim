@@ -1,54 +1,10 @@
 #include "modular_exp.hh"
 #include "internal/limits.hh"
+#include "math/bit_ops.hh"
 
-#include <map>
 #include <unordered_map>
 
-// Assume ComplexNumber, Bitstring, and the sparse representation QuantumState
-// (e.g., std::map<Bitstring, ComplexNumber>) are defined.
-
-// --- ASSUMED HELPER FUNCTIONS (Internal to State Class Logic) ---
-// Bitstring power_mod(Bitstring base, Bitstring exp, Bitstring mod) 
-// Bitstring extract_bits(Bitstring b, int start, int end) 
-// Bitstring replace_bits(Bitstring b, int start, int end, Bitstring new_val) 
-// void accumulate(Bitstring b, ComplexNumber a) 
-
 using AmplitudeMap = std::unordered_map<Bitstring, ComplexNumber>;
-
-
-
-/**
- * Creates a mask for a contiguous block of bits spanning [start, end].
- */
-Bitstring create_mask(int start, int end) {
-  if (start > end) return 0;
-  int length = end - start + 1;
-  // Creates a block of 'length' ones, then shifts it to the 'start' position.
-  return ((1ULL << length) - 1) << start;
-}
-
-/**
- * Extracts the numerical value of the target register from a full bitstring.
- */
-Bitstring get_target_value_general(Bitstring b, int start, int end) {
-  Bitstring target_mask = create_mask(start, end);
-  // Apply the mask and shift the result back to the 0 position
-  return (b & target_mask) >> start;
-}
-
-/**
- * Replaces the numerical value of the target register within a full bitstring.
- */
-Bitstring replace_target_value_general(Bitstring original, Bitstring new_target, int start, int end)
-{
-  Bitstring target_mask = create_mask(start, end);
-  // 1. Clear the existing target bits
-  Bitstring cleared = original & (~target_mask);
-  // 2. Place the new target value (shifted into position)
-  Bitstring shifted_new = new_target << start;
-  // 3. Combine cleared and new values
-  return cleared | shifted_new;
-}
 
 
 // Classical Modular Expoentiation
@@ -108,7 +64,7 @@ State& State::controlled_modular_exponentiation(
       // Control ON: Apply the function U^P to the target register.
                 
       // Extract the target register's numerical value (y).
-      Bitstring current_target_value = get_target_value_general(b, target_start, target_end);
+      Bitstring current_target_value = extract_bits(b, target_start, target_end);
 
       // For unitarity: if y is outside [0, N-1], leave it unchanged.
       if (current_target_value >= N) {
@@ -118,7 +74,7 @@ State& State::controlled_modular_exponentiation(
         Bitstring new_target_value = (exponent_factor * current_target_value) % N;
 
         // Construct the new full bitstring (b' = Control | Target_new).
-        b_new = replace_target_value_general(b, new_target_value, target_start, target_end);
+        b_new = replace_bits(b, target_start, target_end, new_target_value);
       }
     } else {
       // Control OFF: Apply Identity (keep state unchanged).

@@ -5,41 +5,26 @@
 #include <iostream>
 #include <unordered_map>
 
-State& State::controlled_Rr(int control_j, int target_k, int r)
+State& State::apply_controlled_Rr(int control_j, int target_k, int r, int sign)
 {
-  // Phase applied only if both control and target bits are 1
-  ComplexNumber phase = std::exp(IMAGINARY_UNIT_I * qft_rotation_angle(r, 1));
-
+  ComplexNumber phase = std::exp(IMAGINARY_UNIT_I * qft_rotation_angle(r, sign));
   for (auto& pair : state_) {
-    Bitstring current_b = pair.first;
-    ComplexNumber& current_a = pair.second;
-            
-    // Check if control bit (j) is 1 AND target bit (k) is 1
-    if (((current_b >> control_j) & 1) && ((current_b >> target_k) & 1)) {
-      current_a *= phase;
+    if (((pair.first >> control_j) & 1) && ((pair.first >> target_k) & 1)) {
+      pair.second *= phase;
     }
   }
   return *this;
 }
 
-/**
- * @brief Applies the controlled Inverse Phase Rotation (R_r_dag).
- * Inverse rotation phase is negative.
- */
+State& State::controlled_Rr(int control_j, int target_k, int r)
+{
+  return apply_controlled_Rr(control_j, target_k, r, 1);
+}
+
+/** @brief Applies the controlled Inverse Phase Rotation (R_r_dag). */
 State& State::controlled_Rr_dag(int control_j, int target_k, int r)
 {
-  // Inverse phase rotation: sign of angle is negated.
-  ComplexNumber phase_dag = std::exp(IMAGINARY_UNIT_I * qft_rotation_angle(r, -1));
-        
-  for (auto& pair : state_) {
-    Bitstring current_b = pair.first;
-    ComplexNumber& current_a = pair.second;
-            
-    if (((current_b >> control_j) & 1) && ((current_b >> target_k) & 1)) {
-      current_a *= phase_dag;
-    }
-  }
-  return *this;
+  return apply_controlled_Rr(control_j, target_k, r, -1);
 }
 
 using AmplitudeMap = std::unordered_map<Bitstring, ComplexNumber>;

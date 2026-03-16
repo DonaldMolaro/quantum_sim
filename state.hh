@@ -176,6 +176,9 @@ public:
    */
   State& controlled_Rr(int control_j, int target_k, int r);
   State& controlled_Rr_dag(int control_j, int target_k, int r);
+ private:
+  State& apply_controlled_Rr(int control_j, int target_k, int r, int sign);
+ public:
   State& qft(int start_qubit, int end_qubit);
   State& iqft(int start_qubit, int end_qubit);
   State& controlled_modular_exponentiation(int control_qubit, 
@@ -191,7 +194,7 @@ public:
   double compute_probability_of_0(int j) const;
   const QuantumState& get_state() const;
   
-  void display(bool sparse = false) const;
+  void display(bool show_all = false) const;
   void display_cbits() const;
   
   /**

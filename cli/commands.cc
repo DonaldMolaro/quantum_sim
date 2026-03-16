@@ -1,4 +1,5 @@
 #include "cli/commands.hh"
+#include "internal/limits.hh"
 
 #include <algorithm>
 #include <cmath>
@@ -69,7 +70,7 @@ double get_angle_arg(const std::vector<std::string>& tokens, size_t index, const
   std::string token_upper = token;
   std::transform(token_upper.begin(), token_upper.end(), token_upper.begin(), ::toupper);
 
-  const double pi = std::acos(-1.0);
+  constexpr double pi = qsim::limits::PI;
   double theta = std::numeric_limits<double>::quiet_NaN();
 
   if (token_upper == "PI") {

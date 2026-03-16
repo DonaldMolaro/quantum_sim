@@ -1,4 +1,5 @@
 #include "algorithms/shor_quantum.hh"
+#include "internal/limits.hh"
 #include "internal/register_layout.hh"
 #include <cmath>
 #include <string>
@@ -15,13 +16,12 @@ ShorQuantumResult run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)
     result.error = "Control register too large for 64-bit demo (n_c=" + std::to_string(result.n_c) + ").";
     return result;
   }
-  const int kMaxShorQubits = 24;
-  if (result.total_qubits > kMaxShorQubits) {
-    int max_n_t = kMaxShorQubits / 3;
+  if (result.total_qubits > qsim::limits::kMaxShorQubits) {
+    int max_n_t = qsim::limits::kMaxShorQubits / 3;
     if (max_n_t > 0 && max_n_t < 63) {
       result.max_n = (1ULL << max_n_t) - 1;
     }
-    result.error = "Shor demo limited to " + std::to_string(kMaxShorQubits) +
+    result.error = "Shor demo limited to " + std::to_string(qsim::limits::kMaxShorQubits) +
                    " qubits; N=" + std::to_string(N) +
                    " needs " + std::to_string(result.total_qubits) +
                    " qubits (n_t=" + std::to_string(result.n_t) +

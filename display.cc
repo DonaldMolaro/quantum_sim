@@ -73,70 +73,58 @@ double amplitude_to_probability(const ComplexNumber& a) {
 
 // --- State Class Definition (Partial, showing the new method) ---
 
-void State::display(bool sparse) const
+void State::display(bool show_all) const
 {
   const int N = get_num_qubits();
   const unsigned long long N_STATES = 1ULL << N;
   double total_probability = 0.0;
-        
-  // 1. Create a dense lookup table for quick access to amplitudes
+
+  // Build a sorted dense map for display.
   std::map<Bitstring, ComplexNumber> amplitude_map;
   for (const auto& pair : get_state()) {
     amplitude_map[pair.first] = pair.second;
   }
 
   // --- Formatting Setup ---
-  // Bitstring column width N
-  const int BIT_WIDTH = N + 2; 
-  // Amplitude string formatting width
-  const int AMP_WIDTH = 25; 
-  // Probability column width
+  const int BIT_WIDTH  = N + 2;
+  const int AMP_WIDTH  = 25;
   const int PROB_WIDTH = 12;
 
   std::cout << "\n======================================================\n";
   std::cout << "Quantum State (N=" << N << " qubits, 2^N=" << N_STATES << " states):\n";
-        
+
   // --- Print Header ---
-  std::cout << std::left << std::setw(BIT_WIDTH) << "Bitstring";
-  std::cout << std::left << std::setw(AMP_WIDTH) << "Amplitude (a + bi)";
+  std::cout << std::left  << std::setw(BIT_WIDTH)  << "Bitstring";
+  std::cout << std::left  << std::setw(AMP_WIDTH)  << "Amplitude (a + bi)";
   std::cout << std::right << std::setw(PROB_WIDTH) << "Probability (|a|^2)\n";
   std::cout << "------------------------------------------------------\n";
 
-  // 2. Iterate through all 2^N possible bitstrings (j = 0 to 2^N - 1)
-  for (Bitstring j = 0; j < N_STATES; ++j) {
-    ComplexNumber amplitude;
-            
-    // Check if the amplitude exists in our sparse map; default to zero if not found
-    if (amplitude_map.count(j)) {
-      amplitude = amplitude_map.at(j);
-    } else {
-      amplitude = ComplexNumber(0.0, 0.0);
-    }
+  auto print_row = [&](Bitstring j, const ComplexNumber& amplitude) {
+    double probability = amplitude_to_probability(amplitude);
+    total_probability += probability;
+    std::cout << std::left  << std::setw(BIT_WIDTH)  << ("|" + bitstring_to_string(j, N) + ">");
+    std::cout << std::left  << std::setw(AMP_WIDTH)  << complex_to_string(amplitude, 6);
+    std::cout << std::right << std::setw(PROB_WIDTH) << std::fixed << std::setprecision(6)
+              << probability << "\n";
+  };
 
-    if ((amplitude != ComplexNumber(0.0, 0.0)) || (sparse == true))
-      {
-	double probability = amplitude_to_probability(amplitude);
-	total_probability += probability;
-            
-	// Format Bitstring (Key)
-	std::cout << std::left << std::setw(BIT_WIDTH) 
-		  << ("|" + bitstring_to_string(j, N) + ">"); 
-	
-	// Format Amplitude (Value)
-	std::cout << std::left << std::setw(AMP_WIDTH) 
-		  << complex_to_string(amplitude, 6);
-            
-	// Format Probability (|a|^2)
-	std::cout << std::right << std::setw(PROB_WIDTH) << std::fixed << std::setprecision(6) 
-		  << probability << "\n";
-      }
+  if (show_all) {
+    // Dense path: iterate all 2^N states, filling zeros for missing entries.
+    for (Bitstring j = 0; j < N_STATES; ++j) {
+      auto it = amplitude_map.find(j);
+      ComplexNumber amplitude = (it != amplitude_map.end()) ? it->second : ComplexNumber(0.0, 0.0);
+      print_row(j, amplitude);
+    }
+  } else {
+    // Sparse path: iterate only the nonzero entries (already in sorted order via std::map).
+    for (const auto& entry : amplitude_map) {
+      print_row(entry.first, entry.second);
+    }
   }
 
   // --- Print Footer ---
   std::cout << "------------------------------------------------------\n";
-  // Show normalization check: sum of probabilities must be 1
   std::cout << "Total Probability Sum: " << std::fixed << std::setprecision(6) << total_probability << "\n";
-  // Show classical registers (if desired)
   display_cbits();
   std::cout << "======================================================\n";
 }
