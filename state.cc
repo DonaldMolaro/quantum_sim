@@ -485,7 +485,7 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
   // 6. Store the result in the classical register
   if (!cbits_.empty())
     {
-      if (cbit_index >= 0 && cbit_index < cbits_.size()) {
+      if (cbit_index < cbits_.size()) {
 	cbits_[cbit_index] = outcome;
       }
     }
