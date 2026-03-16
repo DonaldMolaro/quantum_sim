@@ -3,8 +3,10 @@
 #include "algorithms/qrng.hh"
 #include "cli/shell_detail.hh"
 #include "logging.hh"
+#include <algorithm>
 #include <cstdlib>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -93,6 +95,75 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
     setenv("QSIM_RNG_SEED", seed_s.c_str(), 1);
     std::cout << "Random seed set to " << seed << ".\n";
     tutor_note("Using a fixed seed makes demos reproducible for teaching and grading.");
+    return true;
+  }
+
+  if (cmd == "NOISE") {
+    if (tokens.size() < 2) {
+      double p = state ? state->get_noise_probability() : 0.0;
+      std::cout << "Noise probability: " << p << (p > 0.0 ? " (active)" : " (off)") << "\n";
+      return true;
+    }
+    double p = cli::get_double_arg(tokens, 1, "NOISE");
+    if (std::isnan(p) || p < 0.0 || p > 1.0) {
+      std::cerr << "Error: NOISE probability must be in [0.0, 1.0].\n";
+      return true;
+    }
+    if (state) state->set_noise_probability(p);
+    if (p == 0.0) {
+      std::cout << "Noise disabled.\n";
+    } else {
+      std::cout << "Depolarizing noise enabled: p=" << p << " per primitive gate per qubit.\n";
+      tutor_note("Each primitive gate now has a " + std::to_string(p * 100) + "% chance of applying a random Pauli error.");
+    }
+    return true;
+  }
+
+  if (cmd == "SAVE") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: SAVE requires a filename.\n";
+      return true;
+    }
+    const std::string& filename = tokens[1];
+    std::ofstream out(filename);
+    if (!out) {
+      std::cerr << "Error: cannot open '" << filename << "' for writing.\n";
+      return true;
+    }
+    for (const std::string& line : command_history_) {
+      out << line << "\n";
+    }
+    std::cout << "Circuit saved to '" << filename << "' (" << command_history_.size() << " commands).\n";
+    return true;
+  }
+
+  if (cmd == "LOAD") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: LOAD requires a filename.\n";
+      return true;
+    }
+    const std::string& filename = tokens[1];
+    std::ifstream in(filename);
+    if (!in) {
+      std::cerr << "Error: cannot open '" << filename << "' for reading.\n";
+      return true;
+    }
+    std::string line;
+    int count = 0;
+    loading_from_file_ = true;
+    while (std::getline(in, line)) {
+      // Skip blank lines and comments
+      std::string trimmed = line;
+      trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
+      if (trimmed.empty() || trimmed[0] == '#') continue;
+      std::transform(trimmed.begin(), trimmed.end(), trimmed.begin(), ::toupper);
+      if (trimmed == "QUIT") break;
+      std::cout << "LOAD> " << trimmed << "\n";
+      handle_command(cli::parse_command(trimmed));
+      ++count;
+    }
+    loading_from_file_ = false;
+    std::cout << "Loaded " << count << " commands from '" << filename << "'.\n";
     return true;
   }
 

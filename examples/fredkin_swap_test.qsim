@@ -1,0 +1,21 @@
+# SWAP test using Fredkin (CSWAP) gate
+#
+# The SWAP test estimates |<psi|phi>|^2 using:
+#   1. ancilla qubit in |+>  (H on qubit 0)
+#   2. CSWAP(ancilla=0, qubit1, qubit2)
+#   3. H on ancilla again
+#   4. Measure ancilla: P(0) = (1 + |<psi|phi>|^2) / 2
+#
+# Here psi = phi = |0> so overlap = 1 -> P(ancilla=0) = 1 (always 0).
+# Initialize: qubit 0 = ancilla, qubit 1 = |psi>, qubit 2 = |phi>
+INIT 3 1
+# Ancilla into |+>
+H 0
+# |psi> = |0>, |phi> = |0> (already ground state)
+# CSWAP
+CSWAP 0 1 2
+# H on ancilla
+H 0
+# Measure ancilla
+MEASURE 0 0
+DISPLAY

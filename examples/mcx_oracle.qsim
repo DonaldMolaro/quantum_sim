@@ -1,0 +1,26 @@
+# Multi-controlled X (MCX) oracle example
+#
+# MCX is the building block of Grover oracles and quantum error correction
+# syndromes. This circuit marks the state |1110> (qubits 1,2,3=1, qubit 0=0)
+# by flipping an ancilla qubit only when that pattern appears.
+#
+# Circuit: flip ancilla (qubit 4) when qubits 1,2,3 are |1> and qubit 0 is |0>.
+# To mark qubit 0 = 0: first X(0), then MCX(0,1,2,3 -> 4), then X(0).
+
+INIT 5 0
+# Put the system in the target state |01110> = qubits 1,2,3=1, qubit 0=0
+X 1
+X 2
+X 3
+DISPLAY
+
+# Mark: flip qubit 4 when qubits 0,1,2,3 are all |1>
+# (X(0) to invert qubit 0 temporarily, marking |0> as |1> for the MCX)
+X 0
+MCX 0 1 2 3 4
+X 0
+DISPLAY
+# Qubit 4 should now be |1>, marking the state |01110>
+
+# Check: amplitude at |11110> (=30) should be 1
+CHECK BASIS 30

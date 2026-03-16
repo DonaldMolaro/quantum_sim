@@ -3,12 +3,14 @@
 int run_unit_tests();
 int run_grover_tests();
 int run_grover_bench();
+int run_new_feature_tests();
 
 int main()
 {
   int failures = 0;
   failures += run_unit_tests();
   failures += run_grover_tests();
+  failures += run_new_feature_tests();
 
   if (const char* env = std::getenv("QSIM_GROVER_BENCH")) {
     if (env[0] != '\0' && env[0] != '0') {

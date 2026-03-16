@@ -184,10 +184,30 @@ public:
   /*
    * Methods needed for Shor's algorithm.
    */
+  /** Sdg Gate (S†): conjugate of S, applies -i phase to |1>. */
+  State& sdg(int j);
+  /** Tdg Gate (T†): conjugate of T, applies (1-i)/sqrt(2) phase to |1>. */
+  State& tdg(int j);
+  /** P Gate (arbitrary phase): P(φ)|0>=|0>, P(φ)|1>=e^{iφ}|1>. */
+  State& p(int j, double phi);
+  /** CP Gate (Controlled Phase): applies e^{iφ} when both control and target are |1>. */
+  State& cp(int j_control, int k_target, double phi);
+  /** CSWAP Gate (Fredkin): swaps k and l when control j is |1>. */
+  State& cswap(int j_control, int k, int l);
+  /** MCX Gate (multi-controlled X): flips target when all controls are |1>. */
+  State& mcx(const std::vector<int>& controls, int target);
+
+  /** Set per-gate depolarizing noise probability (0.0 = off). */
+  void set_noise_probability(double p) { noise_prob_ = p; }
+  double get_noise_probability() const { return noise_prob_; }
+
   State& controlled_Rr(int control_j, int target_k, int r);
   State& controlled_Rr_dag(int control_j, int target_k, int r);
  private:
   State& apply_controlled_Rr(int control_j, int target_k, int r, int sign);
+  /** Applies a stochastic Pauli error to qubit j with probability noise_prob_. */
+  void maybe_apply_depolarizing(int j);
+  double noise_prob_ = 0.0;
  public:
   State& qft(int start_qubit, int end_qubit);
   State& iqft(int start_qubit, int end_qubit);

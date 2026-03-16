@@ -89,6 +89,7 @@ State& State::x(int j)
     Bitstring b_prime = flip_jth_bit(b, j);
     return std::make_pair(b_prime, a);
   });
+  maybe_apply_depolarizing(j);
   return *this;
 }
 
@@ -225,14 +226,14 @@ State& State::ccx(int c1, int c2, int target)
 State& State::cx(int j_control, int k_target)
 {
   s_map([j_control, k_target](const Bitstring& b, const ComplexNumber& a) {
-    // If control bit b_j is 1
     if (get_jth_bit(b, j_control) == 1) {
       Bitstring b_prime = flip_jth_bit(b, k_target);
       return std::make_pair(b_prime, a);
     }
-    // Otherwise, b remains unchanged
     return std::make_pair(b, a);
   });
+  maybe_apply_depolarizing(j_control);
+  maybe_apply_depolarizing(k_target);
   return *this;
 }
     
@@ -240,26 +241,25 @@ State& State::cx(int j_control, int k_target)
 State& State::s(int j)
 {
   s_map([j](const Bitstring& b, const ComplexNumber& a) {
-    // Determine phase factor: i^b_j
     ComplexNumber phase_factor = (get_jth_bit(b, j) == 1) ? IMAGINARY_UNIT_I : ONE_COMPLEX;
     return std::make_pair(b, a * phase_factor);
   });
+  maybe_apply_depolarizing(j);
   return *this;
 }
-    
+
 /** T Gate (Phase): s.map(λb, a. (b, a * ((1+i)/sqrt(2))^b_j)) */
 State& State::t(int j)
 {
   const ComplexNumber T_GATE_CONSTANT(ONE_OVER_SQRT_TWO, ONE_OVER_SQRT_TWO);
-        
   s_map([j, T_GATE_CONSTANT](const Bitstring& b, const ComplexNumber& a) {
-    // Determine phase factor
     ComplexNumber phase_factor = (get_jth_bit(b, j) == 1) ? T_GATE_CONSTANT : ONE_COMPLEX;
     return std::make_pair(b, a * phase_factor);
   });
+  maybe_apply_depolarizing(j);
   return *this;
 }
-    
+
 /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
 State& State::h(int j)
 {
@@ -269,6 +269,7 @@ State& State::h(int j)
     double coefficient = (1.0 - 2.0 * (double)bj) * ONE_OVER_SQRT_TWO;
     out.emplace_back(set_jth_bit(b, j, 1), a * coefficient);
   });
+  maybe_apply_depolarizing(j);
   return *this;
 }
 
@@ -276,13 +277,14 @@ State& State::rx(int j, double theta)
 {
   const double c = std::cos(theta / 2.0);
   const double s = std::sin(theta / 2.0);
-  const ComplexNumber minus_i_s(0.0, -s); // -i * sin
+  const ComplexNumber minus_i_s(0.0, -s);
 
   s_flatMap_and_reduce([j, c, minus_i_s](const Bitstring& b, const ComplexNumber& a, IntermediateState& out) {
     Bitstring b_flip = flip_jth_bit(b, j);
     out.emplace_back(b, a * c);
     out.emplace_back(b_flip, a * minus_i_s);
   });
+  maybe_apply_depolarizing(j);
   return *this;
 }
 
@@ -302,6 +304,7 @@ State& State::ry(int j, double theta)
       out.emplace_back(b, a * c);
     }
   });
+  maybe_apply_depolarizing(j);
   return *this;
 }
 
@@ -314,6 +317,7 @@ State& State::rz(int j, double theta)
     int bj = get_jth_bit(b, j);
     return std::make_pair(b, a * (bj ? phase1 : phase0));
   });
+  maybe_apply_depolarizing(j);
   return *this;
 }
 
@@ -352,7 +356,116 @@ State& State::phase_flip_if(const Oracle& predicate)
   return *this;
 }
 
-    
+/** Sdg Gate (S†): applies -i phase to |1>. */
+State& State::sdg(int j)
+{
+  const ComplexNumber MINUS_I(0.0, -1.0);
+  s_map([j, MINUS_I](const Bitstring& b, const ComplexNumber& a) {
+    ComplexNumber phase_factor = (get_jth_bit(b, j) == 1) ? MINUS_I : ONE_COMPLEX;
+    return std::make_pair(b, a * phase_factor);
+  });
+  maybe_apply_depolarizing(j);
+  return *this;
+}
+
+/** Tdg Gate (T†): applies (1-i)/sqrt(2) phase to |1>. */
+State& State::tdg(int j)
+{
+  const ComplexNumber TDG_CONSTANT(ONE_OVER_SQRT_TWO, -ONE_OVER_SQRT_TWO);
+  s_map([j, TDG_CONSTANT](const Bitstring& b, const ComplexNumber& a) {
+    ComplexNumber phase_factor = (get_jth_bit(b, j) == 1) ? TDG_CONSTANT : ONE_COMPLEX;
+    return std::make_pair(b, a * phase_factor);
+  });
+  maybe_apply_depolarizing(j);
+  return *this;
+}
+
+/** P Gate (arbitrary phase): P(φ)|0>=|0>, P(φ)|1>=e^{iφ}|1>. */
+State& State::p(int j, double phi)
+{
+  const ComplexNumber phase(std::cos(phi), std::sin(phi));
+  s_map([j, phase](const Bitstring& b, const ComplexNumber& a) {
+    if (get_jth_bit(b, j) == 1) {
+      return std::make_pair(b, a * phase);
+    }
+    return std::make_pair(b, a);
+  });
+  maybe_apply_depolarizing(j);
+  return *this;
+}
+
+/** CP Gate (Controlled Phase): e^{iφ} when both control and target are |1>. */
+State& State::cp(int j_control, int k_target, double phi)
+{
+  const ComplexNumber phase(std::cos(phi), std::sin(phi));
+  s_map([j_control, k_target, phase](const Bitstring& b, const ComplexNumber& a) {
+    if (get_jth_bit(b, j_control) == 1 && get_jth_bit(b, k_target) == 1) {
+      return std::make_pair(b, a * phase);
+    }
+    return std::make_pair(b, a);
+  });
+  maybe_apply_depolarizing(j_control);
+  maybe_apply_depolarizing(k_target);
+  return *this;
+}
+
+/** CSWAP Gate (Fredkin): swaps k and l when control j is |1>. */
+State& State::cswap(int j_control, int k, int l)
+{
+  s_map([j_control, k, l](const Bitstring& b, const ComplexNumber& a) {
+    if (get_jth_bit(b, j_control) == 1) {
+      int bk = get_jth_bit(b, k);
+      int bl = get_jth_bit(b, l);
+      Bitstring b_prime = set_jth_bit(set_jth_bit(b, k, bl), l, bk);
+      return std::make_pair(b_prime, a);
+    }
+    return std::make_pair(b, a);
+  });
+  return *this;
+}
+
+/** MCX Gate (multi-controlled X): flips target when all controls are |1>. */
+State& State::mcx(const std::vector<int>& controls, int target)
+{
+  s_map([&controls, target](const Bitstring& b, const ComplexNumber& a) {
+    for (int c : controls) {
+      if (get_jth_bit(b, c) == 0) return std::make_pair(b, a);
+    }
+    return std::make_pair(flip_jth_bit(b, target), a);
+  });
+  return *this;
+}
+
+/** Applies a stochastic single-qubit Pauli error to qubit j with probability noise_prob_. */
+void State::maybe_apply_depolarizing(int j)
+{
+  if (noise_prob_ <= 0.0) return;
+  const double r = s_unit_dist(s_rng);
+  if (r >= noise_prob_) return;
+  const double which = s_unit_dist(s_rng);
+  if (which < 1.0 / 3.0) {
+    // X error: flip bit j
+    s_map([j](const Bitstring& b, const ComplexNumber& a) {
+      return std::make_pair(flip_jth_bit(b, j), a);
+    });
+  } else if (which < 2.0 / 3.0) {
+    // Y error: flip bit j and apply phase
+    s_map([j](const Bitstring& b, const ComplexNumber& a) {
+      ComplexNumber phase = (get_jth_bit(b, j) == 0)
+                                ? ComplexNumber(0.0, 1.0)
+                                : ComplexNumber(0.0, -1.0);
+      return std::make_pair(flip_jth_bit(b, j), a * phase);
+    });
+  } else {
+    // Z error: flip phase on |1>
+    s_map([j](const Bitstring& b, const ComplexNumber& a) {
+      ComplexNumber phase = (get_jth_bit(b, j) == 1) ? ComplexNumber(-1.0, 0.0) : ONE_COMPLEX;
+      return std::make_pair(b, a * phase);
+    });
+  }
+}
+
+
 // --- Measurement Method ---
 
 /**

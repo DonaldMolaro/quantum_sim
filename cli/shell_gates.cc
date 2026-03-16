@@ -18,7 +18,8 @@ bool QuantumShell::handle_single_qubit_commands(const std::vector<std::string>& 
 {
   static const std::unordered_map<std::string, SingleQubitGate> kSingleQubitGates = {
       {"H", &State::h}, {"X", &State::x}, {"Y", &State::y},
-      {"Z", &State::z}, {"S", &State::s}, {"T", &State::t}};
+      {"Z", &State::z}, {"S", &State::s}, {"T", &State::t},
+      {"SDG", &State::sdg}, {"TDG", &State::tdg}};
   std::unordered_map<std::string, SingleQubitGate>::const_iterator it = kSingleQubitGates.find(cmd);
   if (it == kSingleQubitGates.end()) return false;
 
@@ -43,6 +44,37 @@ bool QuantumShell::handle_single_qubit_commands(const std::vector<std::string>& 
 
 bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
+  if (cmd == "P") {
+    int j = cli::get_arg(tokens, 1, cmd);
+    double phi = cli::get_angle_arg_required(tokens, 2, cmd);
+    if (j == -1 || std::isnan(phi)) return true;
+    try {
+      state->p(j, phi);
+      std::cout << "P(" << j << ", " << phi << ") applied.\n";
+      tutor_note("P(phi) applies phase e^{i*phi} to |1> and identity to |0>.");
+      state->display();
+    } catch (const std::exception& e) {
+      std::cerr << "Operation failed: " << e.what() << "\n";
+    }
+    return true;
+  }
+
+  if (cmd == "CP") {
+    int j = cli::get_arg(tokens, 1, cmd);
+    int k = cli::get_arg(tokens, 2, cmd);
+    double phi = cli::get_angle_arg_required(tokens, 3, cmd);
+    if (j == -1 || k == -1 || std::isnan(phi)) return true;
+    try {
+      state->cp(j, k, phi);
+      std::cout << "CP(" << j << ", " << k << ", " << phi << ") applied.\n";
+      tutor_note("CP applies e^{i*phi} only when both control and target are |1>.");
+      state->display();
+    } catch (const std::exception& e) {
+      std::cerr << "Operation failed: " << e.what() << "\n";
+    }
+    return true;
+  }
+
   if (cmd == "RX" || cmd == "RY" || cmd == "RZ") {
     int j = cli::get_arg(tokens, 1, cmd);
     double theta = cli::get_angle_arg_required(tokens, 2, cmd);
@@ -157,6 +189,48 @@ bool QuantumShell::handle_multi_qubit_commands(const std::vector<std::string>& t
     state->display();
     return true;
   }
+
+  if (cmd == "CSWAP" || cmd == "FREDKIN") {
+    int j = cli::get_arg(tokens, 1, cmd);
+    int k = cli::get_arg(tokens, 2, cmd);
+    int l = cli::get_arg(tokens, 3, cmd);
+    if (j == -1 || k == -1 || l == -1) return true;
+    try {
+      state->cswap(j, k, l);
+      std::cout << cmd << "(" << j << ", " << k << ", " << l << ") applied.\n";
+      tutor_note("CSWAP (Fredkin) swaps qubits k and l when control j is |1>.");
+      state->display();
+    } catch (const std::exception& e) {
+      std::cerr << "Operation failed: " << e.what() << "\n";
+    }
+    return true;
+  }
+
+  if (cmd == "MCX") {
+    // MCX c1 c2 ... cn t — all but last are controls, last is target
+    if (tokens.size() < 3) {
+      std::cerr << "Error: MCX requires at least one control and one target qubit.\n";
+      return true;
+    }
+    std::vector<int> controls;
+    for (size_t i = 1; i + 1 < tokens.size(); ++i) {
+      int q = cli::get_arg(tokens, i, "MCX");
+      if (q == -1) return true;
+      controls.push_back(q);
+    }
+    int target = cli::get_arg(tokens, tokens.size() - 1, "MCX");
+    if (target == -1) return true;
+    try {
+      state->mcx(controls, target);
+      std::cout << "MCX applied (" << controls.size() << " controls -> target " << target << ").\n";
+      tutor_note("MCX flips the target qubit only when all control qubits are |1>.");
+      state->display();
+    } catch (const std::exception& e) {
+      std::cerr << "Operation failed: " << e.what() << "\n";
+    }
+    return true;
+  }
+
   return false;
 }
 

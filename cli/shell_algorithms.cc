@@ -1,12 +1,14 @@
 #include "cli/shell.hh"
 #include "cli/commands.hh"
 #include "algorithms/api/grover_api.hh"
+#include "algorithms/qpe.hh"
 #include "demos/anneal_demo.hh"
 #include "demos/bernstein_vazirani_demo.hh"
 #include "demos/deutsch_jozsa_demo.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/qaoa_demo.hh"
+#include "demos/qpe_demo.hh"
 #include "demos/quantum_counting_demo.hh"
 #include "demos/qubo_demo.hh"
 #include "demos/shor_demo.hh"
@@ -35,7 +37,8 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     Simon,
     Grover,
     Tsp,
-    QuantumCounting
+    QuantumCounting,
+    Qpe
   };
 
   static const std::unordered_map<std::string, AlgorithmCommand> kCommandMap = {
@@ -55,6 +58,8 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       {"TSP", AlgorithmCommand::Tsp},
       {"QCOUNT", AlgorithmCommand::QuantumCounting},
       {"QUANTUM_COUNTING", AlgorithmCommand::QuantumCounting},
+      {"QPE", AlgorithmCommand::Qpe},
+      {"PHASE_ESTIMATION", AlgorithmCommand::Qpe},
   };
 
   std::unordered_map<std::string, AlgorithmCommand>::const_iterator it = kCommandMap.find(cmd);
@@ -479,6 +484,28 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     }
     run_quantum_counting_cli(n_qubits, targets, -1);
     tutor_note("Counting output estimates M (number of marked states) from Grover dynamics.");
+    return true;
+  }
+
+  case AlgorithmCommand::Qpe: {
+    if (tokens.size() < 2 || tokens[1] == "DEMO") {
+      tutor_note("QPE estimates the eigenphase of a unitary using the inverse QFT.");
+      run_qpe_demo();
+      return true;
+    }
+    int m = cli::get_arg(tokens, 1, "QPE");
+    double phase = cli::get_angle_arg_required(tokens, 2, "QPE");
+    if (m == -1 || std::isnan(phase)) return true;
+    if (m < 1 || m > 20) {
+      std::cerr << "Error: QPE precision m must be in [1, 20].\n";
+      return true;
+    }
+    try {
+      tutor_note("QPE applies controlled phase gates then iQFT to read out the phase fraction.");
+      run_qpe_demo(m, phase);
+    } catch (const std::exception& e) {
+      std::cerr << "QPE error: " << e.what() << "\n";
+    }
     return true;
   }
   }

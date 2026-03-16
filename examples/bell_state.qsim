@@ -1,0 +1,7 @@
+# Bell state: |Phi+> = (|00> + |11>) / sqrt(2)
+# Demonstrates H, CX and the CHECK BELL validator.
+INIT 2 0
+H 0
+CX 0 1
+DISPLAY
+CHECK BELL PHI+
