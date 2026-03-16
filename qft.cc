@@ -1,4 +1,5 @@
 #include "state.hh"
+#include "internal/limits.hh"
 #include "math/bit_ops.hh"
 #include "internal/qft_utils.hh"
 #include <iostream>
@@ -42,7 +43,6 @@ State& State::controlled_Rr_dag(int control_j, int target_k, int r)
 }
 
 using AmplitudeMap = std::unordered_map<Bitstring, ComplexNumber>;
-const double EPSILON = 1e-9; 
 
 static QuantumState qft_direct_transform(const QuantumState& input_state,
                                          int start_qubit,
@@ -63,7 +63,7 @@ static QuantumState qft_direct_transform(const QuantumState& input_state,
       const double exponent = qft_phase_exponent(j, k, N, sign);
       const ComplexNumber phase_factor = std::exp(I * exponent);
       const ComplexNumber A_jk = A_j * overall_scale * phase_factor;
-      if (std::abs(A_jk) < EPSILON) {
+      if (std::abs(A_jk) < qsim::limits::AMPLITUDE_EPSILON) {
         continue;
       }
       const Bitstring B_new = replace_bits(current_B, start_qubit, end_qubit, k);
@@ -74,7 +74,7 @@ static QuantumState qft_direct_transform(const QuantumState& input_state,
   QuantumState output_state;
   output_state.reserve(new_state_map.size());
   for (const auto& entry : new_state_map) {
-    if (std::abs(entry.second) > EPSILON) {
+    if (std::abs(entry.second) > qsim::limits::AMPLITUDE_EPSILON) {
       output_state.push_back(entry);
     }
   }

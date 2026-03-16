@@ -10,6 +10,7 @@
  * for me helps.
  */
 #include "state.hh"
+#include "internal/limits.hh"
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -34,20 +35,18 @@ std::string complex_to_string(const ComplexNumber& a, int precision = 4) {
     
   const double real_part = a.real();
   const double imag_part = a.imag();
-  const double TOLERANCE = 1e-9;
-    
-  if (std::abs(real_part) < TOLERANCE && std::abs(imag_part) < TOLERANCE) {
+  if (std::abs(real_part) < qsim::limits::AMPLITUDE_EPSILON && std::abs(imag_part) < qsim::limits::AMPLITUDE_EPSILON) {
     return "0.0";
   }
 
   // Print real part if significant
-  if (std::abs(real_part) > TOLERANCE) {
+  if (std::abs(real_part) > qsim::limits::AMPLITUDE_EPSILON) {
     ss << real_part;
   }
     
   // Print imaginary part if significant
-  if (std::abs(imag_part) > TOLERANCE) {
-    if (std::abs(real_part) > TOLERANCE) {
+  if (std::abs(imag_part) > qsim::limits::AMPLITUDE_EPSILON) {
+    if (std::abs(real_part) > qsim::limits::AMPLITUDE_EPSILON) {
       // Include sign if real part is also present
       ss << (imag_part > 0 ? " + " : " - ");
     } else if (imag_part < 0) {
@@ -57,7 +56,7 @@ std::string complex_to_string(const ComplexNumber& a, int precision = 4) {
         
     double abs_imag = std::abs(imag_part);
     // Only print coefficient if it's not close to 1
-    if (std::abs(abs_imag - 1.0) > TOLERANCE) {
+    if (std::abs(abs_imag - 1.0) > qsim::limits::AMPLITUDE_EPSILON) {
       ss << abs_imag;
     }
     ss << "i";

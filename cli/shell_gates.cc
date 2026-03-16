@@ -1,5 +1,6 @@
 #include "cli/shell.hh"
 #include "cli/commands.hh"
+#include "internal/limits.hh"
 #include <iomanip>
 #include <cmath>
 #include <functional>
@@ -196,7 +197,7 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
       std::cout << std::setprecision(12)
                 << "CHECK NORMALIZED: total_probability=" << total
                 << " diff=" << diff
-                << (diff < 1e-9 ? " [PASS]\n" : " [WARN]\n");
+                << (diff < qsim::limits::AMPLITUDE_EPSILON ? " [PASS]\n" : " [WARN]\n");
       return true;
     }
     if (mode == "BASIS") {

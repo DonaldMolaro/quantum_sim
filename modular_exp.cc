@@ -1,4 +1,5 @@
 #include "modular_exp.hh"
+#include "internal/limits.hh"
 
 #include <map>
 #include <unordered_map>
@@ -13,8 +14,6 @@
 // void accumulate(Bitstring b, ComplexNumber a) 
 
 using AmplitudeMap = std::unordered_map<Bitstring, ComplexNumber>;
-
-const double EPSILON = 1e-9; 
 
 
 
@@ -99,7 +98,7 @@ State& State::controlled_modular_exponentiation(
     Bitstring b = pair.first;
     ComplexNumber amplitude = pair.second;
             
-    if (std::abs(amplitude) < EPSILON) continue;
+    if (std::abs(amplitude) < qsim::limits::AMPLITUDE_EPSILON) continue;
 
     Bitstring control_value = (b & control_mask) >> control_qubit;
             

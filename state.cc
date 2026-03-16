@@ -18,6 +18,7 @@
  */
 
 #include "state.hh"
+#include "internal/limits.hh"
 #include <algorithm> // For std::remove_if
 #include <cmath>
 #include <complex>
@@ -106,7 +107,7 @@ QuantumState State::reduceByKey(const IntermediateState& intermediate_state) con
   QuantumState final_state;
   for (const auto& pair : reduced_map) {
     // Filter out elements with zero amplitude
-    if (std::abs(pair.second) > 1e-9) { 
+    if (std::abs(pair.second) > qsim::limits::AMPLITUDE_EPSILON) { 
       final_state.push_back(pair);
     }
   }
@@ -479,7 +480,7 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
   }
         
   // Check probability stability (ensure p_outcome is not zero)
-  if (p_outcome < 1e-9) {
+  if (p_outcome < qsim::limits::AMPLITUDE_EPSILON) {
     p_outcome = 1.0; 
   }
 
@@ -499,7 +500,7 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
   // 5. Clean up the state vector by removing elements with zero amplitude
   state_.erase(std::remove_if(state_.begin(), state_.end(), 
 			      [](const QubitAmplitudePair& pair) { 
-				return std::abs(pair.second) < 1e-9; 
+				return std::abs(pair.second) < qsim::limits::AMPLITUDE_EPSILON; 
 			      }), 
 	       state_.end());
 
