@@ -3,7 +3,18 @@
 This folder contains runnable CLI transcripts and walkthroughs for common quantum
 protocols and algorithms supported by the simulator.
 
-## Contents
+## Start Here: Self-Study Course
+
+**New to quantum computing?** Start with the course:
+
+- `course.md`: **Quantum Computing for the Classical Engineer** — a complete
+  14-module self-study course, starting from scratch and covering every algorithm
+  in the simulator. Includes classical-first intuition, simulator experiments,
+  and self-check questions. Estimated time: 10–15 hours.
+
+---
+
+## Reference Material
 
 - `bell_states.md`: Prepare and verify all four Bell states
 - `superdense_coding.md`: Superdense coding (2 classical bits via 1 qubit)
