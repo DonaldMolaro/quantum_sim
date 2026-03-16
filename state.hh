@@ -33,20 +33,29 @@ using QuantumState = std::vector<QubitAmplitudePair>;
 using IntermediateState = QuantumState; 
 
 // Global Constants
-const ComplexNumber ONE_COMPLEX(1.0, 0.0);
-const ComplexNumber IMAGINARY_UNIT_I(0.0, 1.0);
-const double ONE_OVER_SQRT_TWO = 1.0 / std::sqrt(2.0); 
+extern const ComplexNumber ONE_COMPLEX;
+extern const ComplexNumber IMAGINARY_UNIT_I;
+constexpr double ONE_OVER_SQRT_TWO = 0.7071067811865476; // 1/sqrt(2)
 
 // --- Helper Functions (used internally by gates) ---
 
 /** Reads the jth bit (b_j) of the bitstring b. */
-extern int get_jth_bit(const Bitstring& b, int j);
+inline int get_jth_bit(const Bitstring& b, int j) {
+  return (b >> j) & 1;
+}
 
 /** Flips the jth bit (b¬j). */
-extern Bitstring flip_jth_bit(const Bitstring& b, int j);
-/** Sets the jth bit of bitstring b to a specific value (0 or 1). */
+inline Bitstring flip_jth_bit(const Bitstring& b, int j) {
+  return b ^ (1ULL << j);
+}
 
-extern Bitstring set_jth_bit(const Bitstring& b, int j, int value);
+/** Sets the jth bit of bitstring b to a specific value (0 or 1). */
+inline Bitstring set_jth_bit(const Bitstring& b, int j, int value) {
+  if (value == 0)
+    return b & ~(1ULL << j);
+  else
+    return b | (1ULL << j);
+}
 
 /** Converts the Bitstring (ULL) to a padded binary string based on N qubits. */
 extern std::string bitstring_to_string(Bitstring b, int N);
@@ -78,32 +87,33 @@ private:
   // --- Core Functional Operations ---
   // These methods implement the set transformations defining quantum gates.
   /**
-   * s.map(λb, a. (b', ca)) 
+   * s.map(λb, a. (b', ca))
    * Applies a transformation independently to every element.
    */
-  void s_map(const std::function<QubitAmplitudePair(const Bitstring&, const ComplexNumber&)>& transformation_func);
+  template <typename F>
+  void s_map(F&& transformation_func) {
+    for (auto& pair : state_) {
+      pair = transformation_func(pair.first, pair.second);
+    }
+  }
   /**
    * Implements .reduceByKey(λx, y. x+ y)
    * Sums amplitudes for identical bitstrings (keys), used after flatMap.
    */
   QuantumState reduceByKey(const IntermediateState& intermediate_state) const;
   /**
-   * s.flatMap(λb, a. {set_of_pairs}) 
-   * Applies a transformation that can yield multiple resulting elements, 
+   * s.flatMap(λb, a. {set_of_pairs})
+   * Applies a transformation that can yield multiple resulting elements,
    * followed by reduction (used specifically for Hadamard).
    */
-  void s_flatMap_and_reduce(const std::function<IntermediateState(const Bitstring&, const ComplexNumber&)>& transformation_func);
-  // Helper to find or add a bitstring in the vector representation (O(N) operation)
-  QubitAmplitudePair* find_or_add(QuantumState& state, Bitstring b) {
-    // Find existing bitstring
-    for (auto& pair : state) {
-      if (pair.first == b) {
-        return &pair;
-      }
+  template <typename F>
+  void s_flatMap_and_reduce(F&& transformation_func) {
+    IntermediateState intermediate_state;
+    intermediate_state.reserve(state_.size() * 2);
+    for (const auto& pair : state_) {
+      transformation_func(pair.first, pair.second, intermediate_state);
     }
-    // Not found, add new entry with zero amplitude
-    state.push_back({b, 0.0});
-    return &state.back();
+    state_ = reduceByKey(intermediate_state);
   }
 
 public:
@@ -223,11 +233,14 @@ public:
   }
   
   /**
-   * @brief Sets the state from a new vector representation. 
+   * @brief Sets the state from a new vector representation.
    * Assumes the input vector already handles amplitude summation/uniqueness.
    */
   void set_superposition(const QuantumState& new_state) {
     state_ = new_state;
+  }
+  void set_superposition(QuantumState&& new_state) {
+    state_ = std::move(new_state);
   }
 
   /**

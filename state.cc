@@ -25,11 +25,15 @@
 #include <random>
 #include <functional>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 std::ostream* State::default_log_stream_ = nullptr;
+
+// Single definitions for the global complex constants declared extern in state.hh.
+const ComplexNumber ONE_COMPLEX(1.0, 0.0);
+const ComplexNumber IMAGINARY_UNIT_I(0.0, 1.0);
 
 // Internal RNG for non-deterministic measurements.
 static std::mt19937 s_rng{std::random_device{}()};
@@ -38,49 +42,18 @@ static std::uniform_real_distribution<double> s_unit_dist(0.0, 1.0);
 void State::seed_rng(unsigned int seed) {
   s_rng.seed(seed);
 }
-// --- Helper Functions (used internally by gates) ---
+// --- Helper Functions (get_jth_bit, flip_jth_bit, set_jth_bit are inline in state.hh) ---
+// --- s_map and s_flatMap_and_reduce are template methods defined in state.hh ---
 
-/** Reads the jth bit (b_j) of the bitstring b. */
-int get_jth_bit(const Bitstring& b, int j)
-{
-    return (b >> j) & 1; 
-}
-
-/** Flips the jth bit (b¬j). */
-Bitstring flip_jth_bit(const Bitstring& b, int j) {
-    return b ^ (1ULL << j);
-}
-
-/** Sets the jth bit of bitstring b to a specific value (0 or 1). */
-Bitstring set_jth_bit(const Bitstring& b, int j, int value) {
-    if (value == 0) {
-        return b & ~(1ULL << j);
-    } else {
-        return b | (1ULL << j);
-    }
-}
-
-
-/**
- * s.map(λb, a. (b', ca))
- * Applies a bijective transformation independently to every element in-place.
- * All callers use bijective transforms so no deduplication is needed.
- */
-void State::s_map(const std::function<QubitAmplitudePair(const Bitstring&, const ComplexNumber&)>& transformation_func)
-{
-  for (auto& pair : state_) {
-    pair = transformation_func(pair.first, pair.second);
-  }
-}
-    
 /**
  * Implements .reduceByKey(λx, y. x+ y)
  * Sums amplitudes for identical bitstrings (keys), used after flatMap.
  */
 QuantumState State::reduceByKey(const IntermediateState& intermediate_state) const
 {
-  std::map<Bitstring, ComplexNumber> reduced_map;
-        
+  std::unordered_map<Bitstring, ComplexNumber> reduced_map;
+  reduced_map.reserve(intermediate_state.size());
+
   // Sum amplitudes
   for (const auto& pair : intermediate_state) {
     reduced_map[pair.first] += pair.second;
@@ -88,32 +61,16 @@ QuantumState State::reduceByKey(const IntermediateState& intermediate_state) con
 
   // Convert map back to QuantumState vector
   QuantumState final_state;
+  final_state.reserve(reduced_map.size());
   for (const auto& pair : reduced_map) {
     // Filter out elements with zero amplitude
-    if (std::abs(pair.second) > qsim::limits::AMPLITUDE_EPSILON) { 
+    if (std::abs(pair.second) > qsim::limits::AMPLITUDE_EPSILON) {
       final_state.push_back(pair);
     }
   }
   return final_state;
 }
 
-/**
- * s.flatMap(λb, a. {set_of_pairs}) 
- * Applies a transformation that can yield multiple resulting elements, 
- * followed by reduction (used specifically for Hadamard).
- */
-void State::s_flatMap_and_reduce(const std::function<IntermediateState(const Bitstring&, const ComplexNumber&)>& transformation_func)
-{
-  IntermediateState intermediate_state;
-        
-  // Apply flatMap: take the union of all generated sets
-  for (const auto& pair : state_) {
-    IntermediateState generated_set = transformation_func(pair.first, pair.second);
-    intermediate_state.insert(intermediate_state.end(), generated_set.begin(), generated_set.end());
-  }
-  // Apply reduceByKey to sum resulting amplitudes
-  state_ = reduceByKey(intermediate_state);
-}
 
 /** Constructor: Initializes the state to the ground state |00...0>. */
 State::State(int N, int num_cbits)
@@ -306,17 +263,11 @@ State& State::t(int j)
 /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
 State& State::h(int j)
 {
-  s_flatMap_and_reduce([j](const Bitstring& b, const ComplexNumber& a) -> IntermediateState {
+  s_flatMap_and_reduce([j](const Bitstring& b, const ComplexNumber& a, IntermediateState& out) {
     int bj = get_jth_bit(b, j);
-    IntermediateState generated_set;
-
-    // Pair 1: b_j=0, Amplitude: a / sqrt(2)
-    generated_set.push_back(std::make_pair(set_jth_bit(b, j, 0), a * ONE_OVER_SQRT_TWO));
-
-    // Pair 2: b_j=1, Amplitude: a * (1 - 2*b_j) / sqrt(2)
+    out.emplace_back(set_jth_bit(b, j, 0), a * ONE_OVER_SQRT_TWO);
     double coefficient = (1.0 - 2.0 * (double)bj) * ONE_OVER_SQRT_TWO;
-    generated_set.push_back(std::make_pair(set_jth_bit(b, j, 1), a * coefficient));
-    return generated_set;
+    out.emplace_back(set_jth_bit(b, j, 1), a * coefficient);
   });
   return *this;
 }
@@ -327,12 +278,10 @@ State& State::rx(int j, double theta)
   const double s = std::sin(theta / 2.0);
   const ComplexNumber minus_i_s(0.0, -s); // -i * sin
 
-  s_flatMap_and_reduce([j, c, minus_i_s](const Bitstring& b, const ComplexNumber& a) -> IntermediateState {
-    IntermediateState generated_set;
+  s_flatMap_and_reduce([j, c, minus_i_s](const Bitstring& b, const ComplexNumber& a, IntermediateState& out) {
     Bitstring b_flip = flip_jth_bit(b, j);
-    generated_set.push_back(std::make_pair(b, a * c));
-    generated_set.push_back(std::make_pair(b_flip, a * minus_i_s));
-    return generated_set;
+    out.emplace_back(b, a * c);
+    out.emplace_back(b_flip, a * minus_i_s);
   });
   return *this;
 }
@@ -342,19 +291,16 @@ State& State::ry(int j, double theta)
   const double c = std::cos(theta / 2.0);
   const double s = std::sin(theta / 2.0);
 
-  s_flatMap_and_reduce([j, c, s](const Bitstring& b, const ComplexNumber& a) -> IntermediateState {
-    IntermediateState generated_set;
+  s_flatMap_and_reduce([j, c, s](const Bitstring& b, const ComplexNumber& a, IntermediateState& out) {
     int bj = get_jth_bit(b, j);
     Bitstring b_flip = flip_jth_bit(b, j);
-
     if (bj == 0) {
-      generated_set.push_back(std::make_pair(b, a * c));
-      generated_set.push_back(std::make_pair(b_flip, a * s));
+      out.emplace_back(b, a * c);
+      out.emplace_back(b_flip, a * s);
     } else {
-      generated_set.push_back(std::make_pair(b_flip, a * (-s)));
-      generated_set.push_back(std::make_pair(b, a * c));
+      out.emplace_back(b_flip, a * (-s));
+      out.emplace_back(b, a * c);
     }
-    return generated_set;
   });
   return *this;
 }
@@ -381,20 +327,16 @@ State& State::ru(int j, double theta, double phi, double lambda)
   const ComplexNumber eiphilambda(std::cos(phi + lambda), std::sin(phi + lambda));
 
   s_flatMap_and_reduce([j, c, s, eiphi, eilambda, eiphilambda](const Bitstring& b,
-                                                              const ComplexNumber& a) -> IntermediateState {
-    IntermediateState generated_set;
+                                                              const ComplexNumber& a, IntermediateState& out) {
     int bj = get_jth_bit(b, j);
     Bitstring b_flip = flip_jth_bit(b, j);
-
     if (bj == 0) {
-      generated_set.push_back(std::make_pair(b, a * c));
-      generated_set.push_back(std::make_pair(b_flip, a * (eiphi * s)));
+      out.emplace_back(b, a * c);
+      out.emplace_back(b_flip, a * (eiphi * s));
     } else {
-      generated_set.push_back(std::make_pair(b_flip, a * (-eilambda * s)));
-      generated_set.push_back(std::make_pair(b, a * (eiphilambda * c)));
+      out.emplace_back(b_flip, a * (-eilambda * s));
+      out.emplace_back(b, a * (eiphilambda * c));
     }
-
-    return generated_set;
   });
   return *this;
 }

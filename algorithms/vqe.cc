@@ -8,7 +8,6 @@
 #include <complex>
 #include <cctype>
 #include <sstream>
-#include <unordered_map>
 
 namespace {
 
@@ -96,11 +95,15 @@ bool vqe_hamiltonian_valid(const VqeHamiltonian& h, std::string& error)
 
 double vqe_expectation_exact(const State& state, const VqeHamiltonian& h)
 {
-  std::unordered_map<Bitstring, ComplexNumber> amps;
-  amps.reserve(state.get_state().size() * 2 + 1);
   const QuantumState& psi = state.get_state();
+  const int n = state.get_num_qubits();
+  const size_t dim = static_cast<size_t>(1) << n;
+
+  // Flat array for O(1) direct-indexed amplitude lookup (better than hash map
+  // for the small n typical in VQE: 2^20 entries = 16 MB, still practical).
+  std::vector<ComplexNumber> amps(dim, ComplexNumber(0.0, 0.0));
   for (size_t i = 0; i < psi.size(); ++i) {
-    amps[psi[i].first] = psi[i].second;
+    amps[static_cast<size_t>(psi[i].first)] = psi[i].second;
   }
 
   double energy = 0.0;
@@ -108,14 +111,11 @@ double vqe_expectation_exact(const State& state, const VqeHamiltonian& h)
     const VqePauliTerm& term = h.terms[t];
     ComplexNumber accum = 0.0;
 
-    for (std::unordered_map<Bitstring, ComplexNumber>::const_iterator it = amps.begin();
-         it != amps.end(); ++it) {
+    for (size_t i = 0; i < psi.size(); ++i) {
       Bitstring transformed_basis = 0ULL;
       ComplexNumber phase = ONE_COMPLEX;
-      apply_pauli_to_basis(it->first, term, transformed_basis, phase);
-      std::unordered_map<Bitstring, ComplexNumber>::const_iterator jt = amps.find(transformed_basis);
-      if (jt == amps.end()) continue;
-      accum += std::conj(it->second) * phase * jt->second;
+      apply_pauli_to_basis(psi[i].first, term, transformed_basis, phase);
+      accum += std::conj(psi[i].second) * phase * amps[static_cast<size_t>(transformed_basis)];
     }
     energy += term.coeff * accum.real();
   }
@@ -155,22 +155,24 @@ VqeResult run_vqe(const VqeHamiltonian& h, const VqeOptions& options)
   for (int iter = 0; iter < options.max_iters; ++iter) {
     const double step = options.step_size * std::pow(0.95, static_cast<double>(iter));
     for (size_t p = 0; p < param_count; ++p) {
-      std::vector<double> plus_params = params;
-      plus_params[p] += step;
-      const double plus = evaluate_energy_exact(h, plus_params, options.layers);
+      const double orig = params[p];
+
+      params[p] = orig + step;
+      const double plus = evaluate_energy_exact(h, params, options.layers);
       ++out.evaluations;
 
-      std::vector<double> minus_params = params;
-      minus_params[p] -= step;
-      const double minus = evaluate_energy_exact(h, minus_params, options.layers);
+      params[p] = orig - step;
+      const double minus = evaluate_energy_exact(h, params, options.layers);
       ++out.evaluations;
 
       if (plus < best && plus <= minus) {
-        params[p] += step;
+        params[p] = orig + step;
         best = plus;
       } else if (minus < best) {
-        params[p] -= step;
+        // params[p] already equals orig - step
         best = minus;
+      } else {
+        params[p] = orig;
       }
     }
     out.energy_history.push_back(best);

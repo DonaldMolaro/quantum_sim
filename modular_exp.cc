@@ -43,9 +43,10 @@ State& State::controlled_modular_exponentiation(
 						Bitstring power)
 {
         
-  QuantumState new_state_set;
+  AmplitudeMap accum;
+  accum.reserve(state_.size());
   Bitstring control_mask = 1ULL << control_qubit;
-        
+
   // Step 1: Calculate the classical exponentiation result once.
   Bitstring exponent_factor = modular_exponentiation(a, power, N);
 
@@ -53,40 +54,38 @@ State& State::controlled_modular_exponentiation(
   for (auto const& pair : state_) {
     Bitstring b = pair.first;
     ComplexNumber amplitude = pair.second;
-            
+
     if (std::abs(amplitude) < qsim::limits::AMPLITUDE_EPSILON) continue;
 
     Bitstring control_value = (b & control_mask) >> control_qubit;
-            
-    Bitstring b_new;
 
+    Bitstring b_new;
     if (control_value == 1) {
       // Control ON: Apply the function U^P to the target register.
-                
-      // Extract the target register's numerical value (y).
       Bitstring current_target_value = extract_bits(b, target_start, target_end);
-
       // For unitarity: if y is outside [0, N-1], leave it unchanged.
       if (current_target_value >= N) {
         b_new = b;
       } else {
-        // Calculate the new target value: y' = (F * y) mod N.
         Bitstring new_target_value = (exponent_factor * current_target_value) % N;
-
-        // Construct the new full bitstring (b' = Control | Target_new).
         b_new = replace_bits(b, target_start, target_end, new_target_value);
       }
     } else {
       // Control OFF: Apply Identity (keep state unchanged).
       b_new = b;
     }
-            
-    // Step 3: Aggregate the amplitude to the resulting state (reduceByKey operation).
-    QubitAmplitudePair* entry = find_or_add(new_state_set, b_new);
-    entry->second += amplitude;
+
+    // Step 3: Aggregate the amplitude (O(1) amortized via unordered_map).
+    accum[b_new] += amplitude;
   }
 
-  // Update the state to the result of the linear transformation.
-  state_ = new_state_set;
+  // Convert accumulator back to QuantumState, filtering near-zero amplitudes.
+  state_.clear();
+  state_.reserve(accum.size());
+  for (const auto& kv : accum) {
+    if (std::abs(kv.second) > qsim::limits::AMPLITUDE_EPSILON) {
+      state_.emplace_back(kv.first, kv.second);
+    }
+  }
   return *this;
 }

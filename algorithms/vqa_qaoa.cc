@@ -68,7 +68,7 @@ void apply_cost_layer(State& state, int n, double gamma, const PreparedQubo& pre
     const ComplexNumber rot(std::cos(phase), std::sin(phase));
     next[i].second *= rot;
   }
-  state.set_superposition(next);
+  state.set_superposition(std::move(next));
 }
 
 State build_qaoa_state(int n,
@@ -142,11 +142,14 @@ double sample_energy_expectation(const State& state,
   double total = 0.0;
   for (int s = 0; s < shots; ++s) {
     const double r = dist(rng);
-    size_t idx = 0;
-    while (idx + 1 < table.size() && table[idx].cumulative < r) {
-      ++idx;
+    // Binary search for the first entry whose cumulative probability >= r.
+    size_t lo = 0, hi = table.size() - 1;
+    while (lo < hi) {
+      size_t mid = lo + (hi - lo) / 2;
+      if (table[mid].cumulative < r) lo = mid + 1;
+      else hi = mid;
     }
-    total += prepared.energies[static_cast<size_t>(table[idx].basis)];
+    total += prepared.energies[static_cast<size_t>(table[lo].basis)];
   }
   return total / static_cast<double>(shots);
 }
@@ -196,48 +199,56 @@ VqaQaoaResult run_vqa_qaoa_qubo(int n,
     const double step = options.step_size * std::pow(0.95, static_cast<double>(iter));
 
     for (int idx = 0; idx < options.p_layers; ++idx) {
-      std::vector<double> trial_g = gamma;
-      trial_g[static_cast<size_t>(idx)] += step;
+      const size_t i = static_cast<size_t>(idx);
+      const double orig_g = gamma[i];
+
+      gamma[i] = orig_g + step;
       Bitstring plus_likely = 0ULL;
-      const double plus = evaluate_energy(n, trial_g, beta, prepared, options.shots, rng, &plus_likely);
+      const double plus = evaluate_energy(n, gamma, beta, prepared, options.shots, rng, &plus_likely);
       ++out.evaluations;
 
-      trial_g[static_cast<size_t>(idx)] = gamma[static_cast<size_t>(idx)] - step;
+      gamma[i] = orig_g - step;
       Bitstring minus_likely = 0ULL;
-      const double minus = evaluate_energy(n, trial_g, beta, prepared, options.shots, rng, &minus_likely);
+      const double minus = evaluate_energy(n, gamma, beta, prepared, options.shots, rng, &minus_likely);
       ++out.evaluations;
 
       if (plus < best && plus <= minus) {
-        gamma[static_cast<size_t>(idx)] += step;
+        gamma[i] = orig_g + step;
         best = plus;
         best_likely = plus_likely;
       } else if (minus < best) {
-        gamma[static_cast<size_t>(idx)] -= step;
+        // gamma[i] already equals orig_g - step
         best = minus;
         best_likely = minus_likely;
+      } else {
+        gamma[i] = orig_g;
       }
     }
 
     for (int idx = 0; idx < options.p_layers; ++idx) {
-      std::vector<double> trial_b = beta;
-      trial_b[static_cast<size_t>(idx)] += step;
+      const size_t i = static_cast<size_t>(idx);
+      const double orig_b = beta[i];
+
+      beta[i] = orig_b + step;
       Bitstring plus_likely = 0ULL;
-      const double plus = evaluate_energy(n, gamma, trial_b, prepared, options.shots, rng, &plus_likely);
+      const double plus = evaluate_energy(n, gamma, beta, prepared, options.shots, rng, &plus_likely);
       ++out.evaluations;
 
-      trial_b[static_cast<size_t>(idx)] = beta[static_cast<size_t>(idx)] - step;
+      beta[i] = orig_b - step;
       Bitstring minus_likely = 0ULL;
-      const double minus = evaluate_energy(n, gamma, trial_b, prepared, options.shots, rng, &minus_likely);
+      const double minus = evaluate_energy(n, gamma, beta, prepared, options.shots, rng, &minus_likely);
       ++out.evaluations;
 
       if (plus < best && plus <= minus) {
-        beta[static_cast<size_t>(idx)] += step;
+        beta[i] = orig_b + step;
         best = plus;
         best_likely = plus_likely;
       } else if (minus < best) {
-        beta[static_cast<size_t>(idx)] -= step;
+        // beta[i] already equals orig_b - step
         best = minus;
         best_likely = minus_likely;
+      } else {
+        beta[i] = orig_b;
       }
     }
 
