@@ -436,6 +436,197 @@ State& State::mcx(const std::vector<int>& controls, int target)
   return *this;
 }
 
+/** RESET gate: collapses qubit j to |0> by discarding |1> components and renormalising. */
+State& State::reset(int j)
+{
+  double norm_sq = 0.0;
+  for (const auto& pair : state_) {
+    if (get_jth_bit(pair.first, j) == 0) norm_sq += std::norm(pair.second);
+  }
+  if (norm_sq < qsim::limits::AMPLITUDE_EPSILON) {
+    // All amplitude is on |1>_j — flip all those bits to 0.
+    QuantumState next;
+    next.reserve(state_.size());
+    for (const auto& pair : state_)
+      next.push_back({set_jth_bit(pair.first, j, 0), pair.second});
+    state_ = reduceByKey(next);
+  } else {
+    const double scale = 1.0 / std::sqrt(norm_sq);
+    QuantumState next;
+    for (const auto& pair : state_)
+      if (get_jth_bit(pair.first, j) == 0)
+        next.push_back({pair.first, pair.second * scale});
+    state_ = next;
+  }
+  return *this;
+}
+
+/** iSWAP: swaps j and k and multiplies off-diagonal swapped terms by i. */
+State& State::iswap(int j, int k)
+{
+  s_flatMap_and_reduce([j, k](const Bitstring& b, const ComplexNumber& a, IntermediateState& out) {
+    const int bj = get_jth_bit(b, j);
+    const int bk = get_jth_bit(b, k);
+    if (bj == bk) {
+      out.emplace_back(b, a);
+    } else {
+      out.emplace_back(set_jth_bit(set_jth_bit(b, j, bk), k, bj), a * ComplexNumber(0.0, 1.0));
+    }
+  });
+  maybe_apply_depolarizing(j);
+  maybe_apply_depolarizing(k);
+  return *this;
+}
+
+/** XX(θ): exp(-i θ/2 X⊗X) — equal superposition of b and flip-both(b). */
+State& State::xx(int j, int k, double theta)
+{
+  const double c = std::cos(theta / 2.0);
+  const double s = std::sin(theta / 2.0);
+  s_flatMap_and_reduce([j, k, c, s](const Bitstring& b, const ComplexNumber& a, IntermediateState& out) {
+    out.emplace_back(b,                                  a * c);
+    out.emplace_back(flip_jth_bit(flip_jth_bit(b,j),k), a * ComplexNumber(0.0, -s));
+  });
+  maybe_apply_depolarizing(j);
+  maybe_apply_depolarizing(k);
+  return *this;
+}
+
+/** YY(θ): exp(-i θ/2 Y⊗Y) */
+State& State::yy(int j, int k, double theta)
+{
+  const double c = std::cos(theta / 2.0);
+  const double s = std::sin(theta / 2.0);
+  s_flatMap_and_reduce([j, k, c, s](const Bitstring& b, const ComplexNumber& a, IntermediateState& out) {
+    const int bj = get_jth_bit(b, j);
+    const int bk = get_jth_bit(b, k);
+    // Y⊗Y: |00>->-|11>, |01>->+|10>, |10>->+|01>, |11>->-|00>
+    const double yy_sign = ((bj ^ bk) == 0) ? -1.0 : 1.0;
+    out.emplace_back(b,                                   a * c);
+    out.emplace_back(flip_jth_bit(flip_jth_bit(b,j),k),  a * ComplexNumber(0.0, -s * yy_sign));
+  });
+  maybe_apply_depolarizing(j);
+  maybe_apply_depolarizing(k);
+  return *this;
+}
+
+/** ZZ(θ): exp(-i θ/2 Z⊗Z) — diagonal, no state mixing. */
+State& State::zz(int j, int k, double theta)
+{
+  const ComplexNumber phase_same(std::cos(theta / 2.0), -std::sin(theta / 2.0)); // same parity
+  const ComplexNumber phase_diff(std::cos(theta / 2.0),  std::sin(theta / 2.0)); // diff parity
+  s_map([j, k, phase_same, phase_diff](const Bitstring& b, const ComplexNumber& a) {
+    const ComplexNumber ph = (get_jth_bit(b,j) == get_jth_bit(b,k)) ? phase_same : phase_diff;
+    return std::make_pair(b, a * ph);
+  });
+  maybe_apply_depolarizing(j);
+  maybe_apply_depolarizing(k);
+  return *this;
+}
+
+// --- Analysis methods (non-mutating) -----------------------------------------
+
+State::BlochVector State::bloch(int j) const
+{
+  std::unordered_map<Bitstring, ComplexNumber> amp0, amp1;
+  for (const auto& pair : state_) {
+    const Bitstring b_other = pair.first & ~(1ULL << j);
+    if (get_jth_bit(pair.first, j) == 0) amp0[b_other] += pair.second;
+    else                                  amp1[b_other] += pair.second;
+  }
+  double rho00 = 0.0, rho11 = 0.0;
+  ComplexNumber rho01(0.0, 0.0);
+  for (const auto& p : amp0) rho00 += std::norm(p.second);
+  for (const auto& p : amp1) rho11 += std::norm(p.second);
+  for (const auto& p0 : amp0) {
+    auto it = amp1.find(p0.first);
+    if (it != amp1.end()) rho01 += std::conj(p0.second) * it->second;
+  }
+  return {2.0 * rho01.real(), 2.0 * rho01.imag(), rho00 - rho11};
+}
+
+double State::expect_pauli(const std::vector<std::pair<char,int>>& ops) const
+{
+  ComplexNumber total(0.0, 0.0);
+  for (const auto& kv : state_) {
+    Bitstring b_out = kv.first;
+    ComplexNumber phase(1.0, 0.0);
+    for (const auto& op : ops) {
+      const char p = op.first;
+      const int  q = op.second;
+      const bool bit1 = (b_out >> q) & 1ULL;
+      if (p == 'X') {
+        b_out ^= (1ULL << q);
+      } else if (p == 'Y') {
+        phase *= bit1 ? ComplexNumber(0.0, -1.0) : ComplexNumber(0.0, 1.0);
+        b_out ^= (1ULL << q);
+      } else if (p == 'Z') {
+        if (bit1) phase *= -1.0;
+      }
+    }
+    total += std::conj(kv.second) * phase * get_amplitude(b_out);
+  }
+  return total.real();
+}
+
+double State::entropy(int start_q, int end_q) const
+{
+  if (start_q > end_q) std::swap(start_q, end_q);
+  const int n_A = end_q - start_q + 1;
+  if (n_A < 1 || n_A > 10) return 0.0;
+  const int dim_A = 1 << n_A;
+
+  // Build mask for subsystem A bits.
+  Bitstring mask_A = 0;
+  for (int q = start_q; q <= end_q; ++q) mask_A |= (1ULL << q);
+
+  // Group amplitude by complement bitstring → vector indexed by subsystem index.
+  std::unordered_map<Bitstring, std::vector<ComplexNumber>> cols;
+  for (const auto& kv : state_) {
+    const int alpha = static_cast<int>((kv.first & mask_A) >> start_q);
+    const Bitstring b_comp = kv.first & ~mask_A;
+    auto& col = cols[b_comp];
+    if (col.empty()) col.resize(dim_A, ComplexNumber(0.0, 0.0));
+    col[alpha] += kv.second;
+  }
+
+  // Accumulate ρ_A[α][β] = Σ_{bB} conj(a[α,bB]) * a[β,bB]
+  std::vector<std::vector<ComplexNumber>> rho(dim_A, std::vector<ComplexNumber>(dim_A, 0.0));
+  for (const auto& entry : cols) {
+    const auto& col = entry.second;
+    for (int a2 = 0; a2 < dim_A; ++a2)
+      for (int b2 = 0; b2 < dim_A; ++b2)
+        rho[a2][b2] += std::conj(col[a2]) * col[b2];
+  }
+
+  // Eigenvalues via power deflation (ρ_A is Hermitian PSD, eigenvalues ≥ 0).
+  auto rho_work = rho;
+  double S = 0.0;
+  for (int k = 0; k < dim_A; ++k) {
+    std::vector<ComplexNumber> v(dim_A, ComplexNumber(0.0, 0.0));
+    v[k % dim_A] = ComplexNumber(1.0, 0.0);
+    double lam = 0.0;
+    for (int iter = 0; iter < 500; ++iter) {
+      std::vector<ComplexNumber> mv(dim_A, ComplexNumber(0.0, 0.0));
+      for (int i = 0; i < dim_A; ++i)
+        for (int j2 = 0; j2 < dim_A; ++j2)
+          mv[i] += rho_work[i][j2] * v[j2];
+      double norm2 = 0.0;
+      ComplexNumber dot(0.0, 0.0);
+      for (int i = 0; i < dim_A; ++i) { dot += std::conj(v[i]) * mv[i]; norm2 += std::norm(mv[i]); }
+      lam = dot.real();
+      if (norm2 < 1e-30) break;
+      const double sc = 1.0 / std::sqrt(norm2);
+      for (int i = 0; i < dim_A; ++i) v[i] = mv[i] * sc;
+    }
+    if (lam > 1e-12) S -= lam * std::log2(lam);
+    for (int i = 0; i < dim_A; ++i)
+      for (int j2 = 0; j2 < dim_A; ++j2)
+        rho_work[i][j2] -= lam * v[i] * std::conj(v[j2]);
+  }
+  return std::max(S, 0.0);
+}
+
 /** Applies a stochastic single-qubit Pauli error to qubit j with probability noise_prob_. */
 void State::maybe_apply_depolarizing(int j)
 {

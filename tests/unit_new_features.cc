@@ -1,5 +1,6 @@
 #include "state.hh"
 #include "algorithms/qpe.hh"
+#include "algorithms/qec.hh"
 #include "demos/qpe_demo.hh"
 #include "tests/helpers.hh"
 #include "internal/limits.hh"
@@ -405,6 +406,255 @@ void test_load_save_round_trip()
   std::remove(fname);
 }
 
+// ---- RESET gate -------------------------------------------------------------
+
+void test_reset_from_one()
+{
+  State s(1);
+  s.set_basis_state(0b1, 1.0);
+  s.reset(0);
+  if (std::abs(s.get_amplitude(0b0) - ComplexNumber(1.0, 0.0)) > 1e-9)
+    throw std::runtime_error("reset(|1>) should give |0>");
+  if (std::abs(s.get_amplitude(0b1)) > 1e-9)
+    throw std::runtime_error("reset(|1>): |1> component should vanish");
+}
+
+void test_reset_from_superposition()
+{
+  State s(1);
+  s.h(0); // (|0>+|1>)/sqrt(2)
+  s.reset(0);
+  // Should project to |0> and renormalise
+  if (std::abs(s.get_amplitude(0b0) - ComplexNumber(1.0, 0.0)) > 1e-9)
+    throw std::runtime_error("reset from superposition should give |0>");
+}
+
+void test_reset_preserves_other_qubit()
+{
+  // 2-qubit state: |01> (q0=1, q1=0). Reset q0 -> |00>.
+  State s(2);
+  s.set_basis_state(0b01, 1.0);
+  s.reset(0);
+  if (std::abs(s.get_amplitude(0b00) - ComplexNumber(1.0, 0.0)) > 1e-9)
+    throw std::runtime_error("reset q0 of |01> should give |00>");
+}
+
+// ---- iSWAP gate -------------------------------------------------------------
+
+void test_iswap_same_bits_unchanged()
+{
+  // iSWAP on |00>: bits are equal, so no change.
+  State s(2);
+  s.set_basis_state(0b00, 1.0);
+  s.iswap(0, 1);
+  if (std::abs(s.get_amplitude(0b00) - ComplexNumber(1.0, 0.0)) > 1e-9)
+    throw std::runtime_error("iSWAP |00> should be unchanged");
+}
+
+void test_iswap_swaps_and_multiplies_i()
+{
+  // iSWAP on |01> (q0=1, q1=0): bits differ -> swap and multiply by i
+  State s(2);
+  s.set_basis_state(0b01, 1.0);
+  s.iswap(0, 1);
+  // After iSWAP: state becomes i|10>
+  if (std::abs(s.get_amplitude(0b01)) > 1e-9)
+    throw std::runtime_error("iSWAP |01>: original state should be 0");
+  if (std::abs(s.get_amplitude(0b10) - ComplexNumber(0.0, 1.0)) > 1e-9)
+    throw std::runtime_error("iSWAP |01> should give i|10>");
+}
+
+void test_iswap_squared_is_swap()
+{
+  // iSWAP^2 = SWAP (up to global phase on mixed states).
+  // On |01>: iSWAP once gives i|10>, iSWAP again gives i*(i)|01> = -|01>
+  State s(2);
+  s.set_basis_state(0b01, 1.0);
+  s.iswap(0, 1);
+  s.iswap(0, 1);
+  // Should be -|01>
+  if (std::abs(s.get_amplitude(0b01) - ComplexNumber(-1.0, 0.0)) > 1e-9)
+    throw std::runtime_error("iSWAP^2 |01> should give -|01>");
+}
+
+// ---- Ising XX / YY / ZZ gates -----------------------------------------------
+
+void test_xx_zero_angle_is_identity()
+{
+  State s(2);
+  s.h(0); s.cx(0, 1); // Bell state
+  State s2 = s; // copy
+  s.set_noise_probability(0.0);
+  s2.set_noise_probability(0.0);
+  s.xx(0, 1, 0.0);
+  // XX(0) = identity
+  for (Bitstring b = 0; b < 4; ++b) {
+    if (std::abs(s.get_amplitude(b) - s2.get_amplitude(b)) > 1e-9)
+      throw std::runtime_error("XX(0) should be identity");
+  }
+}
+
+void test_xx_pi_over_2_is_maximal_entangler()
+{
+  // XX(pi/2) on |00>: cos(pi/4)|00> - i*sin(pi/4)|11>
+  const double c = std::cos(PI/4.0), sv = std::sin(PI/4.0);
+  State s(2);
+  s.set_basis_state(0b00, 1.0);
+  s.xx(0, 1, PI / 2.0);
+  if (std::abs(s.get_amplitude(0b00) - ComplexNumber(c, 0.0)) > 1e-9)
+    throw std::runtime_error("XX(pi/2) |00>: wrong |00> amplitude");
+  if (std::abs(s.get_amplitude(0b11) - ComplexNumber(0.0, -sv)) > 1e-9)
+    throw std::runtime_error("XX(pi/2) |00>: wrong |11> amplitude");
+}
+
+void test_zz_diagonal()
+{
+  // ZZ(pi) on |00>: phase_same = e^{-i*pi/2} = -i
+  State s(2);
+  s.set_basis_state(0b00, 1.0);
+  s.zz(0, 1, PI);
+  // same bits -> phase_same = (cos(pi/2), -sin(pi/2)) = (0, -1)
+  if (std::abs(s.get_amplitude(0b00) - ComplexNumber(0.0, -1.0)) > 1e-9)
+    throw std::runtime_error("ZZ(pi) |00> should give -i|00>");
+}
+
+// ---- Bloch vector -----------------------------------------------------------
+
+void test_bloch_zero_state()
+{
+  State s(1);
+  s.set_basis_state(0b0, 1.0);
+  auto bv = s.bloch(0);
+  // |0> -> (0, 0, +1)
+  if (std::abs(bv.x) > 1e-9 || std::abs(bv.y) > 1e-9 || std::abs(bv.z - 1.0) > 1e-9)
+    throw std::runtime_error("Bloch |0>: expected (0,0,1)");
+}
+
+void test_bloch_one_state()
+{
+  State s(1);
+  s.set_basis_state(0b1, 1.0);
+  auto bv = s.bloch(0);
+  // |1> -> (0, 0, -1)
+  if (std::abs(bv.x) > 1e-9 || std::abs(bv.y) > 1e-9 || std::abs(bv.z + 1.0) > 1e-9)
+    throw std::runtime_error("Bloch |1>: expected (0,0,-1)");
+}
+
+void test_bloch_plus_state()
+{
+  State s(1);
+  s.h(0); // |+> = (|0>+|1>)/sqrt(2)
+  auto bv = s.bloch(0);
+  // |+> -> (1, 0, 0)
+  if (std::abs(bv.x - 1.0) > 1e-9 || std::abs(bv.y) > 1e-9 || std::abs(bv.z) > 1e-9)
+    throw std::runtime_error("Bloch |+>: expected (1,0,0)");
+}
+
+// ---- expect_pauli -----------------------------------------------------------
+
+void test_expect_z_on_zero()
+{
+  State s(1);
+  s.set_basis_state(0b0, 1.0);
+  double val = s.expect_pauli({{'Z', 0}});
+  if (std::abs(val - 1.0) > 1e-9)
+    throw std::runtime_error("<Z>|0> should be +1");
+}
+
+void test_expect_z_on_one()
+{
+  State s(1);
+  s.set_basis_state(0b1, 1.0);
+  double val = s.expect_pauli({{'Z', 0}});
+  if (std::abs(val + 1.0) > 1e-9)
+    throw std::runtime_error("<Z>|1> should be -1");
+}
+
+void test_expect_x_on_plus()
+{
+  State s(1);
+  s.h(0); // |+>
+  double val = s.expect_pauli({{'X', 0}});
+  if (std::abs(val - 1.0) > 1e-9)
+    throw std::runtime_error("<X>|+> should be +1");
+}
+
+// ---- Von Neumann entropy ----------------------------------------------------
+
+void test_entropy_product_state_is_zero()
+{
+  // Separable state: |0>|0> has zero entanglement entropy for either qubit.
+  State s(2);
+  s.set_basis_state(0b00, 1.0);
+  double S = s.entropy(0, 0);
+  if (std::abs(S) > 1e-6)
+    throw std::runtime_error("Entropy of |00> qubit 0 should be 0");
+}
+
+void test_entropy_bell_state_is_one_bit()
+{
+  // Bell state: maximally entangled, entropy = 1 bit.
+  State s(2);
+  s.h(0); s.cx(0, 1);
+  double S = s.entropy(0, 0);
+  if (std::abs(S - 1.0) > 1e-4)
+    throw std::runtime_error("Entropy of Bell state qubit 0 should be 1 bit, got " +
+                             std::to_string(S));
+}
+
+// ---- QEC algorithm ----------------------------------------------------------
+
+void test_qec_no_error_logical_0()
+{
+  QecResult r = run_qec(0, -1);
+  if (!r.recovery_success)
+    throw std::runtime_error("QEC: no error, logical=0 should succeed");
+  if (r.syndrome != 0)
+    throw std::runtime_error("QEC: no error should give syndrome 0");
+}
+
+void test_qec_no_error_logical_1()
+{
+  QecResult r = run_qec(1, -1);
+  if (!r.recovery_success)
+    throw std::runtime_error("QEC: no error, logical=1 should succeed");
+  if (r.syndrome != 0)
+    throw std::runtime_error("QEC: no error should give syndrome 0");
+}
+
+void test_qec_corrects_each_qubit()
+{
+  for (int eq = 0; eq < 3; ++eq) {
+    for (int lb : {0, 1}) {
+      QecResult r = run_qec(lb, eq);
+      if (!r.recovery_success)
+        throw std::runtime_error("QEC: error on q" + std::to_string(eq) +
+                                 " logical=" + std::to_string(lb) + " should be corrected");
+      if (r.corrected_qubit != eq)
+        throw std::runtime_error("QEC: wrong corrected qubit for error on q" + std::to_string(eq));
+    }
+  }
+}
+
+void test_qec_invalid_args()
+{
+  bool threw = false;
+  try { run_qec(2, 0); } catch (const std::invalid_argument&) { threw = true; }
+  if (!threw) throw std::runtime_error("QEC: logical_bit=2 should throw");
+  threw = false;
+  try { run_qec(0, 3); } catch (const std::invalid_argument&) { threw = true; }
+  if (!threw) throw std::runtime_error("QEC: error_qubit=3 should throw");
+}
+
+void test_qec_demo_runs()
+{
+  std::streambuf* orig = std::cout.rdbuf();
+  std::ostringstream sink;
+  std::cout.rdbuf(sink.rdbuf());
+  run_qec_demo();
+  std::cout.rdbuf(orig);
+}
+
 // ---- Entry point ------------------------------------------------------------
 
 int run_new_feature_tests()
@@ -454,6 +704,42 @@ int run_new_feature_tests()
 
   // LOAD/SAVE scripting test
   run_test("LOAD/SAVE: round-trip circuit", test_load_save_round_trip);
+
+  // RESET gate tests
+  run_test("RESET: |1> -> |0>", test_reset_from_one);
+  run_test("RESET: superposition -> |0>", test_reset_from_superposition);
+  run_test("RESET: preserves other qubit", test_reset_preserves_other_qubit);
+
+  // iSWAP gate tests
+  run_test("iSWAP: same bits unchanged", test_iswap_same_bits_unchanged);
+  run_test("iSWAP: swaps and multiplies by i", test_iswap_swaps_and_multiplies_i);
+  run_test("iSWAP: squared is SWAP (up to phase)", test_iswap_squared_is_swap);
+
+  // Ising gates tests
+  run_test("XX(0) is identity", test_xx_zero_angle_is_identity);
+  run_test("XX(pi/2) creates entanglement", test_xx_pi_over_2_is_maximal_entangler);
+  run_test("ZZ is diagonal gate", test_zz_diagonal);
+
+  // Bloch vector tests
+  run_test("Bloch: |0> -> (0,0,+1)", test_bloch_zero_state);
+  run_test("Bloch: |1> -> (0,0,-1)", test_bloch_one_state);
+  run_test("Bloch: |+> -> (1,0,0)", test_bloch_plus_state);
+
+  // expect_pauli tests
+  run_test("Expect: <Z>|0> = +1", test_expect_z_on_zero);
+  run_test("Expect: <Z>|1> = -1", test_expect_z_on_one);
+  run_test("Expect: <X>|+> = +1", test_expect_x_on_plus);
+
+  // Entropy tests
+  run_test("Entropy: product state = 0", test_entropy_product_state_is_zero);
+  run_test("Entropy: Bell state = 1 bit", test_entropy_bell_state_is_one_bit);
+
+  // QEC tests
+  run_test("QEC: no error logical=0", test_qec_no_error_logical_0);
+  run_test("QEC: no error logical=1", test_qec_no_error_logical_1);
+  run_test("QEC: corrects each qubit", test_qec_corrects_each_qubit);
+  run_test("QEC: invalid args throw", test_qec_invalid_args);
+  run_test("QEC: demo runs without crash", test_qec_demo_runs);
 
   return g_failures;
 }

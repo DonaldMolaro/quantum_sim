@@ -12,7 +12,7 @@ LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	algorithms/grover.cc algorithms/deutsch_jozsa.cc algorithms/bernstein_vazirani.cc \
 	algorithms/qubo.cc algorithms/vqa_qaoa.cc algorithms/qaoa.cc algorithms/vqe.cc algorithms/anneal.cc \
 	algorithms/shor_classical.cc algorithms/shor_quantum.cc \
-	algorithms/latin_square.cc algorithms/qrng.cc algorithms/tsp.cc algorithms/quantum_counting.cc algorithms/simon.cc algorithms/qpe.cc algorithms/api/grover_api.cc \
+	algorithms/latin_square.cc algorithms/qrng.cc algorithms/tsp.cc algorithms/quantum_counting.cc algorithms/simon.cc algorithms/qpe.cc algorithms/qec.cc algorithms/api/grover_api.cc \
 	algorithms/api/shor_api.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 DEMO_SOURCES = demos/latin_demo.cc demos/shor_demo.cc \

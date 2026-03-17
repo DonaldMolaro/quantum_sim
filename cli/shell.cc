@@ -85,6 +85,10 @@ void QuantumShell::print_help()
   std::cout << "FREDKIN <j> <k> <l>: Alias for CSWAP.\n";
   std::cout << "MCX <c1> [c2 ...] <t>: Multi-controlled X: flips t when ALL controls are |1>.\n";
   std::cout << "SWAP <j> <k>     : SWAP qubits j and k.\n";
+  std::cout << "ISWAP <j> <k>    : iSWAP gate (native superconducting gate).\n";
+  std::cout << "XX <j> <k> <t>   : Ising XX(theta) gate: exp(-i t/2 X⊗X).\n";
+  std::cout << "YY <j> <k> <t>   : Ising YY(theta) gate: exp(-i t/2 Y⊗Y).\n";
+  std::cout << "ZZ <j> <k> <t>   : Ising ZZ(theta) gate: exp(-i t/2 Z⊗Z).\n";
   std::cout << "\n[Algorithms]\n";
   std::cout << "GROVER <t...>    : Run Grover search (self-initialized; no INIT required)\n";
   std::cout << "GROVER AUTO <n> <count_iters> <t...> : Auto-tune Grover iterations using quantum counting\n";
@@ -106,6 +110,8 @@ void QuantumShell::print_help()
   std::cout << "ANNEAL QUBO <SA|SQA> <n> <steps> <sweeps> <beta_start> <beta_end> <replicas> <n*n matrix entries>\n";
   std::cout << "TSP DEMO         : Run built-in 4-city TSP-to-QUBO exact demo\n";
   std::cout << "TSP EXACT <n> <penalty> <n*n distance entries> : Solve fixed-start TSP with exact QUBO search\n";
+  std::cout << "QEC DEMO         : Run built-in 3-qubit bit-flip quantum error correction demo\n";
+  std::cout << "QEC RUN <log> <err>: Run QEC with logical qubit log (0|1) and error on qubit err (-1=none)\n";
   std::cout << "QPE DEMO         : Run built-in Quantum Phase Estimation demo\n";
   std::cout << "QPE <m> <phase>  : Run QPE with m precision qubits for P(phase) gate (radians)\n";
   std::cout << "QCOUNT DEMO      : Run built-in quantum counting demo\n";
@@ -123,10 +129,18 @@ void QuantumShell::print_help()
   std::cout << "    LATIN PRINT-ALL 1 2 0\n";
   std::cout << "\n[Utility]\n";
   std::cout << "MEASURE <j> <c>  : Measure qubit j, store result in classical register c.\n";
+  std::cout << "RESET <j>        : Unconditionally reset qubit j to |0> (ancilla reuse).\n";
+  std::cout << "IF <c> <gate...> : Apply gate only if classical bit c is 1.\n";
   std::cout << "DISPLAY          : Show the current quantum state.\n";
   std::cout << "CHECK <mode> ... : Run quick state sanity checks (NORMALIZED, BASIS, TARGETS, BELL)\n";
+  std::cout << "EXPECT <P> <q> [P q ...]: Expectation value of Pauli product (I/X/Y/Z per qubit).\n";
+  std::cout << "FIDELITY <idx>   : |<idx|psi>|^2 — fidelity with computational basis state.\n";
+  std::cout << "BLOCH <j>        : Bloch sphere (x,y,z) for single-qubit reduced state of qubit j.\n";
+  std::cout << "ENTROPY <j> [k]  : Von Neumann entropy (bits) of qubit subsystem j..k.\n";
+  std::cout << "SWAP_TEST <anc> <a_start> <b_start> <n>: Estimate |<A|B>|^2 via CSWAP protocol.\n";
   std::cout << "HELP             : Show this help message.\n";
   std::cout << "QUIT             : Exit the simulator.\n";
+  std::cout << "SHOTS <n> <file> : Run circuit file n times and print measurement histogram.\n";
   std::cout << "NOISE <p>        : Set per-gate depolarizing noise probability p in [0,1]. 0 = off.\n";
   std::cout << "LOAD <file>      : Load and execute circuit commands from a file.\n";
   std::cout << "SAVE <file>      : Save the current session's commands to a file.\n";

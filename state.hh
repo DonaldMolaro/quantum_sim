@@ -197,9 +197,41 @@ public:
   /** MCX Gate (multi-controlled X): flips target when all controls are |1>. */
   State& mcx(const std::vector<int>& controls, int target);
 
+  /** RESET gate: unconditionally collapses qubit j to |0>. */
+  State& reset(int j);
+
+  /** iSWAP gate: swaps j and k and multiplies swapped components by i. */
+  State& iswap(int j, int k);
+  /** XX(θ) Ising interaction gate: exp(-i θ/2 X⊗X). */
+  State& xx(int j, int k, double theta);
+  /** YY(θ) Ising interaction gate: exp(-i θ/2 Y⊗Y). */
+  State& yy(int j, int k, double theta);
+  /** ZZ(θ) Ising interaction gate: exp(-i θ/2 Z⊗Z). */
+  State& zz(int j, int k, double theta);
+
   /** Set per-gate depolarizing noise probability (0.0 = off). */
   void set_noise_probability(double p) { noise_prob_ = p; }
   double get_noise_probability() const { return noise_prob_; }
+
+  // --- Analysis methods (do not modify state) ---
+
+  /** Bloch vector (x,y,z) for the reduced single-qubit state of qubit j. */
+  struct BlochVector { double x, y, z; };
+  BlochVector bloch(int j) const;
+
+  /**
+   * Expectation value of a Pauli product operator.
+   * ops is a list of (pauli_char, qubit) pairs; e.g. {{'Z',0},{'Z',1}} = Z⊗Z.
+   * Supported ops: 'I', 'X', 'Y', 'Z'.
+   */
+  double expect_pauli(const std::vector<std::pair<char,int>>& ops) const;
+
+  /**
+   * Von Neumann entanglement entropy (in bits) of the subsystem spanning
+   * qubits start_q..end_q (inclusive) vs the rest of the state.
+   * Restricted to subsystems of at most 10 qubits.
+   */
+  double entropy(int start_q, int end_q) const;
 
   State& controlled_Rr(int control_j, int target_k, int r);
   State& controlled_Rr_dag(int control_j, int target_k, int r);

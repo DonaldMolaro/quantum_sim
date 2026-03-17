@@ -2,6 +2,7 @@
 #include "cli/commands.hh"
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/qpe.hh"
+#include "algorithms/qec.hh"
 #include "demos/anneal_demo.hh"
 #include "demos/bernstein_vazirani_demo.hh"
 #include "demos/deutsch_jozsa_demo.hh"
@@ -38,7 +39,8 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     Grover,
     Tsp,
     QuantumCounting,
-    Qpe
+    Qpe,
+    Qec
   };
 
   static const std::unordered_map<std::string, AlgorithmCommand> kCommandMap = {
@@ -60,6 +62,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       {"QUANTUM_COUNTING", AlgorithmCommand::QuantumCounting},
       {"QPE", AlgorithmCommand::Qpe},
       {"PHASE_ESTIMATION", AlgorithmCommand::Qpe},
+      {"QEC", AlgorithmCommand::Qec},
   };
 
   std::unordered_map<std::string, AlgorithmCommand>::const_iterator it = kCommandMap.find(cmd);
@@ -506,6 +509,33 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     } catch (const std::exception& e) {
       std::cerr << "QPE error: " << e.what() << "\n";
     }
+    return true;
+  }
+
+  case AlgorithmCommand::Qec: {
+    if (tokens.size() < 2 || tokens[1] == "DEMO") {
+      tutor_note("The 3-qubit bit-flip code detects and corrects any single-qubit X error.");
+      run_qec_demo();
+      return true;
+    }
+    // QEC RUN <logical_bit> <error_qubit|-1>
+    if (tokens[1] == "RUN") {
+      int logical_bit  = cli::get_arg(tokens, 2, "QEC RUN");
+      int error_qubit  = cli::get_arg(tokens, 3, "QEC RUN");
+      if (logical_bit == -1) return true;
+      try {
+        QecResult r = run_qec(logical_bit, error_qubit);
+        std::cout << "QEC: logical=" << r.logical_input
+                  << "  error=" << (r.error_qubit == -1 ? "none" : "q" + std::to_string(r.error_qubit))
+                  << "  syndrome=" << r.syndrome
+                  << "  corrected=" << (r.corrected_qubit == -1 ? "none" : "q" + std::to_string(r.corrected_qubit))
+                  << "  result=" << (r.recovery_success ? "OK" : "FAIL") << "\n";
+      } catch (const std::exception& e) {
+        std::cerr << "QEC error: " << e.what() << "\n";
+      }
+      return true;
+    }
+    std::cerr << "Error: QEC usage: QEC DEMO | QEC RUN <logical_bit> <error_qubit|-1>\n";
     return true;
   }
   }
