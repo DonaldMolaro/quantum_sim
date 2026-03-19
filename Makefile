@@ -12,18 +12,18 @@ LIB_SOURCES = state.cc display.cc swap.cc qft.cc modular_exp.cc \
 	algorithms/grover.cc algorithms/deutsch_jozsa.cc algorithms/bernstein_vazirani.cc \
 	algorithms/qubo.cc algorithms/vqa_qaoa.cc algorithms/qaoa.cc algorithms/vqe.cc algorithms/anneal.cc \
 	algorithms/shor_classical.cc algorithms/shor_quantum.cc \
-	algorithms/latin_square.cc algorithms/qrng.cc algorithms/tsp.cc algorithms/quantum_counting.cc algorithms/simon.cc algorithms/api/grover_api.cc \
+	algorithms/latin_square.cc algorithms/qrng.cc algorithms/tsp.cc algorithms/quantum_counting.cc algorithms/simon.cc algorithms/qpe.cc algorithms/qec.cc algorithms/api/grover_api.cc \
 	algorithms/api/shor_api.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 DEMO_SOURCES = demos/latin_demo.cc demos/shor_demo.cc \
 	demos/grover_demo.cc demos/deutsch_jozsa_demo.cc demos/bernstein_vazirani_demo.cc \
 	demos/qubo_demo.cc demos/vqa_demo.cc demos/qaoa_demo.cc demos/vqe_demo.cc demos/anneal_demo.cc \
-	demos/tsp_demo.cc demos/quantum_counting_demo.cc demos/simon_demo.cc
+	demos/tsp_demo.cc demos/quantum_counting_demo.cc demos/simon_demo.cc demos/qpe_demo.cc
 DEMO_OBJECTS = $(DEMO_SOURCES:.cc=.o)
 CLI_SOURCES = cli/commands.cc cli/shell.cc cli/shell_setup.cc cli/shell_algorithms.cc cli/shell_gates.cc cli/main.cc
 DRIVER_SOURCES = $(CLI_SOURCES)
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
-TEST_SOURCES = tests/unit_tests.cc tests/unit_qft_modexp.cc tests/unit_algorithms_and_cli.cc tests/unit_cli_and_shor.cc tests/grover_test.cc tests/grover_bench.cc
+TEST_SOURCES = tests/unit_tests.cc tests/unit_qft_modexp.cc tests/unit_algorithms_and_cli.cc tests/unit_cli_and_shor.cc tests/grover_test.cc tests/grover_bench.cc tests/unit_new_features.cc
 TEST_OBJECTS = $(TEST_SOURCES:.cc=.o)
 DEPS    = $(LIB_SOURCES:.cc=.d) $(DEMO_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) $(TEST_SOURCES:.cc=.d) tests/all_tests.d
 
@@ -53,7 +53,7 @@ all_tests : tests/all_tests.o $(TEST_OBJECTS) $(LIB_NAME) $(DEMO_OBJECTS) $(TEST
 
 # Cleanup target
 clean:
-	rm -f $(LIB_OBJECTS) $(DEMO_OBJECTS) $(DRIVER_OBJECTS) $(DEPS) $(TARGETS) $(LIB_NAME) tests/all_tests.o all_tests unit_tests grover_test grover_bench tests/unit_tests.o tests/grover_test.o tests/grover_bench.o
+	rm -f $(LIB_OBJECTS) $(DEMO_OBJECTS) $(DRIVER_OBJECTS) $(DEPS) $(TARGETS) $(LIB_NAME) tests/all_tests.o all_tests unit_tests grover_test grover_bench tests/unit_tests.o tests/grover_test.o tests/grover_bench.o tests/unit_algorithms_and_cli.o tests/unit_cli_and_shor.o tests/unit_qft_modexp.o tests/unit_new_features.o
 	rm -f *.o *.d
 	find . -name "*.gcda" -delete
 	find . -name "*.gcno" -delete
@@ -131,6 +131,7 @@ install: $(LIB_NAME)
 	cp algorithms/tsp.hh dist/include/algorithms/
 	cp algorithms/quantum_counting.hh dist/include/algorithms/
 	cp algorithms/simon.hh dist/include/algorithms/
+	cp algorithms/qpe.hh dist/include/algorithms/
 	cp algorithms/api/grover_api.hh dist/include/algorithms/api/
 	cp algorithms/api/shor_api.hh dist/include/algorithms/api/
 	cp demos/latin_demo.hh dist/include/demos/

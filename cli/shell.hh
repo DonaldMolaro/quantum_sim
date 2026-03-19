@@ -8,6 +8,7 @@
 #pragma once
 #include "state.hh"
 #include <complex>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -17,9 +18,10 @@
 class QuantumShell
 {
 private:
-  // The core quantum state object we manipulate.
   std::unique_ptr<State> state;
   bool tutor_mode = false;
+  std::vector<std::string> command_history_;
+  bool loading_from_file_ = false;
   void tutor_note(const std::string& msg) const;
   void handle_command(const std::vector<std::string>& tokens);
   bool handle_setup_commands(const std::vector<std::string>& tokens, const std::string& cmd);

@@ -3,10 +3,17 @@
 #include "algorithms/qrng.hh"
 #include "cli/shell_detail.hh"
 #include "logging.hh"
+#include <algorithm>
 #include <cstdlib>
 #include <cmath>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <map>
+#include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
@@ -93,6 +100,140 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
     setenv("QSIM_RNG_SEED", seed_s.c_str(), 1);
     std::cout << "Random seed set to " << seed << ".\n";
     tutor_note("Using a fixed seed makes demos reproducible for teaching and grading.");
+    return true;
+  }
+
+  if (cmd == "SHOTS") {
+    // SHOTS <n> <circuit_file>  — run a circuit file n times, accumulate measurement histogram.
+    if (tokens.size() < 3) {
+      std::cerr << "Error: SHOTS requires <n> <circuit_file>.\n";
+      return true;
+    }
+    int n = cli::get_arg(tokens, 1, "SHOTS");
+    if (n <= 0) { std::cerr << "Error: SHOTS n must be > 0.\n"; return true; }
+    const std::string& filename = tokens[2];
+
+    // Read the circuit once.
+    std::vector<std::string> circuit_lines;
+    {
+      std::ifstream in(filename);
+      if (!in) { std::cerr << "Error: cannot open '" << filename << "'.\n"; return true; }
+      std::string line;
+      while (std::getline(in, line)) {
+        std::string trimmed = line;
+        trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
+        if (trimmed.empty() || trimmed[0] == '#') continue;
+        std::transform(trimmed.begin(), trimmed.end(), trimmed.begin(), ::toupper);
+        if (trimmed == "QUIT") break;
+        circuit_lines.push_back(trimmed);
+      }
+    }
+    if (circuit_lines.empty()) { std::cerr << "Error: circuit file is empty.\n"; return true; }
+
+    // Suppress output during shots.
+    std::streambuf* orig_cout = std::cout.rdbuf();
+    std::streambuf* orig_cerr = std::cerr.rdbuf();
+    std::ostringstream sink;
+    std::cout.rdbuf(sink.rdbuf());
+    std::cerr.rdbuf(sink.rdbuf());
+
+    std::map<std::vector<int>, int> histogram;
+    loading_from_file_ = true;
+    for (int shot = 0; shot < n; ++shot) {
+      for (const std::string& line : circuit_lines)
+        handle_command(cli::parse_command(line));
+      if (state) {
+        const std::vector<int> cbits = state->get_cbits();
+        histogram[cbits]++;
+      }
+    }
+    loading_from_file_ = false;
+    std::cout.rdbuf(orig_cout);
+    std::cerr.rdbuf(orig_cerr);
+
+    std::cout << "SHOTS " << n << " results from '" << filename << "':\n";
+    // Sort by frequency descending.
+    std::vector<std::pair<int, std::vector<int>>> sorted;
+    for (const auto& p : histogram) sorted.push_back({p.second, p.first});
+    std::sort(sorted.begin(), sorted.end(),
+              [](const std::pair<int,std::vector<int>>& a, const std::pair<int,std::vector<int>>& b){ return a.first > b.first; });
+    for (const auto& p : sorted) {
+      std::cout << "  |";
+      for (int i = static_cast<int>(p.second.size()) - 1; i >= 0; --i)
+        std::cout << p.second[i];
+      std::cout << "> : " << p.first << " (" << std::fixed << std::setprecision(1)
+                << (100.0 * p.first / n) << "%)\n";
+    }
+    tutor_note("SHOTS repeats the circuit n times; measurement statistics reveal the true probability distribution.");
+    return true;
+  }
+
+  if (cmd == "NOISE") {
+    if (tokens.size() < 2) {
+      double p = state ? state->get_noise_probability() : 0.0;
+      std::cout << "Noise probability: " << p << (p > 0.0 ? " (active)" : " (off)") << "\n";
+      return true;
+    }
+    double p = cli::get_double_arg(tokens, 1, "NOISE");
+    if (std::isnan(p) || p < 0.0 || p > 1.0) {
+      std::cerr << "Error: NOISE probability must be in [0.0, 1.0].\n";
+      return true;
+    }
+    if (state) state->set_noise_probability(p);
+    if (p == 0.0) {
+      std::cout << "Noise disabled.\n";
+    } else {
+      std::cout << "Depolarizing noise enabled: p=" << p << " per primitive gate per qubit.\n";
+      tutor_note("Each primitive gate now has a " + std::to_string(p * 100) + "% chance of applying a random Pauli error.");
+    }
+    return true;
+  }
+
+  if (cmd == "SAVE") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: SAVE requires a filename.\n";
+      return true;
+    }
+    const std::string& filename = tokens[1];
+    std::ofstream out(filename);
+    if (!out) {
+      std::cerr << "Error: cannot open '" << filename << "' for writing.\n";
+      return true;
+    }
+    for (const std::string& line : command_history_) {
+      out << line << "\n";
+    }
+    std::cout << "Circuit saved to '" << filename << "' (" << command_history_.size() << " commands).\n";
+    return true;
+  }
+
+  if (cmd == "LOAD") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: LOAD requires a filename.\n";
+      return true;
+    }
+    const std::string& filename = tokens[1];
+    std::ifstream in(filename);
+    if (!in) {
+      std::cerr << "Error: cannot open '" << filename << "' for reading.\n";
+      return true;
+    }
+    std::string line;
+    int count = 0;
+    loading_from_file_ = true;
+    while (std::getline(in, line)) {
+      // Skip blank lines and comments
+      std::string trimmed = line;
+      trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
+      if (trimmed.empty() || trimmed[0] == '#') continue;
+      std::transform(trimmed.begin(), trimmed.end(), trimmed.begin(), ::toupper);
+      if (trimmed == "QUIT") break;
+      std::cout << "LOAD> " << trimmed << "\n";
+      handle_command(cli::parse_command(trimmed));
+      ++count;
+    }
+    loading_from_file_ = false;
+    std::cout << "Loaded " << count << " commands from '" << filename << "'.\n";
     return true;
   }
 

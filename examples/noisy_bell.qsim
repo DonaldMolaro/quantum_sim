@@ -1,0 +1,23 @@
+# Noisy Bell state preparation
+#
+# Compares a noiseless Bell state to one prepared under 10% depolarizing noise.
+# In a real quantum computer every gate has some error rate; this shows
+# how noise degrades the ideal Bell state fidelity.
+
+# --- Noiseless Bell state ---
+INIT 2 0
+NOISE 0
+H 0
+CX 0 1
+DISPLAY
+CHECK BELL PHI+
+
+# --- Noisy Bell state (same circuit, p=0.10 noise) ---
+INIT 2 0
+NOISE 0.10
+SEED 42
+H 0
+CX 0 1
+DISPLAY
+# Note: CHECK BELL may now fail depending on which error was injected.
+NOISE 0

@@ -2,9 +2,16 @@
 *.o
 *.d
 quantum_sim
+all_tests
 unit_tests
 grover_test
+grover_bench
 libquantum_sim.a
+
+# Coverage artifacts
+*.gcda
+*.gcno
+*.gcov
 
 # CMake artifacts
 build/

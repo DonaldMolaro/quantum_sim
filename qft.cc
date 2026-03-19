@@ -1,47 +1,33 @@
 #include "state.hh"
+#include "internal/limits.hh"
 #include "math/bit_ops.hh"
 #include "internal/qft_utils.hh"
 #include <iostream>
+#include <unordered_map>
+
+State& State::apply_controlled_Rr(int control_j, int target_k, int r, int sign)
+{
+  ComplexNumber phase = std::exp(IMAGINARY_UNIT_I * qft_rotation_angle(r, sign));
+  for (auto& pair : state_) {
+    if (((pair.first >> control_j) & 1) && ((pair.first >> target_k) & 1)) {
+      pair.second *= phase;
+    }
+  }
+  return *this;
+}
 
 State& State::controlled_Rr(int control_j, int target_k, int r)
 {
-  // Phase applied only if both control and target bits are 1
-  ComplexNumber phase = std::exp(IMAGINARY_UNIT_I * qft_rotation_angle(r, 1));
-
-  for (auto& pair : state_) {
-    Bitstring current_b = pair.first;
-    ComplexNumber& current_a = pair.second;
-            
-    // Check if control bit (j) is 1 AND target bit (k) is 1
-    if (((current_b >> control_j) & 1) && ((current_b >> target_k) & 1)) {
-      current_a *= phase;
-    }
-  }
-  return *this;
+  return apply_controlled_Rr(control_j, target_k, r, 1);
 }
 
-/**
- * @brief Applies the controlled Inverse Phase Rotation (R_r_dag).
- * Inverse rotation phase is negative.
- */
+/** @brief Applies the controlled Inverse Phase Rotation (R_r_dag). */
 State& State::controlled_Rr_dag(int control_j, int target_k, int r)
 {
-  // Inverse phase rotation: sign of angle is negated.
-  ComplexNumber phase_dag = std::exp(IMAGINARY_UNIT_I * qft_rotation_angle(r, -1));
-        
-  for (auto& pair : state_) {
-    Bitstring current_b = pair.first;
-    ComplexNumber& current_a = pair.second;
-            
-    if (((current_b >> control_j) & 1) && ((current_b >> target_k) & 1)) {
-      current_a *= phase_dag;
-    }
-  }
-  return *this;
+  return apply_controlled_Rr(control_j, target_k, r, -1);
 }
 
 using AmplitudeMap = std::unordered_map<Bitstring, ComplexNumber>;
-const double EPSILON = 1e-9; 
 
 static QuantumState qft_direct_transform(const QuantumState& input_state,
                                          int start_qubit,
@@ -62,7 +48,7 @@ static QuantumState qft_direct_transform(const QuantumState& input_state,
       const double exponent = qft_phase_exponent(j, k, N, sign);
       const ComplexNumber phase_factor = std::exp(I * exponent);
       const ComplexNumber A_jk = A_j * overall_scale * phase_factor;
-      if (std::abs(A_jk) < EPSILON) {
+      if (std::abs(A_jk) < qsim::limits::AMPLITUDE_EPSILON) {
         continue;
       }
       const Bitstring B_new = replace_bits(current_B, start_qubit, end_qubit, k);
@@ -73,7 +59,7 @@ static QuantumState qft_direct_transform(const QuantumState& input_state,
   QuantumState output_state;
   output_state.reserve(new_state_map.size());
   for (const auto& entry : new_state_map) {
-    if (std::abs(entry.second) > EPSILON) {
+    if (std::abs(entry.second) > qsim::limits::AMPLITUDE_EPSILON) {
       output_state.push_back(entry);
     }
   }

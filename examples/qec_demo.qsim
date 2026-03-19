@@ -1,0 +1,4 @@
+# 3-Qubit Bit-Flip Quantum Error Correction Demo
+# Encodes logical |1>, injects X error on qubit 2, then measures syndrome and corrects.
+# Expected: syndrome=2 (s1=0, s2=1) -> corrects q2, recovery succeeds.
+QEC RUN 1 2

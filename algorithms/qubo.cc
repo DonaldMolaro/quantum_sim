@@ -108,16 +108,15 @@ QuboGroverResult qubo_solve_grover_threshold(int n,
   State state(n, 0);
   GroverResult grover = run_grover(state, targets, iterations);
 
+  std::unordered_set<Bitstring> target_set(targets.begin(), targets.end());
   Bitstring best = targets[0];
   double best_prob = -1.0;
   for (const auto& pair : state.get_state()) {
-    for (size_t i = 0; i < targets.size(); ++i) {
-      if (pair.first == targets[i]) {
-        const double p = std::norm(pair.second);
-        if (p > best_prob) {
-          best_prob = p;
-          best = pair.first;
-        }
+    if (target_set.count(pair.first)) {
+      const double p = std::norm(pair.second);
+      if (p > best_prob) {
+        best_prob = p;
+        best = pair.first;
       }
     }
   }

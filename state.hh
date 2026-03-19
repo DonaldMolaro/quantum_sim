@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <iosfwd>
 #include <map>
@@ -32,20 +33,29 @@ using QuantumState = std::vector<QubitAmplitudePair>;
 using IntermediateState = QuantumState; 
 
 // Global Constants
-const ComplexNumber ONE_COMPLEX(1.0, 0.0);
-const ComplexNumber IMAGINARY_UNIT_I(0.0, 1.0);
-const double ONE_OVER_SQRT_TWO = 1.0 / std::sqrt(2.0); 
+extern const ComplexNumber ONE_COMPLEX;
+extern const ComplexNumber IMAGINARY_UNIT_I;
+constexpr double ONE_OVER_SQRT_TWO = 0.7071067811865476; // 1/sqrt(2)
 
 // --- Helper Functions (used internally by gates) ---
 
 /** Reads the jth bit (b_j) of the bitstring b. */
-extern int get_jth_bit(const Bitstring& b, int j);
+inline int get_jth_bit(const Bitstring& b, int j) {
+  return (b >> j) & 1;
+}
 
 /** Flips the jth bit (b¬j). */
-extern Bitstring flip_jth_bit(const Bitstring& b, int j);
-/** Sets the jth bit of bitstring b to a specific value (0 or 1). */
+inline Bitstring flip_jth_bit(const Bitstring& b, int j) {
+  return b ^ (1ULL << j);
+}
 
-extern Bitstring set_jth_bit(const Bitstring& b, int j, int value);
+/** Sets the jth bit of bitstring b to a specific value (0 or 1). */
+inline Bitstring set_jth_bit(const Bitstring& b, int j, int value) {
+  if (value == 0)
+    return b & ~(1ULL << j);
+  else
+    return b | (1ULL << j);
+}
 
 /** Converts the Bitstring (ULL) to a padded binary string based on N qubits. */
 extern std::string bitstring_to_string(Bitstring b, int N);
@@ -77,32 +87,33 @@ private:
   // --- Core Functional Operations ---
   // These methods implement the set transformations defining quantum gates.
   /**
-   * s.map(λb, a. (b', ca)) 
+   * s.map(λb, a. (b', ca))
    * Applies a transformation independently to every element.
    */
-  void s_map(const std::function<QubitAmplitudePair(const Bitstring&, const ComplexNumber&)>& transformation_func);
+  template <typename F>
+  void s_map(F&& transformation_func) {
+    for (auto& pair : state_) {
+      pair = transformation_func(pair.first, pair.second);
+    }
+  }
   /**
    * Implements .reduceByKey(λx, y. x+ y)
    * Sums amplitudes for identical bitstrings (keys), used after flatMap.
    */
   QuantumState reduceByKey(const IntermediateState& intermediate_state) const;
   /**
-   * s.flatMap(λb, a. {set_of_pairs}) 
-   * Applies a transformation that can yield multiple resulting elements, 
+   * s.flatMap(λb, a. {set_of_pairs})
+   * Applies a transformation that can yield multiple resulting elements,
    * followed by reduction (used specifically for Hadamard).
    */
-  void s_flatMap_and_reduce(const std::function<IntermediateState(const Bitstring&, const ComplexNumber&)>& transformation_func);
-  // Helper to find or add a bitstring in the vector representation (O(N) operation)
-  QubitAmplitudePair* find_or_add(QuantumState& state, Bitstring b) {
-    // Find existing bitstring
-    for (auto& pair : state) {
-      if (pair.first == b) {
-        return &pair;
-      }
+  template <typename F>
+  void s_flatMap_and_reduce(F&& transformation_func) {
+    IntermediateState intermediate_state;
+    intermediate_state.reserve(state_.size() * 2);
+    for (const auto& pair : state_) {
+      transformation_func(pair.first, pair.second, intermediate_state);
     }
-    // Not found, add new entry with zero amplitude
-    state.push_back({b, 0.0});
-    return &state.back();
+    state_ = reduceByKey(intermediate_state);
   }
 
 public:
@@ -173,8 +184,63 @@ public:
   /*
    * Methods needed for Shor's algorithm.
    */
+  /** Sdg Gate (S†): conjugate of S, applies -i phase to |1>. */
+  State& sdg(int j);
+  /** Tdg Gate (T†): conjugate of T, applies (1-i)/sqrt(2) phase to |1>. */
+  State& tdg(int j);
+  /** P Gate (arbitrary phase): P(φ)|0>=|0>, P(φ)|1>=e^{iφ}|1>. */
+  State& p(int j, double phi);
+  /** CP Gate (Controlled Phase): applies e^{iφ} when both control and target are |1>. */
+  State& cp(int j_control, int k_target, double phi);
+  /** CSWAP Gate (Fredkin): swaps k and l when control j is |1>. */
+  State& cswap(int j_control, int k, int l);
+  /** MCX Gate (multi-controlled X): flips target when all controls are |1>. */
+  State& mcx(const std::vector<int>& controls, int target);
+
+  /** RESET gate: unconditionally collapses qubit j to |0>. */
+  State& reset(int j);
+
+  /** iSWAP gate: swaps j and k and multiplies swapped components by i. */
+  State& iswap(int j, int k);
+  /** XX(θ) Ising interaction gate: exp(-i θ/2 X⊗X). */
+  State& xx(int j, int k, double theta);
+  /** YY(θ) Ising interaction gate: exp(-i θ/2 Y⊗Y). */
+  State& yy(int j, int k, double theta);
+  /** ZZ(θ) Ising interaction gate: exp(-i θ/2 Z⊗Z). */
+  State& zz(int j, int k, double theta);
+
+  /** Set per-gate depolarizing noise probability (0.0 = off). */
+  void set_noise_probability(double p) { noise_prob_ = p; }
+  double get_noise_probability() const { return noise_prob_; }
+
+  // --- Analysis methods (do not modify state) ---
+
+  /** Bloch vector (x,y,z) for the reduced single-qubit state of qubit j. */
+  struct BlochVector { double x, y, z; };
+  BlochVector bloch(int j) const;
+
+  /**
+   * Expectation value of a Pauli product operator.
+   * ops is a list of (pauli_char, qubit) pairs; e.g. {{'Z',0},{'Z',1}} = Z⊗Z.
+   * Supported ops: 'I', 'X', 'Y', 'Z'.
+   */
+  double expect_pauli(const std::vector<std::pair<char,int>>& ops) const;
+
+  /**
+   * Von Neumann entanglement entropy (in bits) of the subsystem spanning
+   * qubits start_q..end_q (inclusive) vs the rest of the state.
+   * Restricted to subsystems of at most 10 qubits.
+   */
+  double entropy(int start_q, int end_q) const;
+
   State& controlled_Rr(int control_j, int target_k, int r);
   State& controlled_Rr_dag(int control_j, int target_k, int r);
+ private:
+  State& apply_controlled_Rr(int control_j, int target_k, int r, int sign);
+  /** Applies a stochastic Pauli error to qubit j with probability noise_prob_. */
+  void maybe_apply_depolarizing(int j);
+  double noise_prob_ = 0.0;
+ public:
   State& qft(int start_qubit, int end_qubit);
   State& iqft(int start_qubit, int end_qubit);
   State& controlled_modular_exponentiation(int control_qubit, 
@@ -190,7 +256,7 @@ public:
   double compute_probability_of_0(int j) const;
   const QuantumState& get_state() const;
   
-  void display(bool sparse = false) const;
+  void display(bool show_all = false) const;
   void display_cbits() const;
   
   /**
@@ -219,11 +285,14 @@ public:
   }
   
   /**
-   * @brief Sets the state from a new vector representation. 
+   * @brief Sets the state from a new vector representation.
    * Assumes the input vector already handles amplitude summation/uniqueness.
    */
   void set_superposition(const QuantumState& new_state) {
     state_ = new_state;
+  }
+  void set_superposition(QuantumState&& new_state) {
+    state_ = std::move(new_state);
   }
 
   /**
@@ -286,5 +355,8 @@ public:
   State& grover_oracle_Uf(Bitstring solution_w);
   State& grover_oracle_Uf_multi(const std::unordered_set<Bitstring>& solutions);
   State& grover_oracle_Uf_mask(const std::vector<uint8_t>& solution_mask);
-  State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);  
+  State& run_shor_algorithm_quantum_part(Bitstring N, Bitstring a);
+
+  /** Seed the internal RNG used by measure() and measure_all(). */
+  static void seed_rng(unsigned int seed);
 };

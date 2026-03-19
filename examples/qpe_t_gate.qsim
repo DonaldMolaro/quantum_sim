@@ -1,0 +1,8 @@
+# Quantum Phase Estimation: estimating the T gate phase
+#
+# The T gate applies e^{i*pi/4} to |1>, so the phase fraction is
+# phi = (pi/4) / (2*pi) = 1/8 = 0.125.
+# With m=4 precision bits we expect measured_int = 2 (= 1/8 * 16).
+#
+# This file demonstrates the QPE CLI command.
+QPE 4 PI/4

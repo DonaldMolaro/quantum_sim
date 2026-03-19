@@ -652,6 +652,81 @@ void test_shor_small_semiprimes() {
   }
 }
 
+// --- Negative / boundary tests ---
+
+void test_get_cbit_out_of_range() {
+    State s(1, 1);
+    s.measure_with_rng(0, 0, 0.0); // force outcome 0
+    bool threw = false;
+    try {
+        s.get_cbit(1); // index 1 is out of range for a 1-cbit register
+    } catch (const std::out_of_range&) {
+        threw = true;
+    }
+    if (!threw) {
+        throw std::runtime_error("get_cbit should throw std::out_of_range for index >= cbits size");
+    }
+}
+
+void test_get_cbit_no_classical_bits() {
+    State s(2, 0); // no classical bits
+    bool threw = false;
+    try {
+        s.get_cbit(0);
+    } catch (const std::out_of_range&) {
+        threw = true;
+    }
+    if (!threw) {
+        throw std::runtime_error("get_cbit should throw std::out_of_range when cbits is empty");
+    }
+}
+
+void test_measure_out_of_range_cbit_index_ignored() {
+    // Measuring with an out-of-range cbit_index should not throw and should
+    // leave cbits unchanged.
+    State s(1, 1);
+    s.measure_with_rng(0, 5, 0.0); // cbit_index=5 is beyond the 1-cbit register
+    // cbit 0 should still be default 0 (untouched)
+    int val = s.get_cbit(0);
+    if (val != 0) {
+        throw std::runtime_error("out-of-range cbit_index should not modify existing cbits");
+    }
+}
+
+void test_gate_on_high_qubit_index_no_throw() {
+    // Applying a gate on a qubit index beyond num_qubits should not throw;
+    // the gate operates on the bitstring bit at that position.
+    State s(2, 0);
+    s.set_basis_state(0b00, 1.0);
+    // qubit index 10 is way outside the 2-qubit register — should not crash
+    s.x(10);
+    // amplitude at bit-10 set should be non-zero
+    if (std::abs(s.get_amplitude(1ULL << 10)) < 1e-9) {
+        throw std::runtime_error("x(10) on a 2-qubit state should set bit 10 of the bitstring");
+    }
+}
+
+void test_seed_rng_deterministic() {
+    // seed_rng with the same seed should produce identical measurement outcomes.
+    State::seed_rng(42);
+    State s1(1, 1);
+    s1.set_basis_state(0b0, 1.0);
+    s1.h(0);
+    s1.measure(0, 0);
+    int result1 = s1.get_cbit(0);
+
+    State::seed_rng(42);
+    State s2(1, 1);
+    s2.set_basis_state(0b0, 1.0);
+    s2.h(0);
+    s2.measure(0, 0);
+    int result2 = s2.get_cbit(0);
+
+    if (result1 != result2) {
+        throw std::runtime_error("seed_rng: same seed should produce same measurement outcome");
+    }
+}
+
 int run_unit_tests()
 {
   bool verbose = false;
@@ -669,9 +744,15 @@ int run_unit_tests()
   if (const char* env = std::getenv("QSIM_TEST_SEED")) {
     unsigned int seed = static_cast<unsigned int>(std::strtoul(env, nullptr, 10));
     std::srand(seed);
+    State::seed_rng(seed);
   }
   State::set_default_log_stream(&std::cout);
   setenv("QSIM_GROVER_VERBOSE", "1", 1);
+  run_test("get_cbit out-of-range throws", test_get_cbit_out_of_range);
+  run_test("get_cbit no classical bits throws", test_get_cbit_no_classical_bits);
+  run_test("measure out-of-range cbit_index ignored", test_measure_out_of_range_cbit_index_ignored);
+  run_test("gate on high qubit index no throw", test_gate_on_high_qubit_index_no_throw);
+  run_test("seed_rng produces deterministic outcomes", test_seed_rng_deterministic);
   run_test("Logging levels", test_logging_levels);
   qsim_log::set_level(qsim_log::Level::Verbose);
   main_test_controlled_Rr();
