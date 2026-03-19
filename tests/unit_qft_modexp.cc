@@ -1,5 +1,6 @@
 #include "state.hh"
 #include "tests/helpers.hh"
+#include "tests/test_harness.hh"
 #include "modular_exp.hh"
 #include <cmath>
 #include <complex>
@@ -8,7 +9,7 @@
 #include <string>
 #include <vector>
 
-void run_test(const std::string& name, std::function<void()> test_func);
+using test_harness::run_test;
 
 using test_helpers::assert_complex_equal;
 using test_helpers::assert_equal;
@@ -533,4 +534,3 @@ void main_all_cme_tests() {
     
     std::cout << "------------------------------------------------------------------\n";
 }
-

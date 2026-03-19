@@ -3,6 +3,7 @@
 #include "algorithms/qec.hh"
 #include "demos/qpe_demo.hh"
 #include "tests/helpers.hh"
+#include "tests/test_harness.hh"
 #include "internal/limits.hh"
 #include <cmath>
 #include <complex>
@@ -20,18 +21,7 @@ using test_helpers::assert_amplitude_match;
 using test_helpers::assert_amplitude_magnitude;
 using test_helpers::assert_double_close;
 
-static int g_failures = 0;
-
-static void run_test(const std::string& name, std::function<void()> fn)
-{
-  try {
-    fn();
-    std::cout << "[PASS] " << name << "\n";
-  } catch (const std::exception& e) {
-    std::cerr << "[FAIL] " << name << ": " << e.what() << "\n";
-    ++g_failures;
-  }
-}
+using test_harness::run_test;
 
 static constexpr double PI = qsim::limits::PI;
 
@@ -698,90 +688,63 @@ void test_noise_y_branch_executes()
 
 int run_new_feature_tests()
 {
+  test_harness::reset_failures();
   State::set_default_log_stream(nullptr);
 
-  // Sdg tests
-  run_test("Sdg: S then Sdg is identity", test_sdg_is_s_inverse);
-  run_test("Sdg: applies -i phase to |1>", test_sdg_phase_on_one);
-  run_test("Sdg: no change on |0>", test_sdg_no_change_on_zero);
+  const test_harness::TestCase cases[] = {
+    {"Sdg: S then Sdg is identity", test_sdg_is_s_inverse},
+    {"Sdg: applies -i phase to |1>", test_sdg_phase_on_one},
+    {"Sdg: no change on |0>", test_sdg_no_change_on_zero},
+    {"Tdg: T then Tdg is identity", test_tdg_is_t_inverse},
+    {"Tdg: correct phase on |1>", test_tdg_phase_on_one},
+    {"P: identity on |0>", test_p_gate_identity_on_zero},
+    {"P: correct phase on |1>", test_p_gate_applies_phase_to_one},
+    {"P(pi/2) == S", test_p_equals_s_at_pi_over_2},
+    {"CP: no effect when control=0", test_cp_no_effect_when_control_zero},
+    {"CP: applies phase when both |1>", test_cp_applies_phase_when_both_one},
+    {"CSWAP: no swap when control=0", test_cswap_no_swap_when_control_zero},
+    {"CSWAP: swaps when control=1", test_cswap_swaps_when_control_one},
+    {"MCX: 1 control = CX", test_mcx_single_control_same_as_cx},
+    {"MCX: 2 controls = CCX", test_mcx_two_controls_same_as_ccx},
+    {"MCX: 3 controls flip only when all set", test_mcx_three_controls_flips_only_when_all_set},
+    {"Noise: zero noise is off", test_noise_zero_is_off},
+    {"Noise: set/get probability", test_noise_set_and_get},
+    {"Noise: 100% noise degrades state", test_noise_high_degrades_state},
+    {"QPE: exact phase pi/2 (m=4)", test_qpe_exact_phase_pi_over_2},
+    {"QPE: exact phase pi/4 (m=4)", test_qpe_exact_phase_pi_over_4},
+    {"QPE: zero phase", test_qpe_zero_phase},
+    {"QPE: more bits => better precision", test_qpe_increases_precision_with_more_bits},
+    {"QPE: m=1 edge case", test_qpe_m_1},
+    {"QPE: invalid m throws", test_qpe_invalid_m},
+    {"QPE: demo runs without crash", test_qpe_demo_runs},
+    {"LOAD/SAVE: round-trip circuit", test_load_save_round_trip},
+    {"RESET: |1> -> |0>", test_reset_from_one},
+    {"RESET: superposition -> |0>", test_reset_from_superposition},
+    {"RESET: preserves other qubit", test_reset_preserves_other_qubit},
+    {"iSWAP: same bits unchanged", test_iswap_same_bits_unchanged},
+    {"iSWAP: swaps and multiplies by i", test_iswap_swaps_and_multiplies_i},
+    {"iSWAP: squared is SWAP (up to phase)", test_iswap_squared_is_swap},
+    {"XX(0) is identity", test_xx_zero_angle_is_identity},
+    {"XX(pi/2) creates entanglement", test_xx_pi_over_2_is_maximal_entangler},
+    {"YY(pi/2) creates entanglement", test_yy_pi_over_2_is_maximal_entangler},
+    {"ZZ is diagonal gate", test_zz_diagonal},
+    {"Bloch: |0> -> (0,0,+1)", test_bloch_zero_state},
+    {"Bloch: |1> -> (0,0,-1)", test_bloch_one_state},
+    {"Bloch: |+> -> (1,0,0)", test_bloch_plus_state},
+    {"Expect: <Z>|0> = +1", test_expect_z_on_zero},
+    {"Expect: <Z>|1> = -1", test_expect_z_on_one},
+    {"Expect: <X>|+> = +1", test_expect_x_on_plus},
+    {"Expect: <Y>|1> = 0", test_expect_y_on_one_is_zero},
+    {"Entropy: product state = 0", test_entropy_product_state_is_zero},
+    {"Entropy: Bell state = 1 bit", test_entropy_bell_state_is_one_bit},
+    {"QEC: no error logical=0", test_qec_no_error_logical_0},
+    {"QEC: no error logical=1", test_qec_no_error_logical_1},
+    {"QEC: corrects each qubit", test_qec_corrects_each_qubit},
+    {"QEC: invalid args throw", test_qec_invalid_args},
+    {"QEC: demo runs without crash", test_qec_demo_runs},
+    {"Noise: Y branch executes", test_noise_y_branch_executes},
+  };
+  test_harness::run_cases(cases, sizeof(cases) / sizeof(cases[0]));
 
-  // Tdg tests
-  run_test("Tdg: T then Tdg is identity", test_tdg_is_t_inverse);
-  run_test("Tdg: correct phase on |1>", test_tdg_phase_on_one);
-
-  // P gate tests
-  run_test("P: identity on |0>", test_p_gate_identity_on_zero);
-  run_test("P: correct phase on |1>", test_p_gate_applies_phase_to_one);
-  run_test("P(pi/2) == S", test_p_equals_s_at_pi_over_2);
-
-  // CP gate tests
-  run_test("CP: no effect when control=0", test_cp_no_effect_when_control_zero);
-  run_test("CP: applies phase when both |1>", test_cp_applies_phase_when_both_one);
-
-  // CSWAP tests
-  run_test("CSWAP: no swap when control=0", test_cswap_no_swap_when_control_zero);
-  run_test("CSWAP: swaps when control=1", test_cswap_swaps_when_control_one);
-
-  // MCX tests
-  run_test("MCX: 1 control = CX", test_mcx_single_control_same_as_cx);
-  run_test("MCX: 2 controls = CCX", test_mcx_two_controls_same_as_ccx);
-  run_test("MCX: 3 controls flip only when all set", test_mcx_three_controls_flips_only_when_all_set);
-
-  // Noise model tests
-  run_test("Noise: zero noise is off", test_noise_zero_is_off);
-  run_test("Noise: set/get probability", test_noise_set_and_get);
-  run_test("Noise: 100% noise degrades state", test_noise_high_degrades_state);
-
-  // QPE tests
-  run_test("QPE: exact phase pi/2 (m=4)", test_qpe_exact_phase_pi_over_2);
-  run_test("QPE: exact phase pi/4 (m=4)", test_qpe_exact_phase_pi_over_4);
-  run_test("QPE: zero phase", test_qpe_zero_phase);
-  run_test("QPE: more bits => better precision", test_qpe_increases_precision_with_more_bits);
-  run_test("QPE: m=1 edge case", test_qpe_m_1);
-  run_test("QPE: invalid m throws", test_qpe_invalid_m);
-  run_test("QPE: demo runs without crash", test_qpe_demo_runs);
-
-  // LOAD/SAVE scripting test
-  run_test("LOAD/SAVE: round-trip circuit", test_load_save_round_trip);
-
-  // RESET gate tests
-  run_test("RESET: |1> -> |0>", test_reset_from_one);
-  run_test("RESET: superposition -> |0>", test_reset_from_superposition);
-  run_test("RESET: preserves other qubit", test_reset_preserves_other_qubit);
-
-  // iSWAP gate tests
-  run_test("iSWAP: same bits unchanged", test_iswap_same_bits_unchanged);
-  run_test("iSWAP: swaps and multiplies by i", test_iswap_swaps_and_multiplies_i);
-  run_test("iSWAP: squared is SWAP (up to phase)", test_iswap_squared_is_swap);
-
-  // Ising gates tests
-  run_test("XX(0) is identity", test_xx_zero_angle_is_identity);
-  run_test("XX(pi/2) creates entanglement", test_xx_pi_over_2_is_maximal_entangler);
-  run_test("YY(pi/2) creates entanglement", test_yy_pi_over_2_is_maximal_entangler);
-  run_test("ZZ is diagonal gate", test_zz_diagonal);
-
-  // Bloch vector tests
-  run_test("Bloch: |0> -> (0,0,+1)", test_bloch_zero_state);
-  run_test("Bloch: |1> -> (0,0,-1)", test_bloch_one_state);
-  run_test("Bloch: |+> -> (1,0,0)", test_bloch_plus_state);
-
-  // expect_pauli tests
-  run_test("Expect: <Z>|0> = +1", test_expect_z_on_zero);
-  run_test("Expect: <Z>|1> = -1", test_expect_z_on_one);
-  run_test("Expect: <X>|+> = +1", test_expect_x_on_plus);
-  run_test("Expect: <Y>|1> = 0", test_expect_y_on_one_is_zero);
-
-  // Entropy tests
-  run_test("Entropy: product state = 0", test_entropy_product_state_is_zero);
-  run_test("Entropy: Bell state = 1 bit", test_entropy_bell_state_is_one_bit);
-
-  // QEC tests
-  run_test("QEC: no error logical=0", test_qec_no_error_logical_0);
-  run_test("QEC: no error logical=1", test_qec_no_error_logical_1);
-  run_test("QEC: corrects each qubit", test_qec_corrects_each_qubit);
-  run_test("QEC: invalid args throw", test_qec_invalid_args);
-  run_test("QEC: demo runs without crash", test_qec_demo_runs);
-  run_test("Noise: Y branch executes", test_noise_y_branch_executes);
-
-  return g_failures;
+  return test_harness::failure_count();
 }

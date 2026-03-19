@@ -1,5 +1,6 @@
 #include "state.hh"
 #include "tests/helpers.hh"
+#include "tests/test_harness.hh"
 #include "tests/unit_algorithms_and_cli.hh"
 #include "tests/unit_qft_modexp.hh"
 #include "algorithms/qrng.hh"
@@ -36,22 +37,7 @@
 
 const ComplexNumber I(0.0, 1.0); // Imaginary unit i
 
-// --- Utility Functions ---
-
-static int g_failures = 0;
-
-void run_test(const std::string& name, std::function<void()> test_func) {
-    try {
-        test_func();
-        std::cout << "[PASS] " << name << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "[FAIL] " << name << ": " << e.what() << std::endl;
-        ++g_failures;
-    } catch (...) {
-        std::cerr << "[FAIL] " << name << ": Unknown error" << std::endl;
-        ++g_failures;
-    }
-}
+using test_harness::run_test;
 
 using test_helpers::assert_complex_equal;
 using test_helpers::assert_complex_close;
@@ -729,32 +715,74 @@ void test_seed_rng_deterministic() {
 
 int run_unit_tests()
 {
-  bool verbose = false;
-  if (const char* env = std::getenv("QSIM_TEST_VERBOSE")) {
-    verbose = (env[0] != '\0' && env[0] != '0');
-  }
-  bool slow = false;
-  if (const char* env = std::getenv("QSIM_SLOW_TESTS")) {
-    slow = (env[0] != '\0' && env[0] != '0');
-  }
-  bool demo = false;
-  if (const char* env = std::getenv("QSIM_DEMO_TESTS")) {
-    demo = (env[0] != '\0' && env[0] != '0');
-  }
-  if (const char* env = std::getenv("QSIM_TEST_SEED")) {
-    unsigned int seed = static_cast<unsigned int>(std::strtoul(env, nullptr, 10));
+  test_harness::reset_failures();
+  const bool verbose = test_harness::env_flag("QSIM_TEST_VERBOSE");
+  const bool slow = test_harness::env_flag("QSIM_SLOW_TESTS");
+  const bool demo = test_harness::env_flag("QSIM_DEMO_TESTS");
+  unsigned int seed = 0;
+  if (test_harness::env_unsigned("QSIM_TEST_SEED", seed)) {
     std::srand(seed);
     State::seed_rng(seed);
   }
   State::set_default_log_stream(&std::cout);
   setenv("QSIM_GROVER_VERBOSE", "1", 1);
-  run_test("get_cbit out-of-range throws", test_get_cbit_out_of_range);
-  run_test("get_cbit no classical bits throws", test_get_cbit_no_classical_bits);
-  run_test("measure out-of-range cbit_index ignored", test_measure_out_of_range_cbit_index_ignored);
-  run_test("gate on high qubit index no throw", test_gate_on_high_qubit_index_no_throw);
-  run_test("seed_rng produces deterministic outcomes", test_seed_rng_deterministic);
+  const test_harness::TestCase setup_cases[] = {
+    {"get_cbit out-of-range throws", test_get_cbit_out_of_range},
+    {"get_cbit no classical bits throws", test_get_cbit_no_classical_bits},
+    {"measure out-of-range cbit_index ignored", test_measure_out_of_range_cbit_index_ignored},
+    {"gate on high qubit index no throw", test_gate_on_high_qubit_index_no_throw},
+    {"seed_rng produces deterministic outcomes", test_seed_rng_deterministic},
+  };
+  test_harness::run_cases(setup_cases, sizeof(setup_cases) / sizeof(setup_cases[0]));
+
   run_test("Logging levels", test_logging_levels);
   qsim_log::set_level(qsim_log::Level::Verbose);
+
+  const test_harness::TestCase cases[] = {
+    {"Mod arithmetic (gcd)", test_mod_arith_gcd_basic},
+    {"Mod arithmetic (mod_pow)", test_mod_arith_mod_pow_edges},
+    {"QRNG edge cases", test_qrng_edges},
+    {"Deutsch-Jozsa constant oracles", test_deutsch_jozsa_constant_oracles},
+    {"Deutsch-Jozsa balanced oracles", test_deutsch_jozsa_balanced_oracles},
+    {"Deutsch-Jozsa oracle helpers", test_deutsch_jozsa_oracle_helpers},
+    {"Bernstein-Vazirani recovery", test_bernstein_vazirani_secret_recovery},
+    {"Bernstein-Vazirani errors", test_bernstein_vazirani_errors},
+    {"QUBO exact solver", test_qubo_exact_solver},
+    {"QUBO Grover threshold", test_qubo_grover_threshold_solver},
+    {"QUBO error paths", test_qubo_error_paths},
+    {"TSP QUBO + exact solver", test_tsp_qubo_and_exact_solver},
+    {"TSP demo paths", test_tsp_demo_paths},
+    {"Quantum counting paths", test_quantum_counting_paths},
+    {"Quantum counting demo paths", test_quantum_counting_demo_paths},
+    {"Simon paths", test_simon_paths},
+    {"Simon demo paths", test_simon_demo_paths},
+    {"VQA QAOA good candidate", test_vqa_qaoa_finds_good_candidate},
+    {"VQA QAOA improves objective", test_vqa_qaoa_improves_over_initial_state},
+    {"VQA QAOA error paths", test_vqa_qaoa_error_paths},
+    {"VQA QAOA shot mode path", test_vqa_qaoa_shot_mode_path},
+    {"QAOA wrapper paths", test_qaoa_wrapper_paths},
+    {"QAOA demo paths", test_qaoa_demo_paths},
+    {"VQE single-qubit ground state", test_vqe_single_qubit_ground_state},
+    {"VQE expectation Pauli terms", test_vqe_expectation_pauli_terms},
+    {"VQE error and edge paths", test_vqe_error_and_edge_paths},
+    {"Anneal SA finds good candidate", test_anneal_sa_finds_good_candidate},
+    {"Anneal SQA finds good candidate", test_anneal_sqa_finds_good_candidate},
+    {"Anneal option + parsing paths", test_anneal_options_and_parsing},
+    {"Anneal SQA improvement branch", test_anneal_sqa_improvement_branch},
+    {"Grover search helpers", test_grover_search_helpers},
+    {"Grover API errors", test_grover_api_errors},
+    {"Grover auto-tuned paths", test_grover_auto_tuned_paths},
+    {"SHOTS command histogram", test_shots_command_histogram},
+    {"Display output paths", test_display_output_paths},
+    {"QFT invalid ranges", test_qft_invalid_ranges},
+    {"QFT tiny amplitude continue", test_qft_tiny_amplitude_continue},
+    {"Measurement branches", test_measure_branches},
+    {"CLI command parsing", test_cli_command_parsing},
+    {"Latin square validations", test_latin_square_validations},
+    {"Latin square invalid row0", test_latin_square_invalid_row0},
+    {"Shor API paths", test_shor_api_paths},
+  };
+  test_harness::run_cases(cases, sizeof(cases) / sizeof(cases[0]));
   main_test_controlled_Rr();
   main_test_controlled_Rr_dag();
   main_test_qft();
@@ -762,78 +790,36 @@ int run_unit_tests()
   main_all_cme_tests();
   main_core_gate_tests();
   main_qft_tests();
-  run_test("Mod arithmetic (gcd)", test_mod_arith_gcd_basic);
-  run_test("Mod arithmetic (mod_pow)", test_mod_arith_mod_pow_edges);
-  run_test("QRNG edge cases", test_qrng_edges);
-  run_test("Deutsch-Jozsa constant oracles", test_deutsch_jozsa_constant_oracles);
-  run_test("Deutsch-Jozsa balanced oracles", test_deutsch_jozsa_balanced_oracles);
-  run_test("Deutsch-Jozsa oracle helpers", test_deutsch_jozsa_oracle_helpers);
-  run_test("Bernstein-Vazirani recovery", test_bernstein_vazirani_secret_recovery);
-  run_test("Bernstein-Vazirani errors", test_bernstein_vazirani_errors);
-  run_test("QUBO exact solver", test_qubo_exact_solver);
-  run_test("QUBO Grover threshold", test_qubo_grover_threshold_solver);
-  run_test("QUBO error paths", test_qubo_error_paths);
-  run_test("TSP QUBO + exact solver", test_tsp_qubo_and_exact_solver);
-  run_test("TSP demo paths", test_tsp_demo_paths);
-  run_test("Quantum counting paths", test_quantum_counting_paths);
-  run_test("Quantum counting demo paths", test_quantum_counting_demo_paths);
-  run_test("Simon paths", test_simon_paths);
-  run_test("Simon demo paths", test_simon_demo_paths);
-  run_test("VQA QAOA good candidate", test_vqa_qaoa_finds_good_candidate);
-  run_test("VQA QAOA improves objective", test_vqa_qaoa_improves_over_initial_state);
-  run_test("VQA QAOA error paths", test_vqa_qaoa_error_paths);
-  run_test("VQA QAOA shot mode path", test_vqa_qaoa_shot_mode_path);
-  run_test("QAOA wrapper paths", test_qaoa_wrapper_paths);
-  run_test("QAOA demo paths", test_qaoa_demo_paths);
-  run_test("VQE single-qubit ground state", test_vqe_single_qubit_ground_state);
-  run_test("VQE expectation Pauli terms", test_vqe_expectation_pauli_terms);
-  run_test("VQE error and edge paths", test_vqe_error_and_edge_paths);
-  run_test("Anneal SA finds good candidate", test_anneal_sa_finds_good_candidate);
-  run_test("Anneal SQA finds good candidate", test_anneal_sqa_finds_good_candidate);
-  run_test("Anneal option + parsing paths", test_anneal_options_and_parsing);
-  run_test("Anneal SQA improvement branch", test_anneal_sqa_improvement_branch);
-  run_test("Grover search helpers", test_grover_search_helpers);
-  run_test("Grover API errors", test_grover_api_errors);
-  run_test("Grover auto-tuned paths", test_grover_auto_tuned_paths);
-  run_test("SHOTS command histogram", test_shots_command_histogram);
-  run_test("Display output paths", test_display_output_paths);
-  run_test("QFT invalid ranges", test_qft_invalid_ranges);
-  run_test("QFT tiny amplitude continue", test_qft_tiny_amplitude_continue);
-  run_test("Measurement branches", test_measure_branches);
-  run_test("CLI command parsing", test_cli_command_parsing);
-  run_test("Latin square validations", test_latin_square_validations);
   if (demo) {
     run_test("Latin square forced measurement", test_latin_square_demo_forced_measure);
   } else {
-    std::cout << "Latin square demo tests skipped. Set QSIM_DEMO_TESTS=1 to run them.\n";
+    test_harness::print_skip("Latin square demo tests", "Set QSIM_DEMO_TESTS=1 to run them.");
   }
-  run_test("Latin square invalid row0", test_latin_square_invalid_row0);
   if (demo) {
     run_test("Latin square count/print", test_latin_square_count_print);
   } else {
-    std::cout << "Latin square demo tests skipped. Set QSIM_DEMO_TESTS=1 to run them.\n";
+    test_harness::print_skip("Latin square demo tests", "Set QSIM_DEMO_TESTS=1 to run them.");
   }
-  run_test("Shor API paths", test_shor_api_paths);
   if (slow) {
     run_test("Shor classical estimate_order", test_shor_classical_estimate_order);
     run_test("Shor quantum free function", test_shor_quantum_free_function_paths);
   } else {
-    std::cout << "Shor classical/quantum helper tests skipped. Set QSIM_SLOW_TESTS=1 to run them.\n";
+    test_harness::print_skip("Shor classical/quantum helper tests", "Set QSIM_SLOW_TESTS=1 to run them.");
   }
   if (demo) {
     run_test("Shor demo branches", test_shor_demo_branches);
     run_test("Algorithm demo wrappers", test_algorithm_demo_wrappers);
   } else {
-    std::cout << "Shor demo branches skipped. Set QSIM_DEMO_TESTS=1 to run them.\n";
+    test_harness::print_skip("Shor demo branches", "Set QSIM_DEMO_TESTS=1 to run them.");
   }
   if (verbose && slow) {
     main_shor_tests();
     run_test("Small semiprimes order-finding (Shor)", test_shor_small_semiprimes);
   } else if (verbose) {
-    std::cout << "Shor heavy tests skipped. Set QSIM_SLOW_TESTS=1 to run them.\n";
+    test_harness::print_skip("Shor heavy tests", "Set QSIM_SLOW_TESTS=1 to run them.");
   } else {
-    std::cout << "Shor tests skipped. Set QSIM_TEST_VERBOSE=1 to run them.\n";
+    test_harness::print_skip("Shor tests", "Set QSIM_TEST_VERBOSE=1 to run them.");
   }
 
-  return g_failures;
+  return test_harness::failure_count();
 }
