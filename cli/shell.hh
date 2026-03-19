@@ -24,6 +24,12 @@ private:
   bool loading_from_file_ = false;
   void tutor_note(const std::string& msg) const;
   void handle_command(const std::vector<std::string>& tokens);
+  void print_help_summary();
+  void print_help_topics();
+  void print_help_gates();
+  void print_help_algorithms();
+  void print_help_utility();
+  void print_help_all();
   bool handle_setup_commands(const std::vector<std::string>& tokens, const std::string& cmd);
   bool handle_algorithm_commands(const std::vector<std::string>& tokens, const std::string& cmd);
   bool handle_single_qubit_commands(const std::vector<std::string>& tokens, const std::string& cmd);
@@ -31,6 +37,6 @@ private:
   bool handle_multi_qubit_commands(const std::vector<std::string>& tokens, const std::string& cmd);
   bool handle_measurement_and_display_commands(const std::vector<std::string>& tokens, const std::string& cmd);
 public:
-  void print_help();
+  void print_help(const std::vector<std::string>& tokens);
   void run();
 };

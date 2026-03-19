@@ -43,10 +43,113 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   if (handle_parametric_gate_commands(tokens, cmd)) return;
   if (handle_multi_qubit_commands(tokens, cmd)) return;
   if (handle_measurement_and_display_commands(tokens, cmd)) return;
-  std::cout << "Unknown command: " << cmd << ". Use HELP for a list of commands.\n";
+  std::cout << "Unknown command: " << cmd << ". Use HELP TOPICS or HELP ALL.\n";
 }
 
-void QuantumShell::print_help()
+void QuantumShell::print_help_summary()
+{
+  std::cout << "\n--- Quantum Simulator ---\n";
+  std::cout << "Start here:\n";
+  std::cout << "  INIT 2 2        create 2 qubits and 2 classical bits\n";
+  std::cout << "  H 0             put q0 into superposition\n";
+  std::cout << "  CX 0 1          entangle q0 and q1\n";
+  std::cout << "  MEASURE 0 0     measure q0 into c0\n";
+  std::cout << "  DISPLAY         show amplitudes and classical bits\n";
+  std::cout << "\nCommon tasks:\n";
+  std::cout << "  Gates      : H X Y Z S T RX RY RZ CX CZ SWAP CCX\n";
+  std::cout << "  Algorithms : GROVER BV DEUTSCH_JOZSA SIMON SHOR QPE QCOUNT VQA VQE ANNEAL\n";
+  std::cout << "  Utilities  : CHECK EXPECT BLOCH ENTROPY SHOTS LOAD SAVE SEED VERBOSE TUTOR\n";
+  std::cout << "\nHelp topics:\n";
+  std::cout << "  HELP TOPICS      list help sections\n";
+  std::cout << "  HELP GATES       gate reference\n";
+  std::cout << "  HELP ALGORITHMS  algorithm commands\n";
+  std::cout << "  HELP UTILITY     measurement, checks, files, randomness\n";
+  std::cout << "  HELP ALL         full command reference\n";
+  std::cout << "\nTip: qubit indexing is little-endian, so q0 is the least-significant bit.\n";
+  std::cout << "-------------------------\n";
+}
+
+void QuantumShell::print_help_topics()
+{
+  std::cout << "\nHelp topics:\n";
+  std::cout << "  HELP             short getting-started guide\n";
+  std::cout << "  HELP TOPICS      this topic list\n";
+  std::cout << "  HELP GATES       gate syntax and angle notes\n";
+  std::cout << "  HELP ALGORITHMS  demos and higher-level commands\n";
+  std::cout << "  HELP UTILITY     measurement, display, files, noise, RNG\n";
+  std::cout << "  HELP ALL         full reference\n";
+}
+
+void QuantumShell::print_help_gates()
+{
+  std::cout << "\n[Gates]\n";
+  std::cout << "Single-qubit:\n";
+  std::cout << "  H <j>   X <j>   Y <j>   Z <j>   S <j>   SDG <j>   T <j>   TDG <j>\n";
+  std::cout << "  P <j> <phi>\n";
+  std::cout << "  RX <j> <theta>   RY <j> <theta>   RZ <j> <theta>\n";
+  std::cout << "  RU <j> <theta> <phi> <lambda>\n";
+  std::cout << "Multi-qubit:\n";
+  std::cout << "  CX/CNOT <c> <t>   CZ <c> <t>   CY <c> <t>   CH <c> <t>\n";
+  std::cout << "  CRX/CRY/CRZ <c> <t> <theta>   CP <c> <t> <phi>   CU <c> <t> <th> <ph> <la>\n";
+  std::cout << "  CCX/TOFFOLI <c1> <c2> <t>   MCX <c1> [c2 ...] <t>\n";
+  std::cout << "  SWAP <j> <k>   ISWAP <j> <k>   CSWAP/FREDKIN <c> <a> <b>\n";
+  std::cout << "  XX <j> <k> <theta>   YY <j> <k> <theta>   ZZ <j> <k> <theta>\n";
+  std::cout << "Angles:\n";
+  std::cout << "  Radians by default. Constants: PI PI/2 PI/4 TAU. Degrees: append DEG.\n";
+  std::cout << "  Examples: RX 0 PI/2   RY 1 45 DEG   RZ 0 -PI/4\n";
+}
+
+void QuantumShell::print_help_algorithms()
+{
+  std::cout << "\n[Algorithms]\n";
+  std::cout << "Search and oracles:\n";
+  std::cout << "  GROVER <targets...>\n";
+  std::cout << "  GROVER AUTO <n> <count_iters> <targets...>\n";
+  std::cout << "  DEUTSCH_JOZSA <n> <CONST0|CONST1|BALANCED_XOR0|BALANCED_PARITY>\n";
+  std::cout << "  BV <n> <secret> [bias]\n";
+  std::cout << "  SIMON DEMO\n";
+  std::cout << "  SIMON <n> <secret> [shots]\n";
+  std::cout << "Factoring and phase estimation:\n";
+  std::cout << "  SHOR <N>\n";
+  std::cout << "  QPE DEMO\n";
+  std::cout << "  QPE <m> <phase>\n";
+  std::cout << "  QCOUNT DEMO\n";
+  std::cout << "  QCOUNT RUN <n> <iters> <t1> [t2 ...]\n";
+  std::cout << "Optimization and annealing:\n";
+  std::cout << "  QUBO DEMO\n";
+  std::cout << "  QUBO EXACT <n> <n*n matrix entries>\n";
+  std::cout << "  QUBO GROVER <n> <threshold> <iterations> <n*n matrix entries>\n";
+  std::cout << "  QAOA DEMO   |   VQA DEMO\n";
+  std::cout << "  QAOA QUBO <n> <p> <shots> <iters> <step> <entries...>\n";
+  std::cout << "  VQA QAOA <n> <p> <shots> <iters> <step> <entries...>\n";
+  std::cout << "  VQE DEMO\n";
+  std::cout << "  VQE RUN <n> <layers> <iters> <step> <shots> <terms> ...\n";
+  std::cout << "  ANNEAL DEMO\n";
+  std::cout << "  ANNEAL QUBO <SA|SQA> <n> <steps> <sweeps> <beta_start> <beta_end> <replicas> <entries...>\n";
+  std::cout << "Other demos:\n";
+  std::cout << "  TSP DEMO   |   TSP EXACT <n> <penalty> <distance entries...>\n";
+  std::cout << "  QEC DEMO   |   QEC RUN <logical_bit> <error_qubit>\n";
+  std::cout << "  LATIN [iters]   LATIN DEMO [iters] [r0 r1 r2]   LATIN COUNT [r0 r1 r2]\n";
+}
+
+void QuantumShell::print_help_utility()
+{
+  std::cout << "\n[Utility]\n";
+  std::cout << "State and measurement:\n";
+  std::cout << "  INIT <n> [c]   MEASURE <q> <c>   RESET <q>   IF <c> <gate...>\n";
+  std::cout << "  DISPLAY   DISPLAY ALL   CHECK <mode> ...\n";
+  std::cout << "Inspection:\n";
+  std::cout << "  EXPECT <P> <q> [P q ...]   FIDELITY <idx>   BLOCH <q>   ENTROPY <j> [k]\n";
+  std::cout << "Files and repeated runs:\n";
+  std::cout << "  LOAD <file>   SAVE <file>   SHOTS <n> <file>\n";
+  std::cout << "Runtime controls:\n";
+  std::cout << "  VERBOSE <QUIET|NORMAL|VERBOSE|0|1|2>\n";
+  std::cout << "  TUTOR <ON|OFF>   SEED <n>   NOISE <p>   QFTMODE <DIRECT|GATE>\n";
+  std::cout << "Randomness:\n";
+  std::cout << "  QRNG <n> [count]\n";
+}
+
+void QuantumShell::print_help_all()
 {
   std::cout << "\n--- Quantum Simulator Commands ---\n";
   std::cout << "\n[Initialization]\n";
@@ -138,7 +241,8 @@ void QuantumShell::print_help()
   std::cout << "BLOCH <j>        : Bloch sphere (x,y,z) for single-qubit reduced state of qubit j.\n";
   std::cout << "ENTROPY <j> [k]  : Von Neumann entropy (bits) of qubit subsystem j..k.\n";
   std::cout << "SWAP_TEST <anc> <a_start> <b_start> <n>: Estimate |<A|B>|^2 via CSWAP protocol.\n";
-  std::cout << "HELP             : Show this help message.\n";
+  std::cout << "HELP             : Show the short help message.\n";
+  std::cout << "HELP ALL         : Show the full command reference.\n";
   std::cout << "QUIT             : Exit the simulator.\n";
   std::cout << "SHOTS <n> <file> : Run circuit file n times and print measurement histogram.\n";
   std::cout << "NOISE <p>        : Set per-gate depolarizing noise probability p in [0,1]. 0 = off.\n";
@@ -154,11 +258,34 @@ void QuantumShell::print_help()
   std::cout << "----------------------------------\n";
 }
 
+void QuantumShell::print_help(const std::vector<std::string>& tokens)
+{
+  if (tokens.size() <= 1) {
+    print_help_summary();
+    return;
+  }
+
+  const std::string topic = tokens[1];
+  if (topic == "TOPICS") {
+    print_help_topics();
+  } else if (topic == "GATES") {
+    print_help_gates();
+  } else if (topic == "ALGORITHMS") {
+    print_help_algorithms();
+  } else if (topic == "UTILITY") {
+    print_help_utility();
+  } else if (topic == "ALL") {
+    print_help_all();
+  } else {
+    std::cout << "Unknown help topic: " << topic << ". Use HELP TOPICS.\n";
+  }
+}
+
 void QuantumShell::run()
 {
   State::set_default_log_stream(&std::cout);
   qsim_log::set_stream(&std::cout);
-  print_help();
+  print_help_summary();
   std::string input_line;
   while (true) {
     std::cout << "QSIM> ";
@@ -169,12 +296,13 @@ void QuantumShell::run()
 
     std::transform(input_line.begin(), input_line.end(), input_line.begin(), ::toupper);
 
-    if (input_line == "HELP") {
-      print_help();
+    std::vector<std::string> tokens = cli::parse_command(input_line);
+    if (!tokens.empty() && tokens[0] == "HELP") {
+      print_help(tokens);
       continue;
     }
 
-    handle_command(cli::parse_command(input_line));
+    handle_command(tokens);
   }
   std::cout << "Exiting simulator.\n";
 }
