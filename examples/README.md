@@ -25,6 +25,7 @@ protocols and algorithms supported by the simulator.
 - `glossary.md`: key terms mapped to classical intuition
 - `visual_walkthroughs.md`: diagrammed dataflow and state-snapshot intuition
 - `debugging.md`: common mistakes and fast validation checks
+- `bomb_detection.md`: hand-tooled interaction-free measurement walkthrough
 - `performance_scaling.md`: algorithm complexity, memory, and practical limits
 - `api_quickstart.md`: minimal C++ library usage patterns
 - `vqa_qaoa.md`: VQA/QAOA optimization of QUBO instances
