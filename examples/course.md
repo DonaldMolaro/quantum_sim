@@ -128,13 +128,15 @@ You should see two entries with equal amplitude (≈0.7071) and equal probabilit
 (0.5). Now measure and watch the state collapse:
 
 ```
+INIT 1 1
+H 0
 MEASURE 0 0
 DISPLAY
 ```
 
 The state is now either `|0>` or `|1>` — the superposition is gone. Run this
-several times (using `INIT 1` then `H 0` each time) to see that the outcome is
-random but averaged 50/50.
+several times (using `INIT 1 1` then `H 0` each time) to see that the outcome
+is random but averaged 50/50.
 
 Compare with what H does to `|1>`:
 
@@ -958,42 +960,21 @@ N=2^n). Measuring then gives a clue about r.
 
 ## 9.3 Simulator Experiment: QFT on Uniform Superposition
 
-```
-INIT 4
-QFT 0 3
-DISPLAY
-```
+The current CLI does **not** expose standalone `QFT` / `IQFT` commands even
+though the simulator implements QFT internally. Today you observe QFT behavior
+through algorithms that use it, such as `QPE`, `QCOUNT`, and `SHOR`, or
+programmatically through the C++ API.
 
-Starting from `|0000>` (which is a uniform superposition in the "frequency domain"),
-the QFT produces a single peak at `|0000>` in the "time domain." This is the
-quantum analog of "DC component only."
-
-Try a basis state input:
+For a CLI-scale experiment, use quantum counting, which applies phase
+estimation internally:
 
 ```
-INIT 4
-X 0
-QFT 0 3
-DISPLAY
+QCOUNT RUN 3 6 1 5
 ```
 
-The QFT of a single basis state creates a uniform superposition with a phase
-gradient — like the DFT of a single spike.
-
-Verify QFT is its own inverse (up to ordering):
-
-```
-INIT 4
-H 0
-H 1
-H 2
-H 3
-QFT 0 3
-IQFT 0 3
-DISPLAY
-```
-
-Should return to the uniform superposition.
+This estimates the number of marked states by using the inverse QFT inside the
+phase-estimation routine. If you want to inspect low-level QFT behavior
+directly, use the C++ API or the unit tests in `tests/unit_qft_modexp.cc`.
 
 ## 9.4 Key Insight
 
@@ -1059,8 +1040,9 @@ VERBOSE VERBOSE
 SHOR 15
 ```
 
-With verbose mode, you can watch the quantum order-finding and the classical
-factor extraction steps.
+With verbose mode, you usually get additional algorithm logs. However, for
+small composites the demo may sometimes succeed immediately via a lucky `gcd`
+shortcut before the quantum order-finding path runs.
 
 Try other small composites:
 
@@ -1128,7 +1110,8 @@ MEASURE 1 1
 DISPLAY
 ```
 
-Expected: classical bits = `10` (the message Alice encoded with `Z 0`).
+Expected: the decoded message is the `Z` case. In this simulator's displayed
+classical-register ordering (`MSB -> LSB`), that appears as `01`.
 
 See `superdense_coding.md` for all four message cases.
 
@@ -1253,8 +1236,8 @@ The simulator also includes simulated annealing (SA) and simulated quantum
 annealing (SQA) for solving QUBO classically. These are useful baselines:
 
 ```
-ANNEAL SA 3 -2 0 2 0 1 0 2 0 -3
-ANNEAL SQA 3 -2 0 2 0 1 0 2 0 -3
+ANNEAL QUBO SA 3 40 30 0.1 4.0 1 -2 0 2 0 1 0 2 0 -3
+ANNEAL QUBO SQA 3 40 30 0.1 4.0 8 -2 0 2 0 1 0 2 0 -3
 ```
 
 Compare results and runtimes with `VQA QAOA`. On small instances like this,
@@ -1429,8 +1412,6 @@ Work through these in order for structured practice:
 | `MEASURE j c` | Measure qubit j into classical bit c |
 | `DISPLAY` | Show full state vector |
 | `DISPLAY ALL` | Show all 2^n basis states (including zeros) |
-| `QFT j k` | Quantum Fourier Transform on qubits j..k |
-| `IQFT j k` | Inverse QFT on qubits j..k |
 | `GROVER targets...` | Run Grover search |
 | `GROVER AUTO n count targets...` | Auto-tuned Grover |
 | `QCOUNT RUN n pebits targets...` | Quantum counting |
@@ -1441,8 +1422,8 @@ Work through these in order for structured practice:
 | `QUBO EXACT n entries...` | Brute-force QUBO solve |
 | `VQA QAOA n p shots iters step entries...` | QAOA optimizer |
 | `VQE RUN n layers iters step shots terms...` | VQE optimizer |
-| `ANNEAL SA n entries...` | Simulated annealing |
-| `ANNEAL SQA n entries...` | Simulated quantum annealing |
+| `ANNEAL QUBO SA n steps sweeps beta_start beta_end replicas entries...` | Simulated annealing |
+| `ANNEAL QUBO SQA n steps sweeps beta_start beta_end replicas entries...` | Simulated quantum annealing |
 | `CHECK NORMALIZED` | Verify state has unit norm |
 | `CHECK TARGETS t...` | Show probability on listed targets |
 | `SEED n` | Set RNG seed for reproducibility |
