@@ -33,6 +33,7 @@ void test_logging_levels();
 void test_grover_search_helpers();
 void test_grover_api_errors();
 void test_grover_auto_tuned_paths();
+void test_shots_command_histogram();
 void test_display_output_paths();
 void test_qft_invalid_ranges();
 void test_qft_tiny_amplitude_continue();

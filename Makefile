@@ -28,7 +28,7 @@ TEST_OBJECTS = $(TEST_SOURCES:.cc=.o)
 DEPS    = $(LIB_SOURCES:.cc=.d) $(DEMO_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) $(TEST_SOURCES:.cc=.d) tests/all_tests.d
 
 ALL_TESTS_SRC = tests/all_tests.cc
-TEST_EXTRA_OBJECTS = cli/commands.o
+TEST_EXTRA_OBJECTS = cli/commands.o cli/shell.o cli/shell_setup.o cli/shell_algorithms.o cli/shell_gates.o
 
 # Default target: builds the executable
 all: $(TARGETS)

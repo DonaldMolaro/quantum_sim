@@ -17,6 +17,9 @@
 #include "algorithms/shor_classical.hh"
 #include "algorithms/shor_quantum.hh"
 #include "cli/commands.hh"
+#define private public
+#include "cli/shell.hh"
+#undef private
 #include "logging.hh"
 #include "demos/grover_demo.hh"
 #include "demos/latin_demo.hh"
@@ -29,9 +32,12 @@
 #include "math/mod_arith.hh"
 #include "math/bit_ops.hh"
 #include <algorithm>
+#include <cstdio>
 #include <cmath>
 #include <complex>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -1100,5 +1106,32 @@ void test_grover_auto_tuned_paths() {
     }
     if (!ok.auto_tuned || ok.counting_iterations <= 0) {
         throw std::runtime_error("Expected GROVER AUTO to report tuning metadata");
+    }
+}
+
+void test_shots_command_histogram() {
+    const char* fname = "/tmp/qsim_shots_test.qsim";
+    {
+        std::ofstream out(fname);
+        out << "INIT 1 1\n";
+        out << "X 0\n";
+        out << "MEASURE 0 0\n";
+    }
+
+    QuantumShell shell;
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    std::streambuf* cerr_orig = std::cerr.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command(std::string("SHOTS 4 ") + fname));
+    std::cout.rdbuf(cout_orig);
+    std::cerr.rdbuf(cerr_orig);
+    std::remove(fname);
+
+    const std::string text = out.str();
+    if (text.find("SHOTS 4 results") == std::string::npos) {
+        throw std::runtime_error("SHOTS should print a histogram header");
+    }
+    if (text.find("|1> : 4 (100.0%)") == std::string::npos) {
+        throw std::runtime_error("SHOTS should report the deterministic |1> histogram");
     }
 }

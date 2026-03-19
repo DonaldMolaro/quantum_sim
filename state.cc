@@ -90,8 +90,7 @@ State& State::x(int j)
     return std::make_pair(b_prime, a);
   });
   maybe_apply_depolarizing(j);
-  return *this;
-}
+  return *this; }
 
 /** Z Gate (Phase flip): equivalent to RZ(pi). */
 State& State::z(int j)
@@ -458,8 +457,7 @@ State& State::reset(int j)
         next.push_back({pair.first, pair.second * scale});
     state_ = next;
   }
-  return *this;
-}
+  return *this; }
 
 /** iSWAP: swaps j and k and multiplies off-diagonal swapped terms by i. */
 State& State::iswap(int j, int k)

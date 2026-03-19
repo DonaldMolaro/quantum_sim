@@ -34,7 +34,6 @@ static void run_test(const std::string& name, std::function<void()> fn)
 }
 
 static constexpr double PI = qsim::limits::PI;
-static const ComplexNumber I(0.0, 1.0);
 
 // ---- Sdg gate ---------------------------------------------------------------
 
@@ -507,6 +506,18 @@ void test_xx_pi_over_2_is_maximal_entangler()
     throw std::runtime_error("XX(pi/2) |00>: wrong |11> amplitude");
 }
 
+void test_yy_pi_over_2_is_maximal_entangler()
+{
+  const double c = std::cos(PI / 4.0), sv = std::sin(PI / 4.0);
+  State s(2);
+  s.set_basis_state(0b00, 1.0);
+  s.yy(0, 1, PI / 2.0);
+  if (std::abs(s.get_amplitude(0b00) - ComplexNumber(c, 0.0)) > 1e-9)
+    throw std::runtime_error("YY(pi/2) |00>: wrong |00> amplitude");
+  if (std::abs(s.get_amplitude(0b11) - ComplexNumber(0.0, sv)) > 1e-9)
+    throw std::runtime_error("YY(pi/2) |00>: wrong |11> amplitude");
+}
+
 void test_zz_diagonal()
 {
   // ZZ(pi) on |00>: phase_same = e^{-i*pi/2} = -i
@@ -577,6 +588,15 @@ void test_expect_x_on_plus()
   double val = s.expect_pauli({{'X', 0}});
   if (std::abs(val - 1.0) > 1e-9)
     throw std::runtime_error("<X>|+> should be +1");
+}
+
+void test_expect_y_on_one_is_zero()
+{
+  State s(1);
+  s.set_basis_state(0b1, 1.0);
+  double val = s.expect_pauli({{'Y', 0}});
+  if (std::abs(val) > 1e-9)
+    throw std::runtime_error("<Y>|1> should be 0");
 }
 
 // ---- Von Neumann entropy ----------------------------------------------------
@@ -655,6 +675,25 @@ void test_qec_demo_runs()
   std::cout.rdbuf(orig);
 }
 
+void test_noise_y_branch_executes()
+{
+  State::seed_rng(0);
+  bool saw_y = false;
+  for (int iter = 0; iter < 256; ++iter) {
+    State s(1);
+    s.set_noise_probability(1.0);
+    s.set_basis_state(0b0, 1.0);
+    s.x(0);
+    if (std::abs(s.get_amplitude(0b0) - ComplexNumber(0.0, -1.0)) < 1e-9 &&
+        std::abs(s.get_amplitude(0b1)) < 1e-9) {
+      saw_y = true;
+      break;
+    }
+  }
+  if (!saw_y)
+    throw std::runtime_error("Expected deterministic noisy execution to hit the Y branch");
+}
+
 // ---- Entry point ------------------------------------------------------------
 
 int run_new_feature_tests()
@@ -718,6 +757,7 @@ int run_new_feature_tests()
   // Ising gates tests
   run_test("XX(0) is identity", test_xx_zero_angle_is_identity);
   run_test("XX(pi/2) creates entanglement", test_xx_pi_over_2_is_maximal_entangler);
+  run_test("YY(pi/2) creates entanglement", test_yy_pi_over_2_is_maximal_entangler);
   run_test("ZZ is diagonal gate", test_zz_diagonal);
 
   // Bloch vector tests
@@ -729,6 +769,7 @@ int run_new_feature_tests()
   run_test("Expect: <Z>|0> = +1", test_expect_z_on_zero);
   run_test("Expect: <Z>|1> = -1", test_expect_z_on_one);
   run_test("Expect: <X>|+> = +1", test_expect_x_on_plus);
+  run_test("Expect: <Y>|1> = 0", test_expect_y_on_one_is_zero);
 
   // Entropy tests
   run_test("Entropy: product state = 0", test_entropy_product_state_is_zero);
@@ -740,6 +781,7 @@ int run_new_feature_tests()
   run_test("QEC: corrects each qubit", test_qec_corrects_each_qubit);
   run_test("QEC: invalid args throw", test_qec_invalid_args);
   run_test("QEC: demo runs without crash", test_qec_demo_runs);
+  run_test("Noise: Y branch executes", test_noise_y_branch_executes);
 
   return g_failures;
 }

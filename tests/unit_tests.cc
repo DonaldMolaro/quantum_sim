@@ -795,6 +795,7 @@ int run_unit_tests()
   run_test("Grover search helpers", test_grover_search_helpers);
   run_test("Grover API errors", test_grover_api_errors);
   run_test("Grover auto-tuned paths", test_grover_auto_tuned_paths);
+  run_test("SHOTS command histogram", test_shots_command_histogram);
   run_test("Display output paths", test_display_output_paths);
   run_test("QFT invalid ranges", test_qft_invalid_ranges);
   run_test("QFT tiny amplitude continue", test_qft_tiny_amplitude_continue);

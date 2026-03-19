@@ -88,6 +88,7 @@ MEASURE 0 0
 IF 0 X 0"
 run_cli "SWAP_TEST identical states" "INIT 3 1
 SWAP_TEST 2 0 1 1"
+run_cli "SHOTS Bell histogram" "SHOTS 8 examples/shots_bell.qsim"
 run_cli "QEC demo" "QEC DEMO"
 run_cli "QEC run no error" "QEC RUN 0 -1"
 run_cli "QEC run with error on q1" "QEC RUN 1 1"

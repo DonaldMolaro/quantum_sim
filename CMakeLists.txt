@@ -46,6 +46,8 @@ set(LIB_SOURCES
   algorithms/tsp.cc
   algorithms/quantum_counting.cc
   algorithms/simon.cc
+  algorithms/qpe.cc
+  algorithms/qec.cc
   algorithms/api/grover_api.cc
   algorithms/api/shor_api.cc
 )
@@ -64,6 +66,7 @@ set(DEMO_SOURCES
   demos/tsp_demo.cc
   demos/quantum_counting_demo.cc
   demos/simon_demo.cc
+  demos/qpe_demo.cc
 )
 
 set(CLI_SOURCES
@@ -81,6 +84,7 @@ set(TEST_SOURCES
   tests/unit_cli_and_shor.cc
   tests/grover_test.cc
   tests/grover_bench.cc
+  tests/unit_new_features.cc
 )
 
 add_library(quantum_sim_static STATIC ${LIB_SOURCES})
@@ -99,7 +103,7 @@ add_executable(quantum_sim cli/main.cc)
 target_link_libraries(quantum_sim PRIVATE quantum_sim_cli quantum_sim_demos quantum_sim_static)
 
 add_executable(all_tests tests/all_tests.cc ${TEST_SOURCES} cli/commands.cc)
-target_link_libraries(all_tests PRIVATE quantum_sim_demos quantum_sim_static)
+target_link_libraries(all_tests PRIVATE quantum_sim_cli quantum_sim_demos quantum_sim_static)
 
 enable_testing()
 add_test(NAME test-fast COMMAND all_tests)
@@ -147,6 +151,8 @@ install(FILES
   algorithms/tsp.hh
   algorithms/quantum_counting.hh
   algorithms/simon.hh
+  algorithms/qpe.hh
+  algorithms/qec.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/algorithms)
 install(FILES algorithms/api/grover_api.hh algorithms/api/shor_api.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/algorithms/api)
@@ -164,6 +170,7 @@ install(FILES
   demos/tsp_demo.hh
   demos/quantum_counting_demo.hh
   demos/simon_demo.hh
+  demos/qpe_demo.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/demos)
 install(FILES math/bit_ops.hh math/mod_arith.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/math)
