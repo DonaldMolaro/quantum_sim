@@ -1109,20 +1109,77 @@ void test_grover_auto_tuned_paths() {
     }
 }
 
-void test_shots_command_histogram() {
-    const char* fname = "/tmp/qsim_shots_test.qsim";
+void test_load_command_round_trip() {
+    const char* fname = "/tmp/QsimMixedCaseLoad.qsim";
     {
         std::ofstream out(fname);
-        out << "INIT 1 1\n";
-        out << "X 0\n";
-        out << "MEASURE 0 0\n";
+        out << "init 2 2\n";
+        out << "h 0\n";
+        out << "cx 0 1\n";
     }
 
     QuantumShell shell;
     std::ostringstream out;
     std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
     std::streambuf* cerr_orig = std::cerr.rdbuf(out.rdbuf());
-    shell.handle_command(cli::parse_command(std::string("SHOTS 4 ") + fname));
+    shell.handle_command(cli::parse_command(std::string("load ") + fname));
+    std::cout.rdbuf(cout_orig);
+    std::cerr.rdbuf(cerr_orig);
+    std::remove(fname);
+
+    if (!shell.state) {
+        throw std::runtime_error("LOAD should initialize shell state");
+    }
+
+    const double inv_sqrt2 = 1.0 / std::sqrt(2.0);
+    if (std::abs(std::abs(shell.state->get_amplitude(0b00)) - inv_sqrt2) > 1e-9 ||
+        std::abs(std::abs(shell.state->get_amplitude(0b11)) - inv_sqrt2) > 1e-9) {
+        throw std::runtime_error("LOAD should execute lowercase script commands and produce a Bell state");
+    }
+    if (out.str().find("Loaded 3 commands") == std::string::npos) {
+        throw std::runtime_error("LOAD should report the number of loaded commands");
+    }
+}
+
+void test_save_command_round_trip() {
+    const char* fname = "/tmp/QsimMixedCaseSave.qsim";
+    std::remove(fname);
+
+    QuantumShell shell;
+    shell.handle_command(cli::parse_command("init 1 1"));
+    shell.handle_command(cli::parse_command("x 0"));
+    shell.handle_command(cli::parse_command(std::string("save ") + fname));
+
+    std::ifstream in(fname);
+    if (!in) {
+        throw std::runtime_error("SAVE should create the requested file without rewriting its path");
+    }
+
+    const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    std::remove(fname);
+
+    if (text.find("init 1 1") == std::string::npos || text.find("x 0") == std::string::npos) {
+        throw std::runtime_error("SAVE should write command history to disk");
+    }
+    if (text.find("save ") != std::string::npos) {
+        throw std::runtime_error("SAVE should not save itself into command history");
+    }
+}
+
+void test_shots_command_histogram() {
+    const char* fname = "/tmp/QsimMixedCaseShots.qsim";
+    {
+        std::ofstream out(fname);
+        out << "init 1 1\n";
+        out << "x 0\n";
+        out << "measure 0 0\n";
+    }
+
+    QuantumShell shell;
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    std::streambuf* cerr_orig = std::cerr.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command(std::string("shots 4 ") + fname));
     std::cout.rdbuf(cout_orig);
     std::cerr.rdbuf(cerr_orig);
     std::remove(fname);
@@ -1133,5 +1190,38 @@ void test_shots_command_histogram() {
     }
     if (text.find("|1> : 4 (100.0%)") == std::string::npos) {
         throw std::runtime_error("SHOTS should report the deterministic |1> histogram");
+    }
+}
+
+void test_shell_help_topics() {
+    QuantumShell shell;
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    shell.print_help(cli::parse_command("help"));
+    shell.print_help(cli::parse_command("help topics"));
+    shell.print_help(cli::parse_command("help gates"));
+    shell.print_help(cli::parse_command("help algorithms"));
+    shell.print_help(cli::parse_command("help utility"));
+    shell.print_help(cli::parse_command("help all"));
+    shell.print_help(cli::parse_command("help nonsense"));
+    std::cout.rdbuf(cout_orig);
+
+    const std::string text = out.str();
+    if (text.find("Start here:") == std::string::npos) {
+        throw std::runtime_error("HELP should print the getting-started guide");
+    }
+    if (text.find("Help topics:") == std::string::npos) {
+        throw std::runtime_error("HELP TOPICS should print the topic list");
+    }
+    if (text.find("[Gates]") == std::string::npos ||
+        text.find("[Algorithms]") == std::string::npos ||
+        text.find("[Utility]") == std::string::npos) {
+        throw std::runtime_error("HELP topic commands should print each topic section");
+    }
+    if (text.find("--- Quantum Simulator Commands ---") == std::string::npos) {
+        throw std::runtime_error("HELP ALL should print the full reference");
+    }
+    if (text.find("Unknown help topic: NONSENSE") == std::string::npos) {
+        throw std::runtime_error("HELP should guide the user on unknown topics");
     }
 }

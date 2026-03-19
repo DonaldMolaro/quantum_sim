@@ -11,5 +11,6 @@
 #include "demos/tsp_demo.hh"
 #include "demos/quantum_counting_demo.hh"
 #include "demos/simon_demo.hh"
+#include "demos/qpe_demo.hh"
 #include "demos/latin_demo.hh"
 #include "demos/shor_demo.hh"

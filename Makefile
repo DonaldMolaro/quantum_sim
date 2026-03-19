@@ -20,7 +20,7 @@ DEMO_SOURCES = demos/latin_demo.cc demos/shor_demo.cc \
 	demos/qubo_demo.cc demos/vqa_demo.cc demos/qaoa_demo.cc demos/vqe_demo.cc demos/anneal_demo.cc \
 	demos/tsp_demo.cc demos/quantum_counting_demo.cc demos/simon_demo.cc demos/qpe_demo.cc
 DEMO_OBJECTS = $(DEMO_SOURCES:.cc=.o)
-CLI_SOURCES = cli/commands.cc cli/shell.cc cli/shell_setup.cc cli/shell_algorithms.cc cli/shell_gates.cc cli/main.cc
+CLI_SOURCES = cli/commands.cc cli/help_catalog.cc cli/shell.cc cli/shell_setup.cc cli/shell_algorithms.cc cli/shell_gates.cc cli/main.cc
 DRIVER_SOURCES = $(CLI_SOURCES)
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
 TEST_SOURCES = tests/unit_tests.cc tests/unit_qft_modexp.cc tests/unit_algorithms_and_cli.cc tests/unit_cli_and_shor.cc tests/grover_test.cc tests/grover_bench.cc tests/unit_new_features.cc tests/unit_edge_cases.cc
@@ -28,7 +28,7 @@ TEST_OBJECTS = $(TEST_SOURCES:.cc=.o)
 DEPS    = $(LIB_SOURCES:.cc=.d) $(DEMO_SOURCES:.cc=.d) $(DRIVER_SOURCES:.cc=.d) $(TEST_SOURCES:.cc=.d) tests/all_tests.d
 
 ALL_TESTS_SRC = tests/all_tests.cc
-TEST_EXTRA_OBJECTS = cli/commands.o cli/shell.o cli/shell_setup.o cli/shell_algorithms.o cli/shell_gates.o
+TEST_EXTRA_OBJECTS = cli/commands.o cli/help_catalog.o cli/shell.o cli/shell_setup.o cli/shell_algorithms.o cli/shell_gates.o
 
 # Default target: builds the executable
 all: $(TARGETS)
@@ -132,6 +132,7 @@ install: $(LIB_NAME)
 	cp algorithms/quantum_counting.hh dist/include/algorithms/
 	cp algorithms/simon.hh dist/include/algorithms/
 	cp algorithms/qpe.hh dist/include/algorithms/
+	cp algorithms/qec.hh dist/include/algorithms/
 	cp algorithms/api/grover_api.hh dist/include/algorithms/api/
 	cp algorithms/api/shor_api.hh dist/include/algorithms/api/
 	cp demos/latin_demo.hh dist/include/demos/
@@ -147,5 +148,6 @@ install: $(LIB_NAME)
 	cp demos/tsp_demo.hh dist/include/demos/
 	cp demos/quantum_counting_demo.hh dist/include/demos/
 	cp demos/simon_demo.hh dist/include/demos/
+	cp demos/qpe_demo.hh dist/include/demos/
 	cp math/bit_ops.hh dist/include/math/
 	cp math/mod_arith.hh dist/include/math/

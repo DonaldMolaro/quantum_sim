@@ -71,6 +71,7 @@ set(DEMO_SOURCES
 
 set(CLI_SOURCES
   cli/commands.cc
+  cli/help_catalog.cc
   cli/shell.cc
   cli/shell_setup.cc
   cli/shell_algorithms.cc

@@ -23,11 +23,11 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
       std::cout << "Tutor mode is " << (tutor_mode ? "ON" : "OFF") << ".\n";
       return true;
     }
-    if (tokens[1] == "ON") {
+    if (cli::token_is(tokens[1], "ON")) {
       tutor_mode = true;
       std::cout << "Tutor mode enabled.\n";
       tutor_note("I will explain intent and expected outcomes for key commands.");
-    } else if (tokens[1] == "OFF") {
+    } else if (cli::token_is(tokens[1], "OFF")) {
       tutor_mode = false;
       std::cout << "Tutor mode disabled.\n";
     } else {
@@ -53,11 +53,11 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
       return true;
     }
     if (!shell_detail::require_initialized_state(state)) return true;
-    if (tokens[1] == "DIRECT") {
+    if (cli::token_is(tokens[1], "DIRECT")) {
       state->set_qft_mode(State::QftMode::Direct);
       std::cout << "QFT mode set to DIRECT.\n";
       tutor_note("DIRECT applies QFT as a transform; it is faster in this simulator.");
-    } else if (tokens[1] == "GATE") {
+    } else if (cli::token_is(tokens[1], "GATE")) {
       state->set_qft_mode(State::QftMode::Gate);
       std::cout << "QFT mode set to GATE.\n";
       tutor_note("GATE applies decomposed gates; use it to inspect algorithm structure.");
@@ -124,8 +124,8 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
         std::string trimmed = line;
         trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
         if (trimmed.empty() || trimmed[0] == '#') continue;
-        std::transform(trimmed.begin(), trimmed.end(), trimmed.begin(), ::toupper);
-        if (trimmed == "QUIT") break;
+        std::vector<std::string> shot_tokens = cli::parse_command(trimmed);
+        if (!shot_tokens.empty() && cli::token_is(shot_tokens[0], "QUIT")) break;
         circuit_lines.push_back(trimmed);
       }
     }
@@ -227,10 +227,10 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
       std::string trimmed = line;
       trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
       if (trimmed.empty() || trimmed[0] == '#') continue;
-      std::transform(trimmed.begin(), trimmed.end(), trimmed.begin(), ::toupper);
-      if (trimmed == "QUIT") break;
+      std::vector<std::string> load_tokens = cli::parse_command(trimmed);
+      if (!load_tokens.empty() && cli::token_is(load_tokens[0], "QUIT")) break;
       std::cout << "LOAD> " << trimmed << "\n";
-      handle_command(cli::parse_command(trimmed));
+      handle_command(load_tokens);
       ++count;
     }
     loading_from_file_ = false;

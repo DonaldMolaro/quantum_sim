@@ -22,6 +22,18 @@ std::vector<std::string> parse_command(const std::string& line)
   return tokens;
 }
 
+std::string upper_copy(const std::string& token)
+{
+  std::string out = token;
+  std::transform(out.begin(), out.end(), out.begin(), ::toupper);
+  return out;
+}
+
+bool token_is(const std::string& token, const char* expected_uppercase)
+{
+  return upper_copy(token) == expected_uppercase;
+}
+
 int get_arg(const std::vector<std::string>& tokens, size_t index, const std::string& cmd)
 {
   if (index >= tokens.size()) {

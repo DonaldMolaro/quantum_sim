@@ -98,7 +98,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: QUBO requires a mode (DEMO, EXACT, GROVER).\n";
       return true;
     }
-    const std::string mode = tokens[1];
+    const std::string mode = cli::upper_copy(tokens[1]);
     if (mode == "DEMO") {
       run_qubo_demo();
       return true;
@@ -130,7 +130,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: VQA requires a mode (DEMO, QAOA).\n";
       return true;
     }
-    const std::string mode = tokens[1];
+    const std::string mode = cli::upper_copy(tokens[1]);
     if (mode == "DEMO") {
       run_vqa_demo();
       return true;
@@ -156,7 +156,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: QAOA requires a mode (DEMO, QUBO).\n";
       return true;
     }
-    const std::string mode = tokens[1];
+    const std::string mode = cli::upper_copy(tokens[1]);
     if (mode == "DEMO") {
       run_qaoa_demo();
       return true;
@@ -182,7 +182,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: VQE requires a mode (DEMO, RUN).\n";
       return true;
     }
-    const std::string mode = tokens[1];
+    const std::string mode = cli::upper_copy(tokens[1]);
     if (mode == "DEMO") {
       run_vqe_demo();
       return true;
@@ -252,7 +252,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: ANNEAL requires a mode (DEMO, QUBO).\n";
       return true;
     }
-    const std::string mode = tokens[1];
+    const std::string mode = cli::upper_copy(tokens[1]);
     if (mode == "DEMO") {
       run_anneal_demo();
       return true;
@@ -262,7 +262,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
         std::cerr << "Error: ANNEAL QUBO requires method, n, steps, sweeps, beta_start, beta_end, replicas, matrix.\n";
         return true;
       }
-      const std::string method = tokens[2];
+      const std::string method = cli::upper_copy(tokens[2]);
       int n = cli::get_arg(tokens, 3, "ANNEAL QUBO");
       int steps = cli::get_arg(tokens, 4, "ANNEAL QUBO");
       int sweeps = cli::get_arg(tokens, 5, "ANNEAL QUBO");
@@ -284,8 +284,8 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   case AlgorithmCommand::Latin: {
     size_t idx = 1;
     std::string mode = "demo";
-    if (idx < tokens.size() && (tokens[idx] == "DEMO" || tokens[idx] == "COUNT" || tokens[idx] == "PRINT-ALL")) {
-      mode = tokens[idx];
+    if (idx < tokens.size() && (cli::token_is(tokens[idx], "DEMO") || cli::token_is(tokens[idx], "COUNT") || cli::token_is(tokens[idx], "PRINT-ALL"))) {
+      mode = cli::upper_copy(tokens[idx]);
       ++idx;
     }
     int iters = -1;
@@ -336,7 +336,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   }
 
   case AlgorithmCommand::Simon: {
-    if (tokens.size() >= 2 && tokens[1] == "DEMO") {
+    if (tokens.size() >= 2 && cli::token_is(tokens[1], "DEMO")) {
       tutor_note("Simon collects equations y·s=0 (mod 2) and solves for the secret mask s.");
       run_simon_demo();
       return true;
@@ -355,7 +355,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   }
 
   case AlgorithmCommand::Grover: {
-    if (tokens.size() >= 2 && tokens[1] == "AUTO") {
+    if (tokens.size() >= 2 && cli::token_is(tokens[1], "AUTO")) {
       int n_qubits = cli::get_arg(tokens, 2, "GROVER AUTO");
       int count_iters = cli::get_arg(tokens, 3, "GROVER AUTO");
       if (n_qubits == -1 || count_iters == -1) return true;
@@ -421,7 +421,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: TSP requires a mode (DEMO, EXACT).\n";
       return true;
     }
-    const std::string mode = tokens[1];
+    const std::string mode = cli::upper_copy(tokens[1]);
     if (mode == "DEMO") {
       run_tsp_demo();
       return true;
@@ -440,12 +440,12 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   }
 
   case AlgorithmCommand::QuantumCounting: {
-    if (tokens.size() >= 2 && tokens[1] == "DEMO") {
+    if (tokens.size() >= 2 && cli::token_is(tokens[1], "DEMO")) {
       tutor_note("Quantum counting estimates how many marked states exist without full enumeration.");
       run_quantum_counting_demo();
       return true;
     }
-    if (tokens.size() >= 2 && tokens[1] == "RUN") {
+    if (tokens.size() >= 2 && cli::token_is(tokens[1], "RUN")) {
       int n_qubits = cli::get_arg(tokens, 2, "QCOUNT RUN");
       int max_iterations = cli::get_arg(tokens, 3, "QCOUNT RUN");
       if (n_qubits == -1 || max_iterations == -1) return true;
@@ -491,7 +491,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   }
 
   case AlgorithmCommand::Qpe: {
-    if (tokens.size() < 2 || tokens[1] == "DEMO") {
+    if (tokens.size() < 2 || cli::token_is(tokens[1], "DEMO")) {
       tutor_note("QPE estimates the eigenphase of a unitary using the inverse QFT.");
       run_qpe_demo();
       return true;
@@ -513,13 +513,13 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   }
 
   case AlgorithmCommand::Qec: {
-    if (tokens.size() < 2 || tokens[1] == "DEMO") {
+    if (tokens.size() < 2 || cli::token_is(tokens[1], "DEMO")) {
       tutor_note("The 3-qubit bit-flip code detects and corrects any single-qubit X error.");
       run_qec_demo();
       return true;
     }
     // QEC RUN <logical_bit> <error_qubit|-1>
-    if (tokens[1] == "RUN") {
+    if (cli::token_is(tokens[1], "RUN")) {
       int logical_bit  = cli::get_arg(tokens, 2, "QEC RUN");
       int error_qubit  = cli::get_arg(tokens, 3, "QEC RUN");
       if (logical_bit == -1) return true;
