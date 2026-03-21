@@ -1,9 +1,27 @@
 #include "state.hh"
 #include "internal/limits.hh"
+#include "internal/validation.hh"
 #include "math/bit_ops.hh"
 #include "internal/qft_utils.hh"
-#include <iostream>
+#include <stdexcept>
+#include <string>
 #include <unordered_map>
+
+static void check_qft_range(int start_qubit, int end_qubit, int num_qubits, const char* name)
+{
+  if (start_qubit < 0 || end_qubit < start_qubit || end_qubit >= num_qubits) {
+    throw std::out_of_range(
+        std::string(name) + ": register range [" +
+        std::to_string(start_qubit) + ", " + std::to_string(end_qubit) +
+        "] out of bounds for " + std::to_string(num_qubits) + "-qubit state");
+  }
+  int n = end_qubit - start_qubit + 1;
+  if (!qft_range_valid(n)) {
+    throw std::invalid_argument(
+        std::string(name) + ": register size " + std::to_string(n) +
+        " exceeds maximum " + std::to_string(qsim::limits::kMaxBitstringQubits));
+  }
+}
 
 State& State::apply_controlled_Rr(int control_j, int target_k, int r, int sign)
 {
@@ -68,11 +86,6 @@ static QuantumState qft_direct_transform(const QuantumState& input_state,
 
 static State& qft_gate(State& s, int start_qubit, int end_qubit)
 {
-  int n = end_qubit - start_qubit + 1;
-  if (!qft_range_valid(n)) {
-    std::cerr << "Error: Invalid qubit range for QFT." << std::endl;
-    return s;
-  }
 
   for (int i = start_qubit; i <= end_qubit; ++i) {
     s.h(i);
@@ -87,11 +100,6 @@ static State& qft_gate(State& s, int start_qubit, int end_qubit)
 
 static State& iqft_gate(State& s, int start_qubit, int end_qubit)
 {
-  int n = end_qubit - start_qubit + 1;
-  if (!qft_range_valid(n)) {
-    std::cerr << "Error: Invalid qubit range for IQFT." << std::endl;
-    return s;
-  }
 
   for (int i = end_qubit; i >= start_qubit; --i) {
     s.h(i);
@@ -104,18 +112,15 @@ static State& iqft_gate(State& s, int start_qubit, int end_qubit)
   return s;
 }
 
-State& State::qft(int start_qubit, int end_qubit) 
+State& State::qft(int start_qubit, int end_qubit)
 {
+  check_qft_range(start_qubit, end_qubit, num_qubits_, "QFT");
+
   if (qft_mode_ == QftMode::Gate) {
     return qft_gate(*this, start_qubit, end_qubit);
   }
 
-  // 1. Determine register size and total dimension N
   int n = end_qubit - start_qubit + 1;
-  if (!qft_range_valid(n)) {
-      std::cerr << "Error: Invalid qubit range for QFT." << std::endl;
-      return *this;
-  }
   Bitstring N = 0ULL;
   qft_dimension(n, N);
   
@@ -123,18 +128,15 @@ State& State::qft(int start_qubit, int end_qubit)
   return *this;
 }
 
-State& State::iqft(int start_qubit, int end_qubit) 
+State& State::iqft(int start_qubit, int end_qubit)
 {
+  check_qft_range(start_qubit, end_qubit, num_qubits_, "IQFT");
+
   if (qft_mode_ == QftMode::Gate) {
     return iqft_gate(*this, start_qubit, end_qubit);
   }
 
-  // 1. Determine register size and total dimension N
   int n = end_qubit - start_qubit + 1;
-  if (!qft_range_valid(n)) {
-      std::cerr << "Error: Invalid qubit range for IQFT." << std::endl;
-      return *this;
-  }
   Bitstring N = 0ULL;
   qft_dimension(n, N);
   

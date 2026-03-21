@@ -345,7 +345,7 @@ public:
     if (j >= cbits_.size()) {
       throw std::out_of_range("Classical bit index out of bounds.");
     }
-    return cbits_.at(j);
+    return cbits_[j];
   }
 
   /*

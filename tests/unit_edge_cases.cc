@@ -1,5 +1,6 @@
 #include "state.hh"
 #include "algorithms/anneal.hh"
+#include "math/bit_ops.hh"
 #include "tests/helpers.hh"
 #include "tests/test_harness.hh"
 #include "internal/limits.hh"
@@ -560,6 +561,55 @@ void test_anneal_sqa_single_step()
     throw std::runtime_error("SQA steps=1 should produce 2-element history");
 }
 
+// --- Bit ops bounds checking ---
+
+void test_extract_bits_invalid_range()
+{
+  bool threw = false;
+  try { extract_bits(0xFF, 5, 2); } catch (const std::invalid_argument&) { threw = true; }
+  if (!threw) throw std::runtime_error("extract_bits(start>end) should throw");
+
+  threw = false;
+  try { extract_bits(0xFF, -1, 3); } catch (const std::invalid_argument&) { threw = true; }
+  if (!threw) throw std::runtime_error("extract_bits(negative start) should throw");
+}
+
+void test_replace_bits_invalid_range()
+{
+  bool threw = false;
+  try { replace_bits(0xFF, 5, 2, 0); } catch (const std::invalid_argument&) { threw = true; }
+  if (!threw) throw std::runtime_error("replace_bits(start>end) should throw");
+
+  threw = false;
+  try { replace_bits(0xFF, -1, 3, 0); } catch (const std::invalid_argument&) { threw = true; }
+  if (!threw) throw std::runtime_error("replace_bits(negative start) should throw");
+}
+
+// --- QFT/IQFT bounds checking ---
+
+void test_qft_out_of_range_throws()
+{
+  State s(3, 0);
+  bool threw = false;
+  try { s.qft(0, 5); } catch (const std::out_of_range&) { threw = true; }
+  if (!threw) throw std::runtime_error("QFT with end_qubit > num_qubits should throw");
+
+  threw = false;
+  try { s.iqft(-1, 2); } catch (const std::out_of_range&) { threw = true; }
+  if (!threw) throw std::runtime_error("IQFT with negative start should throw");
+}
+
+void test_qft_register_too_large_throws()
+{
+  // Create a state just large enough to make the register span exceed
+  // kMaxBitstringQubits (62).  We need end-start+1 > 62, so use a
+  // 63-qubit state (constructor only allocates the sparse vector).
+  State s(63, 0);
+  bool threw = false;
+  try { s.qft(0, 62); } catch (const std::invalid_argument&) { threw = true; }
+  if (!threw) throw std::runtime_error("QFT with 63-qubit register should throw invalid_argument");
+}
+
 // --- Entry point ---
 
 int run_edge_case_tests()
@@ -613,6 +663,10 @@ int run_edge_case_tests()
     {"bitstring_to_string", test_bitstring_to_string},
     {"anneal SA single step", test_anneal_sa_single_step},
     {"anneal SQA single step", test_anneal_sqa_single_step},
+    {"extract_bits invalid range", test_extract_bits_invalid_range},
+    {"replace_bits invalid range", test_replace_bits_invalid_range},
+    {"QFT/IQFT out-of-range throws", test_qft_out_of_range_throws},
+    {"QFT register too large throws", test_qft_register_too_large_throws},
   };
   test_harness::run_cases(cases, sizeof(cases) / sizeof(cases[0]));
 

@@ -70,7 +70,9 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
     if (!force_set && N <= 1048576.0) {
       std::vector<uint8_t> mask(static_cast<size_t>(N), 0);
       for (Bitstring t : target_set) {
-        mask[static_cast<size_t>(t)] = 1;
+        if (t < static_cast<Bitstring>(mask.size())) {
+          mask[static_cast<size_t>(t)] = 1;
+        }
       }
       for (int k = 0; k < R; ++k) {
         if (qsim_log::enabled(qsim_log::Level::Verbose)) {

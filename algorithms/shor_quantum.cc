@@ -59,7 +59,7 @@ ShorQuantumResult run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)
   Bitstring measured_x = 0;
   for (int j = 0; j < result.n_c; ++j) {
     int bit = s.get_cbit(j);
-    measured_x |= (Bitstring)bit << j;
+    measured_x |= static_cast<Bitstring>(bit) << j;
   }
 
   result.measured_x = measured_x;

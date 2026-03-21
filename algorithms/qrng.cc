@@ -3,6 +3,7 @@
 #include "state.hh"
 #include <cstdlib>
 #include <sstream>
+#include <string>
 
 std::vector<int> qrng_bits(int n, const std::vector<double>* random_vals)
 {
@@ -42,9 +43,13 @@ uint64_t qrng_u64(int n, const std::vector<double>* random_vals)
     n = 63;
   }
   if (const char* env = std::getenv("QSIM_QRNG_MAX_QUBITS")) {
-    int cap = std::atoi(env);
-    if (cap > 0 && n > cap) {
-      n = cap;
+    try {
+      int cap = std::stoi(std::string(env));
+      if (cap > 0 && n > cap) {
+        n = cap;
+      }
+    } catch (...) {
+      // Malformed value — ignore the environment variable.
     }
   }
 

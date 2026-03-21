@@ -59,13 +59,26 @@ void test_display_output_paths() {
 
 void test_qft_invalid_ranges() {
     State s(2, 0);
-    s.set_qft_mode(State::QftMode::Direct);
-    s.qft(1, 0);
-    s.iqft(1, 0);
 
+    // Direct mode: reversed range should throw.
+    s.set_qft_mode(State::QftMode::Direct);
+    bool threw = false;
+    try { s.qft(1, 0); } catch (const std::out_of_range&) { threw = true; }
+    if (!threw) throw std::runtime_error("QFT direct with reversed range should throw");
+
+    threw = false;
+    try { s.iqft(1, 0); } catch (const std::out_of_range&) { threw = true; }
+    if (!threw) throw std::runtime_error("IQFT direct with reversed range should throw");
+
+    // Gate mode: reversed range should also throw (validation runs before mode dispatch).
     s.set_qft_mode(State::QftMode::Gate);
-    s.qft(1, 0);
-    s.iqft(1, 0);
+    threw = false;
+    try { s.qft(1, 0); } catch (const std::out_of_range&) { threw = true; }
+    if (!threw) throw std::runtime_error("QFT gate with reversed range should throw");
+
+    threw = false;
+    try { s.iqft(1, 0); } catch (const std::out_of_range&) { threw = true; }
+    if (!threw) throw std::runtime_error("IQFT gate with reversed range should throw");
 }
 
 void test_qft_tiny_amplitude_continue() {

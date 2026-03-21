@@ -19,6 +19,7 @@
 
 #include "state.hh"
 #include "internal/limits.hh"
+#include "internal/validation.hh"
 #include <algorithm> // For std::remove_if
 #include <cmath>
 #include <complex>
@@ -82,14 +83,10 @@ State::State(int N, int num_cbits)
   state_.push_back({0ULL, ONE_COMPLEX}); 
 }
 
-// --- Validation helper ---
+// --- Validation helper (delegates to shared implementation) ---
 static void check_qubit(int j, int num_qubits, const char* gate_name)
 {
-  if (j < 0 || j >= num_qubits) {
-    throw std::out_of_range(std::string(gate_name) + ": qubit index " +
-                            std::to_string(j) + " out of range [0, " +
-                            std::to_string(num_qubits - 1) + "]");
-  }
+  qsim::check_qubit(j, num_qubits, gate_name);
 }
 
 // --- Public Gate Methods ---
@@ -719,15 +716,19 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
     p_outcome = 1.0 - p0; // Pj,1
   }
         
-  // Check probability stability (ensure p_outcome is not zero)
+  // Guard against division by zero in renormalization.  When the chosen
+  // outcome has near-zero probability the measurement is degenerate;
+  // clamp to AMPLITUDE_EPSILON so the norm factor stays finite while
+  // the state still gets renormalized (clamping to 1.0 would silently
+  // skip renormalization).
   if (p_outcome < qsim::limits::AMPLITUDE_EPSILON) {
     auto* out = log_stream_or_default();
     if (out) {
       *out << "measure: near-zero probability " << p_outcome
            << " for outcome " << outcome << " on qubit " << j
-           << "; clamping to 1.0\n";
+           << "; clamping to epsilon\n";
     }
-    p_outcome = 1.0;
+    p_outcome = qsim::limits::AMPLITUDE_EPSILON;
   }
 
   // 3. Calculate the renormalization factor (1 / sqrt(p))
