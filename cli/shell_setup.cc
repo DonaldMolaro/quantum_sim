@@ -4,6 +4,7 @@
 #include "cli/shell_detail.hh"
 #include "logging.hh"
 #include <algorithm>
+#include <memory>
 #include <cstdlib>
 #include <cmath>
 #include <fstream>
@@ -39,7 +40,7 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
     int N = cli::get_arg(tokens, 1, "INIT");
     int C = (tokens.size() > 2) ? cli::get_arg(tokens, 2, "INIT") : 0;
     if (N > 0 && N <= 64) {
-      state.reset(new State(N, C));
+      state = std::make_unique<State>(N, C);
       std::cout << "State initialized with " << N << " qubits and " << C << " classical register(s).\n";
       tutor_note("INIT sets the Hilbert space size to 2^N and resets amplitudes to |0...0>.");
     }

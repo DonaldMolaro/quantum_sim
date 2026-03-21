@@ -679,16 +679,18 @@ void test_measure_out_of_range_cbit_index_ignored() {
     }
 }
 
-void test_gate_on_high_qubit_index_no_throw() {
-    // Applying a gate on a qubit index beyond num_qubits should not throw;
-    // the gate operates on the bitstring bit at that position.
+void test_gate_on_high_qubit_index_throws() {
+    // Applying a gate on a qubit index beyond num_qubits should throw.
     State s(2, 0);
     s.set_basis_state(0b00, 1.0);
-    // qubit index 10 is way outside the 2-qubit register — should not crash
-    s.x(10);
-    // amplitude at bit-10 set should be non-zero
-    if (std::abs(s.get_amplitude(1ULL << 10)) < 1e-9) {
-        throw std::runtime_error("x(10) on a 2-qubit state should set bit 10 of the bitstring");
+    bool threw = false;
+    try {
+        s.x(10);
+    } catch (const std::out_of_range&) {
+        threw = true;
+    }
+    if (!threw) {
+        throw std::runtime_error("x(10) on a 2-qubit state should throw out_of_range");
     }
 }
 
@@ -730,7 +732,7 @@ int run_unit_tests()
     {"get_cbit out-of-range throws", test_get_cbit_out_of_range},
     {"get_cbit no classical bits throws", test_get_cbit_no_classical_bits},
     {"measure out-of-range cbit_index ignored", test_measure_out_of_range_cbit_index_ignored},
-    {"gate on high qubit index no throw", test_gate_on_high_qubit_index_no_throw},
+    {"gate on high qubit index throws", test_gate_on_high_qubit_index_throws},
     {"seed_rng produces deterministic outcomes", test_seed_rng_deterministic},
   };
   test_harness::run_cases(setup_cases, sizeof(setup_cases) / sizeof(setup_cases[0]));

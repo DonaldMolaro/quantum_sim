@@ -29,7 +29,7 @@ std::string bitstring_to_string(Bitstring b, int N) {
 }
 
 /** Converts the ComplexNumber to a readable string (e.g., 0.707 + 0.707i). */
-std::string complex_to_string(const ComplexNumber& a, int precision = 4) {
+std::string complex_to_string(const ComplexNumber& a, int precision) {
   std::stringstream ss;
   ss << std::fixed << std::setprecision(precision);
     

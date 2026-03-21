@@ -5,6 +5,7 @@ int run_unit_tests();
 int run_grover_tests();
 int run_grover_bench();
 int run_new_feature_tests();
+int run_edge_case_tests();
 
 int main()
 {
@@ -12,6 +13,7 @@ int main()
     {"unit", run_unit_tests},
     {"grover", run_grover_tests},
     {"new-features", run_new_feature_tests},
+    {"edge-cases", run_edge_case_tests},
   };
   int failures = test_harness::run_suites(suites, sizeof(suites) / sizeof(suites[0]));
 

@@ -23,6 +23,8 @@
 #include <cmath>
 #include <complex>
 #include <random>
+#include <stdexcept>
+#include <string>
 #include <functional>
 #include <iostream>
 #include <unordered_map>
@@ -80,11 +82,22 @@ State::State(int N, int num_cbits)
   state_.push_back({0ULL, ONE_COMPLEX}); 
 }
 
+// --- Validation helper ---
+static void check_qubit(int j, int num_qubits, const char* gate_name)
+{
+  if (j < 0 || j >= num_qubits) {
+    throw std::out_of_range(std::string(gate_name) + ": qubit index " +
+                            std::to_string(j) + " out of range [0, " +
+                            std::to_string(num_qubits - 1) + "]");
+  }
+}
+
 // --- Public Gate Methods ---
 
 /** X Gate (NOT): s.map(λb, a. (b¬j , a)) */
 State& State::x(int j)
 {
+  check_qubit(j, num_qubits_, "X");
   s_map([j](const Bitstring& b, const ComplexNumber& a) {
     Bitstring b_prime = flip_jth_bit(b, j);
     return std::make_pair(b_prime, a);
@@ -224,6 +237,8 @@ State& State::ccx(int c1, int c2, int target)
 /** CX Gate (Controlled X): s.map(λb, a. (ite(b_j, b¬k, b), a)) */
 State& State::cx(int j_control, int k_target)
 {
+  check_qubit(j_control, num_qubits_, "CX");
+  check_qubit(k_target, num_qubits_, "CX");
   s_map([j_control, k_target](const Bitstring& b, const ComplexNumber& a) {
     if (get_jth_bit(b, j_control) == 1) {
       Bitstring b_prime = flip_jth_bit(b, k_target);
@@ -262,6 +277,7 @@ State& State::t(int j)
 /** Hadamard Gate (Superposition): flatMap().reduceByKey() */
 State& State::h(int j)
 {
+  check_qubit(j, num_qubits_, "H");
   s_flatMap_and_reduce([j](const Bitstring& b, const ComplexNumber& a, IntermediateState& out) {
     int bj = get_jth_bit(b, j);
     out.emplace_back(set_jth_bit(b, j, 0), a * ONE_OVER_SQRT_TWO);
@@ -452,6 +468,7 @@ State& State::reset(int j)
   } else {
     const double scale = 1.0 / std::sqrt(norm_sq);
     QuantumState next;
+    next.reserve(state_.size());
     for (const auto& pair : state_)
       if (get_jth_bit(pair.first, j) == 0)
         next.push_back({pair.first, pair.second * scale});
@@ -687,6 +704,7 @@ const QuantumState& State::get_state() const { return state_; }
  * @return Reference to the updated State object.
  */
 State& State::measure_with_rng(int j, unsigned long cbit_index, double random_val) {
+  check_qubit(j, num_qubits_, "measure");
   // 1. Compute Pj,0: Probability of measuring 0
   double p0 = compute_probability_of_0(j);
   // 2. Determine the outcome (0 or 1)
@@ -703,7 +721,13 @@ State& State::measure_with_rng(int j, unsigned long cbit_index, double random_va
         
   // Check probability stability (ensure p_outcome is not zero)
   if (p_outcome < qsim::limits::AMPLITUDE_EPSILON) {
-    p_outcome = 1.0; 
+    auto* out = log_stream_or_default();
+    if (out) {
+      *out << "measure: near-zero probability " << p_outcome
+           << " for outcome " << outcome << " on qubit " << j
+           << "; clamping to 1.0\n";
+    }
+    p_outcome = 1.0;
   }
 
   // 3. Calculate the renormalization factor (1 / sqrt(p))

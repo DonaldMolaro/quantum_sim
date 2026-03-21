@@ -1,5 +1,8 @@
 #include "state.hh"
+#include "internal/limits.hh"
 #include <iostream>
+#include <stdexcept>
+#include <string>
 /**
  * @brief Applies the SWAP gate between qubit j and qubit k.
  * This operation swaps the bit values (keys) in the quantum state representation 
@@ -9,8 +12,19 @@
  * @param k Index of the second qubit.
  * @return State& Reference to the modified State object.
  */
+static void check_qubit_swap(int q, int num_qubits, const char* label)
+{
+  if (q < 0 || q >= num_qubits) {
+    throw std::out_of_range(std::string(label) + ": qubit index " +
+                            std::to_string(q) + " out of range [0, " +
+                            std::to_string(num_qubits - 1) + "]");
+  }
+}
+
 State& State::swap(int j, int k)
 {
+  check_qubit_swap(j, num_qubits_, "SWAP");
+  check_qubit_swap(k, num_qubits_, "SWAP");
   if (j == k) return *this;
         
   // Iterate over the sparse representation of the quantum state

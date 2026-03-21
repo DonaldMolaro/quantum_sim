@@ -378,7 +378,7 @@ void test_load_save_round_trip()
   while (std::getline(in, line)) {
     if (line.empty() || line[0] == '#') continue;
     if (line.substr(0, 4) == "INIT") {
-      s.reset(new State(2, 2));
+      s = std::make_unique<State>(2, 2);
     } else if (line == "H 0" && s) {
       s->h(0);
     } else if (line == "CX 0 1" && s) {

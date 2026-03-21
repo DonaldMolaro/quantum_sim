@@ -5,7 +5,7 @@ include(GNUInstallDirs)
 
 option(QSIM_ENABLE_COVERAGE "Enable gcov/coverage instrumentation" OFF)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -85,6 +85,7 @@ set(TEST_SOURCES
   tests/grover_test.cc
   tests/grover_bench.cc
   tests/unit_new_features.cc
+  tests/unit_edge_cases.cc
 )
 
 add_library(quantum_sim_static STATIC ${LIB_SOURCES})
@@ -102,7 +103,7 @@ target_link_libraries(quantum_sim_cli PUBLIC quantum_sim_static quantum_sim_demo
 add_executable(quantum_sim cli/main.cc)
 target_link_libraries(quantum_sim PRIVATE quantum_sim_cli quantum_sim_demos quantum_sim_static)
 
-add_executable(all_tests tests/all_tests.cc ${TEST_SOURCES} cli/commands.cc)
+add_executable(all_tests tests/all_tests.cc ${TEST_SOURCES})
 target_link_libraries(all_tests PRIVATE quantum_sim_cli quantum_sim_demos quantum_sim_static)
 
 enable_testing()
