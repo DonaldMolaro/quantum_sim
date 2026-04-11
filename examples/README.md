@@ -92,6 +92,16 @@ You can run guided-lab auto checks:
 ./examples/check_labs.sh
 ```
 
+You can also validate one lab at a time while you work:
+
+```bash
+./examples/check_labs.sh bell
+./examples/check_labs.sh grover
+./examples/check_labs.sh qaoa
+./examples/check_labs.sh vqe
+./examples/check_labs.sh shor
+```
+
 Generate Grover benchmark CSV (for machine/commit comparison):
 
 ```bash

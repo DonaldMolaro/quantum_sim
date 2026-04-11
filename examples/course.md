@@ -55,6 +55,141 @@ CHECK TARGETS 3 5
 
 ---
 
+## A First 60 Minutes Path
+
+If you do not want to start with the full 14-module sequence, use this shorter
+path first. It gives you one concrete mental model for each major idea:
+superposition, phase/interference, entanglement, and one algorithm.
+
+### Segment 1 (10–15 min): One qubit and superposition
+
+Read:
+- Module 1 through Section 1.4
+
+Run:
+
+```
+INIT 1
+H 0
+DISPLAY
+```
+
+Then:
+
+```
+INIT 1 1
+H 0
+MEASURE 0 0
+DISPLAY
+```
+
+Predict before you run:
+- After `H 0`, should `|0>` and `|1>` have equal probability?
+- After `MEASURE`, should the superposition still be visible?
+
+What to notice:
+- `DISPLAY` shows equal amplitudes before measurement.
+- After measurement, the state collapses to one basis state.
+
+### Segment 2 (10–15 min): Phase and interference
+
+Read:
+- Module 2 through Section 2.4
+
+Run:
+
+```
+INIT 1
+H 0
+Z 0
+H 0
+DISPLAY
+```
+
+Compare with:
+
+```
+INIT 1
+H 0
+H 0
+DISPLAY
+```
+
+Predict before you run:
+- Does `Z 0` change probabilities immediately, or only after another gate mixes amplitudes?
+
+What to notice:
+- The extra `Z 0` changes the outcome only when the second `H 0` converts phase into visible interference.
+
+### Segment 3 (15 min): Entanglement and Bell states
+
+Read:
+- Module 3 through Section 3.5
+
+Run:
+
+```
+TUTOR ON
+INIT 2
+H 0
+CX 0 1
+DISPLAY
+CHECK BELL PHI+
+```
+
+Predict before you run:
+- Which basis states should remain non-zero after `CX 0 1`?
+
+What to notice:
+- Only `|00>` and `|11>` survive.
+- `CHECK BELL PHI+` gives you a quick validation that you built the Bell pair correctly.
+
+If you want a more structured Bell-state exercise at this point:
+
+```bash
+./examples/check_labs.sh bell
+```
+
+### Segment 4 (15–20 min): One complete algorithm workflow
+
+Read:
+- Module 7 Section 7.3
+- Module 8 Section 8.3
+
+Run:
+
+```
+SEED 11
+QCOUNT RUN 3 6 3 5
+GROVER AUTO 3 6 3 5
+```
+
+Predict before you run:
+- With two marked states in an eight-state space, should counting estimate about `2`?
+- Should auto-tuned Grover need many iterations here?
+
+What to notice:
+- `estimated_targets` comes back near `2`.
+- `GROVER AUTO` chooses a small iteration count based on that estimate.
+
+If you want to validate the same workflow automatically:
+
+```bash
+./examples/check_labs.sh grover
+```
+
+### What to Do Next
+
+If the first hour clicks, continue with the full course in order:
+- Modules 1–5 if you want stronger fundamentals first
+- Modules 6–10 if you want the main algorithm arc
+- Module 12 if you are most curious about QAOA and VQE
+
+If the first hour feels too fast, pause and repeat the command blocks with
+`TUTOR ON` and `VERBOSE VERBOSE` enabled.
+
+---
+
 ## One Critical Fact About Bit Ordering
 
 Before anything else: in this simulator, **`q0` is the least-significant bit
