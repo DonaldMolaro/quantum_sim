@@ -12,6 +12,37 @@ namespace {
 using SingleQubitGate = State& (State::*)(int);
 using TwoQubitGate = State& (State::*)(int, int);
 
+std::string text_bar(double value, int width)
+{
+  double clamped = std::max(0.0, std::min(1.0, value));
+  int filled = static_cast<int>(std::round(clamped * width));
+  if (filled < 0) filled = 0;
+  if (filled > width) filled = width;
+  return std::string(filled, '#') + std::string(width - filled, '.');
+}
+
+std::string bloch_zone(double z, double r)
+{
+  if (r < 0.1) return "mixed center";
+  if (z > 0.6) return "north hemisphere";
+  if (z < -0.6) return "south hemisphere";
+  return "equatorial band";
+}
+
+std::string bloch_axis_label(const State::BlochVector& bv)
+{
+  const double ax = std::abs(bv.x);
+  const double ay = std::abs(bv.y);
+  const double az = std::abs(bv.z);
+  if (az >= ax && az >= ay) {
+    return (bv.z >= 0.0) ? "+Z (~|0>)" : "-Z (~|1>)";
+  }
+  if (ax >= ay) {
+    return (bv.x >= 0.0) ? "+X (~|+>)" : "-X (~|->)";
+  }
+  return (bv.y >= 0.0) ? "+Y (~|+i>)" : "-Y (~|-i>)";
+}
+
 } // namespace
 
 bool QuantumShell::handle_single_qubit_commands(const std::vector<std::string>& tokens, const std::string& cmd)
@@ -315,6 +346,28 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
       state->display();
       return true;
     }
+    if (cli::token_is(tokens[1], "PROBS")) {
+      if (tokens.size() == 2) {
+        state->display_probabilities();
+        return true;
+      }
+      if (tokens.size() == 3 && cli::token_is(tokens[2], "ALL")) {
+        state->display_probabilities(true);
+        return true;
+      }
+      if (tokens.size() >= 4 && cli::token_is(tokens[2], "TOP")) {
+        int k = cli::get_arg(tokens, 3, "DISPLAY PROBS TOP");
+        if (k == -1) return true;
+        if (k <= 0) {
+          std::cerr << "Error: DISPLAY PROBS TOP requires k > 0.\n";
+          return true;
+        }
+        state->display_probabilities(false, k);
+        return true;
+      }
+      std::cerr << "Error: DISPLAY PROBS modes are DISPLAY PROBS, DISPLAY PROBS ALL, or DISPLAY PROBS TOP <k>.\n";
+      return true;
+    }
     if (cli::token_is(tokens[1], "ALL")) {
       state->display(true);
       return true;
@@ -490,6 +543,10 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
     } else {
       std::cout << "  (maximally mixed single-qubit state)\n";
     }
+    std::cout << "  visual: dominant axis " << bloch_axis_label(bv)
+              << "  |  zone " << bloch_zone(bv.z, r) << "\n";
+    std::cout << "  purity: [" << text_bar(r, 16) << "]\n";
+    std::cout << "  sketch: z+ up, z- down, x right/left, y rotates around the equator\n";
     tutor_note("Bloch z=+1 is |0>, z=-1 is |1>; equator is equal superposition; r<1 means entangled.");
     return true;
   }

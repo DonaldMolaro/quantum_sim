@@ -257,6 +257,7 @@ public:
   const QuantumState& get_state() const;
   
   void display(bool show_all = false, int top_k = 0) const;
+  void display_probabilities(bool show_all = false, int top_k = 0) const;
   void display_cbits() const;
   
   /**

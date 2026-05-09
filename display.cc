@@ -79,18 +79,17 @@ std::string probability_bar(double probability, int width)
   if (filled > width) filled = width;
   return std::string(filled, '#') + std::string(width - filled, '.'); }
 
-// --- State Class Definition (Partial, showing the new method) ---
+namespace {
 
-void State::display(bool show_all, int top_k) const
+void display_impl(const State& state, bool show_all, int top_k, bool probability_only)
 {
-  const int N = get_num_qubits();
+  const int N = state.get_num_qubits();
   const unsigned long long N_STATES = 1ULL << N;
   double total_probability = 0.0;
   double displayed_probability = 0.0;
 
-  // Build a sorted dense map for display.
   std::map<Bitstring, ComplexNumber> amplitude_map;
-  for (const auto& pair : get_state()) {
+  for (const auto& pair : state.get_state()) {
     amplitude_map[pair.first] = pair.second;
   }
 
@@ -98,21 +97,25 @@ void State::display(bool show_all, int top_k) const
     total_probability += amplitude_to_probability(entry.second);
   }
 
-  // --- Formatting Setup ---
   const int BIT_WIDTH  = N + 2;
   const int AMP_WIDTH  = 25;
   const int PROB_WIDTH = 12;
   const int BAR_WIDTH = 20;
 
   std::cout << "\n======================================================\n";
-  std::cout << "Quantum State (N=" << N << " qubits, 2^N=" << N_STATES << " states):\n";
+  if (probability_only) {
+    std::cout << "Measurement Probabilities (N=" << N << " qubits, 2^N=" << N_STATES << " states):\n";
+  } else {
+    std::cout << "Quantum State (N=" << N << " qubits, 2^N=" << N_STATES << " states):\n";
+  }
   if (top_k > 0) {
     std::cout << "Showing top " << top_k << " basis state(s) by probability.\n";
   }
 
-  // --- Print Header ---
   std::cout << std::left  << std::setw(BIT_WIDTH)  << "Bitstring";
-  std::cout << std::left  << std::setw(AMP_WIDTH)  << "Amplitude (a + bi)";
+  if (!probability_only) {
+    std::cout << std::left  << std::setw(AMP_WIDTH)  << "Amplitude (a + bi)";
+  }
   std::cout << std::right << std::setw(PROB_WIDTH) << "Probability (|a|^2)\n";
   std::cout << "------------------------------------------------------\n";
 
@@ -120,15 +123,16 @@ void State::display(bool show_all, int top_k) const
     double probability = amplitude_to_probability(amplitude);
     displayed_probability += probability;
     std::cout << std::left  << std::setw(BIT_WIDTH)  << ("|" + bitstring_to_string(j, N) + ">");
-    std::cout << std::left  << std::setw(AMP_WIDTH)  << complex_to_string(amplitude, 6);
+    if (!probability_only) {
+      std::cout << std::left  << std::setw(AMP_WIDTH)  << complex_to_string(amplitude, 6);
+    }
     std::cout << std::right << std::setw(PROB_WIDTH) << std::fixed << std::setprecision(6)
               << probability << "  " << probability_bar(probability, BAR_WIDTH) << "\n";
   };
 
   if (show_all) {
-    // Dense path: iterate all 2^N states, filling zeros for missing entries.
     for (Bitstring j = 0; j < N_STATES; ++j) {
-      auto it = amplitude_map.find(j);
+      std::map<Bitstring, ComplexNumber>::const_iterator it = amplitude_map.find(j);
       ComplexNumber amplitude = (it != amplitude_map.end()) ? it->second : ComplexNumber(0.0, 0.0);
       print_row(j, amplitude);
     }
@@ -152,18 +156,30 @@ void State::display(bool show_all, int top_k) const
       print_row(entries[i].first, entries[i].second);
     }
   } else {
-    // Sparse path: iterate only the nonzero entries (already in sorted order via std::map).
     for (const auto& entry : amplitude_map) {
       print_row(entry.first, entry.second);
     }
   }
 
-  // --- Print Footer ---
   std::cout << "------------------------------------------------------\n";
   std::cout << "Displayed Probability Sum: " << std::fixed << std::setprecision(6) << displayed_probability << "\n";
   std::cout << "Total Probability Sum: " << std::fixed << std::setprecision(6) << total_probability << "\n";
-  display_cbits();
+  state.display_cbits();
   std::cout << "======================================================\n";
+}
+
+} // namespace
+
+// --- State Class Definition (Partial, showing the new method) ---
+
+void State::display(bool show_all, int top_k) const
+{
+  display_impl(*this, show_all, top_k, false);
+}
+
+void State::display_probabilities(bool show_all, int top_k) const
+{
+  display_impl(*this, show_all, top_k, true);
 }
 
 /**

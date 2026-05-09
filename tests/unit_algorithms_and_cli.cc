@@ -1199,6 +1199,9 @@ void test_shots_command_histogram() {
     if (text.find("|1> : 4 (100.0%)") == std::string::npos) {
         throw std::runtime_error("SHOTS should report the deterministic |1> histogram");
     }
+    if (text.find("####################") == std::string::npos) {
+        throw std::runtime_error("SHOTS should include simple histogram bars");
+    }
 }
 
 void test_shell_help_topics() {
@@ -1232,6 +1235,12 @@ void test_shell_help_topics() {
     }
     if (text.find("DISPLAY TOP <k>") == std::string::npos) {
         throw std::runtime_error("HELP should document DISPLAY TOP");
+    }
+    if (text.find("DISPLAY PROBS TOP <k>") == std::string::npos) {
+        throw std::runtime_error("HELP should document DISPLAY PROBS");
+    }
+    if (text.find("Bloch vector plus a compact single-qubit visual summary.") == std::string::npos) {
+        throw std::runtime_error("HELP should describe the richer BLOCH output");
     }
     if (text.find("Unknown help topic: NONSENSE") == std::string::npos) {
         throw std::runtime_error("HELP should guide the user on unknown topics");
@@ -1302,5 +1311,86 @@ void test_tutor_mode_state_deltas() {
     }
     if (text.find("[TUTOR]   c[0]: 0 -> 1") == std::string::npos) {
         throw std::runtime_error("TUTOR should report classical-bit updates after measurement");
+    }
+}
+
+void test_display_probs_command() {
+    QuantumShell shell;
+    shell.state.reset(new State(2, 0));
+    shell.state->set_amplitude(0, ComplexNumber(0.5, 0.0));
+    shell.state->set_amplitude(1, ComplexNumber(0.0, 0.5));
+    shell.state->set_amplitude(3, ComplexNumber(0.5, 0.5));
+
+    std::ostringstream top_out;
+    std::ostringstream top_err;
+    std::streambuf* cout_orig = std::cout.rdbuf(top_out.rdbuf());
+    std::streambuf* cerr_orig = std::cerr.rdbuf(top_err.rdbuf());
+    shell.handle_command(cli::parse_command("display probs top 2"));
+    shell.handle_command(cli::parse_command("display probs top 0"));
+    std::cout.rdbuf(cout_orig);
+    std::cerr.rdbuf(cerr_orig);
+
+    std::ostringstream probs_out;
+    cout_orig = std::cout.rdbuf(probs_out.rdbuf());
+    shell.handle_command(cli::parse_command("display probs"));
+    shell.handle_command(cli::parse_command("display probs all"));
+    std::cout.rdbuf(cout_orig);
+
+    const std::string top_text = top_out.str();
+    const std::string probs_text = probs_out.str();
+    const std::string errors = top_err.str();
+    if (top_text.find("Measurement Probabilities") == std::string::npos ||
+        probs_text.find("Measurement Probabilities") == std::string::npos) {
+        throw std::runtime_error("DISPLAY PROBS should announce the probability-only view");
+    }
+    if (top_text.find("Amplitude (a + bi)") != std::string::npos ||
+        probs_text.find("Amplitude (a + bi)") != std::string::npos) {
+        throw std::runtime_error("DISPLAY PROBS should omit the amplitude column");
+    }
+    if (top_text.find("|11>") == std::string::npos || top_text.find("|00>") == std::string::npos) {
+        throw std::runtime_error("DISPLAY PROBS TOP should include the largest probabilities");
+    }
+    if (top_text.find("|01>") != std::string::npos) {
+        throw std::runtime_error("DISPLAY PROBS TOP should omit lower-ranked basis states");
+    }
+    if (top_text.find("#####") == std::string::npos || top_text.find("....") == std::string::npos) {
+        throw std::runtime_error("DISPLAY PROBS should include probability bars");
+    }
+    if (errors.find("Error: DISPLAY PROBS TOP requires k > 0.") == std::string::npos) {
+        throw std::runtime_error("DISPLAY PROBS TOP should reject non-positive k");
+    }
+}
+
+void test_bloch_visual_summary() {
+    QuantumShell shell;
+    shell.state.reset(new State(1, 0));
+
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command("bloch 0"));
+    shell.state->h(0);
+    shell.handle_command(cli::parse_command("bloch 0"));
+    shell.state.reset(new State(1, 0));
+    shell.state->x(0);
+    shell.handle_command(cli::parse_command("bloch 0"));
+    std::cout.rdbuf(cout_orig);
+
+    const std::string text = out.str();
+    if (text.find("dominant axis +Z (~|0>)") == std::string::npos) {
+        throw std::runtime_error("BLOCH should identify |0> as +Z");
+    }
+    if (text.find("dominant axis +X (~|+>)") == std::string::npos) {
+        throw std::runtime_error("BLOCH should identify |+> as +X");
+    }
+    if (text.find("dominant axis -Z (~|1>)") == std::string::npos) {
+        throw std::runtime_error("BLOCH should identify |1> as -Z");
+    }
+    if (text.find("zone north hemisphere") == std::string::npos ||
+        text.find("zone equatorial band") == std::string::npos ||
+        text.find("zone south hemisphere") == std::string::npos) {
+        throw std::runtime_error("BLOCH should print a coarse zone summary");
+    }
+    if (text.find("purity: [################]") == std::string::npos) {
+        throw std::runtime_error("BLOCH should include a purity bar");
     }
 }

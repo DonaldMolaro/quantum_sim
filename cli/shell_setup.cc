@@ -16,6 +16,21 @@
 #include <utility>
 #include <vector>
 
+namespace {
+
+std::string histogram_bar(int count, int total, int width)
+{
+  if (total <= 0 || width <= 0) {
+    return "";
+  }
+  int filled = static_cast<int>(std::round((static_cast<double>(count) / total) * width));
+  if (filled < 0) filled = 0;
+  if (filled > width) filled = width;
+  return std::string(filled, '#') + std::string(width - filled, '.');
+}
+
+} // namespace
+
 bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens, const std::string& cmd)
 {
   if (cmd == "TUTOR") {
@@ -163,7 +178,8 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
       for (int i = static_cast<int>(p.second.size()) - 1; i >= 0; --i)
         std::cout << p.second[i];
       std::cout << "> : " << p.first << " (" << std::fixed << std::setprecision(1)
-                << (100.0 * p.first / n) << "%)\n";
+                << (100.0 * p.first / n) << "%) "
+                << histogram_bar(p.first, n, 20) << "\n";
     }
     tutor_note("SHOTS repeats the circuit n times; measurement statistics reveal the true probability distribution.");
     return true;
