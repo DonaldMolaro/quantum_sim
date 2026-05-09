@@ -16,6 +16,7 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <vector>
 
 // --- Helper Functions for Display (Refined for Alignment) ---
 
@@ -71,13 +72,21 @@ double amplitude_to_probability(const ComplexNumber& a) {
   return std::norm(a); 
 }
 
+std::string probability_bar(double probability, int width)
+{
+  int filled = static_cast<int>(std::round(std::min(probability, 1.0) * width));
+  if (filled < 0) filled = 0;
+  if (filled > width) filled = width;
+  return std::string(filled, '#') + std::string(width - filled, '.'); }
+
 // --- State Class Definition (Partial, showing the new method) ---
 
-void State::display(bool show_all) const
+void State::display(bool show_all, int top_k) const
 {
   const int N = get_num_qubits();
   const unsigned long long N_STATES = 1ULL << N;
   double total_probability = 0.0;
+  double displayed_probability = 0.0;
 
   // Build a sorted dense map for display.
   std::map<Bitstring, ComplexNumber> amplitude_map;
@@ -85,13 +94,21 @@ void State::display(bool show_all) const
     amplitude_map[pair.first] = pair.second;
   }
 
+  for (const auto& entry : amplitude_map) {
+    total_probability += amplitude_to_probability(entry.second);
+  }
+
   // --- Formatting Setup ---
   const int BIT_WIDTH  = N + 2;
   const int AMP_WIDTH  = 25;
   const int PROB_WIDTH = 12;
+  const int BAR_WIDTH = 20;
 
   std::cout << "\n======================================================\n";
   std::cout << "Quantum State (N=" << N << " qubits, 2^N=" << N_STATES << " states):\n";
+  if (top_k > 0) {
+    std::cout << "Showing top " << top_k << " basis state(s) by probability.\n";
+  }
 
   // --- Print Header ---
   std::cout << std::left  << std::setw(BIT_WIDTH)  << "Bitstring";
@@ -101,11 +118,11 @@ void State::display(bool show_all) const
 
   auto print_row = [&](Bitstring j, const ComplexNumber& amplitude) {
     double probability = amplitude_to_probability(amplitude);
-    total_probability += probability;
+    displayed_probability += probability;
     std::cout << std::left  << std::setw(BIT_WIDTH)  << ("|" + bitstring_to_string(j, N) + ">");
     std::cout << std::left  << std::setw(AMP_WIDTH)  << complex_to_string(amplitude, 6);
     std::cout << std::right << std::setw(PROB_WIDTH) << std::fixed << std::setprecision(6)
-              << probability << "\n";
+              << probability << "  " << probability_bar(probability, BAR_WIDTH) << "\n";
   };
 
   if (show_all) {
@@ -114,6 +131,25 @@ void State::display(bool show_all) const
       auto it = amplitude_map.find(j);
       ComplexNumber amplitude = (it != amplitude_map.end()) ? it->second : ComplexNumber(0.0, 0.0);
       print_row(j, amplitude);
+    }
+  } else if (top_k > 0) {
+    std::vector<QubitAmplitudePair> entries;
+    entries.reserve(amplitude_map.size());
+    for (const auto& entry : amplitude_map) {
+      entries.push_back(entry);
+    }
+    std::sort(entries.begin(), entries.end(),
+              [](const QubitAmplitudePair& a, const QubitAmplitudePair& b) {
+                const double pa = amplitude_to_probability(a.second);
+                const double pb = amplitude_to_probability(b.second);
+                if (std::abs(pa - pb) > qsim::limits::AMPLITUDE_EPSILON) {
+                  return pa > pb;
+                }
+                return a.first < b.first;
+              });
+    const int count = std::min(top_k, static_cast<int>(entries.size()));
+    for (int i = 0; i < count; ++i) {
+      print_row(entries[i].first, entries[i].second);
     }
   } else {
     // Sparse path: iterate only the nonzero entries (already in sorted order via std::map).
@@ -124,6 +160,7 @@ void State::display(bool show_all) const
 
   // --- Print Footer ---
   std::cout << "------------------------------------------------------\n";
+  std::cout << "Displayed Probability Sum: " << std::fixed << std::setprecision(6) << displayed_probability << "\n";
   std::cout << "Total Probability Sum: " << std::fixed << std::setprecision(6) << total_probability << "\n";
   display_cbits();
   std::cout << "======================================================\n";

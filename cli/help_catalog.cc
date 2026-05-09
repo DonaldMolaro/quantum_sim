@@ -72,7 +72,7 @@ const CommandHelp kUtilityCommands[] = {
   {"MEASURE <q> <c>", "Measure qubit q into classical bit c."},
   {"RESET <q>", "Reset qubit q to |0>."},
   {"IF <c> <gate...>", "Run a gate only if classical bit c is 1."},
-  {"DISPLAY   DISPLAY ALL", "Show the current state."},
+  {"DISPLAY   DISPLAY ALL   DISPLAY TOP <k>", "Show the current state, dense view, or largest amplitudes."},
   {"CHECK <mode> ...", "Run state sanity checks."},
   {"EXPECT <P> <q> [P q ...]", "Expectation value of a Pauli product."},
   {"FIDELITY <idx>", "Fidelity with computational basis state idx."},

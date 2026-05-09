@@ -778,6 +778,8 @@ int run_unit_tests()
     {"SAVE command round-trip", test_save_command_round_trip},
     {"SHOTS command histogram", test_shots_command_histogram},
     {"Shell help topics", test_shell_help_topics},
+    {"DISPLAY TOP command", test_display_top_command},
+    {"Tutor mode state deltas", test_tutor_mode_state_deltas},
     {"Display output paths", test_display_output_paths},
     {"QFT invalid ranges", test_qft_invalid_ranges},
     {"QFT tiny amplitude continue", test_qft_tiny_amplitude_continue},

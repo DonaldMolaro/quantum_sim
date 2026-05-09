@@ -37,6 +37,8 @@ void test_load_command_round_trip();
 void test_save_command_round_trip();
 void test_shots_command_histogram();
 void test_shell_help_topics();
+void test_display_top_command();
+void test_tutor_mode_state_deltas();
 void test_display_output_paths();
 void test_qft_invalid_ranges();
 void test_qft_tiny_amplitude_continue();

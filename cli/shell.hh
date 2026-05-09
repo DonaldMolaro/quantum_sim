@@ -10,6 +10,7 @@
 #include <complex>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -18,11 +19,19 @@
 class QuantumShell
 {
 private:
+  struct TutorSnapshot {
+    int num_qubits = 0;
+    std::map<Bitstring, ComplexNumber> amplitudes;
+    std::vector<int> cbits;
+  };
+
   std::unique_ptr<State> state;
   bool tutor_mode = false;
   std::vector<std::string> command_history_;
   bool loading_from_file_ = false;
   void tutor_note(const std::string& msg) const;
+  TutorSnapshot capture_tutor_snapshot() const;
+  void tutor_state_delta(const TutorSnapshot& before, int max_entries = 4) const;
   void handle_command(const std::vector<std::string>& tokens);
   void print_help_summary();
   void print_help_topics();

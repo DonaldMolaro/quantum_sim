@@ -26,6 +26,7 @@ bool QuantumShell::handle_single_qubit_commands(const std::vector<std::string>& 
   int j = cli::get_arg(tokens, 1, cmd);
   if (j == -1) return true;
   try {
+    TutorSnapshot before = capture_tutor_snapshot();
     (state.get()->*(it->second))(j);
     std::cout << cmd << "(" << j << ") applied.\n";
     if (cmd == "H") {
@@ -35,6 +36,7 @@ bool QuantumShell::handle_single_qubit_commands(const std::vector<std::string>& 
     } else if (cmd == "Z") {
       tutor_note("Z keeps probabilities but flips phase on |1> components.");
     }
+    tutor_state_delta(before);
     state->display();
   } catch (const std::exception& e) {
     std::cerr << "Operation failed: " << e.what() << "\n";
@@ -49,9 +51,11 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
     double phi = cli::get_angle_arg_required(tokens, 2, cmd);
     if (j == -1 || std::isnan(phi)) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       state->p(j, phi);
       std::cout << "P(" << j << ", " << phi << ") applied.\n";
       tutor_note("P(phi) applies phase e^{i*phi} to |1> and identity to |0>.");
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -65,9 +69,11 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
     double phi = cli::get_angle_arg_required(tokens, 3, cmd);
     if (j == -1 || k == -1 || std::isnan(phi)) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       state->cp(j, k, phi);
       std::cout << "CP(" << j << ", " << k << ", " << phi << ") applied.\n";
       tutor_note("CP applies e^{i*phi} only when both control and target are |1>.");
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -80,9 +86,11 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
     int k = cli::get_arg(tokens, 2, cmd);
     if (j == -1 || k == -1) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       state->iswap(j, k);
       std::cout << "iSWAP(" << j << ", " << k << ") applied.\n";
       tutor_note("iSWAP swaps j and k and multiplies the swapped amplitude by i.");
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) { std::cerr << "Operation failed: " << e.what() << "\n"; }
     return true;
@@ -94,11 +102,13 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
     double theta = cli::get_angle_arg_required(tokens, 3, cmd);
     if (j == -1 || k == -1 || std::isnan(theta)) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       if      (cmd == "XX") state->xx(j, k, theta);
       else if (cmd == "YY") state->yy(j, k, theta);
       else                  state->zz(j, k, theta);
       std::cout << cmd << "(" << j << ", " << k << ", " << theta << ") applied.\n";
       tutor_note(cmd + "(theta) is exp(-i theta/2 " + cmd + ") — native trapped-ion / superconducting gate.");
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) { std::cerr << "Operation failed: " << e.what() << "\n"; }
     return true;
@@ -109,10 +119,12 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
     double theta = cli::get_angle_arg_required(tokens, 2, cmd);
     if (j == -1 || std::isnan(theta)) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       if (cmd == "RX") state->rx(j, theta);
       else if (cmd == "RY") state->ry(j, theta);
       else state->rz(j, theta);
       std::cout << cmd << "(" << j << ", " << theta << ") applied.\n";
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -127,8 +139,10 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
     double lambda = cli::get_angle_arg_required(tokens, 4, cmd);
     if (j == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       state->ru(j, theta, phi, lambda);
       std::cout << "RU(" << j << ", " << theta << ", " << phi << ", " << lambda << ") applied.\n";
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -142,6 +156,7 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
     double theta = cli::get_angle_arg_required(tokens, 3, cmd);
     if (j == -1 || k == -1 || std::isnan(theta)) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       if (cmd == "CRZ") {
         state->crz(j, k, theta);
         std::cout << "CRZ(" << j << ", " << k << ", " << theta << ") applied.\n";
@@ -152,6 +167,7 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
         state->cry(j, k, theta);
         std::cout << "CRY(" << j << ", " << k << ", " << theta << ") applied.\n";
       }
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -167,8 +183,10 @@ bool QuantumShell::handle_parametric_gate_commands(const std::vector<std::string
     double lambda = cli::get_angle_arg_required(tokens, 5, cmd);
     if (j == -1 || k == -1 || std::isnan(theta) || std::isnan(phi) || std::isnan(lambda)) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       state->cu(j, k, theta, phi, lambda);
       std::cout << "CU(" << j << ", " << k << ", " << theta << ", " << phi << ", " << lambda << ") applied.\n";
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -188,8 +206,10 @@ bool QuantumShell::handle_multi_qubit_commands(const std::vector<std::string>& t
     int j = cli::get_arg(tokens, 1, cmd);
     int k = cli::get_arg(tokens, 2, cmd);
     if (j == -1 || k == -1) return true;
+    TutorSnapshot before = capture_tutor_snapshot();
     (state.get()->*(it->second))(j, k);
     std::cout << cmd << "(" << j << ", " << k << ") applied.\n";
+    tutor_state_delta(before);
     state->display();
     return true;
   }
@@ -200,8 +220,10 @@ bool QuantumShell::handle_multi_qubit_commands(const std::vector<std::string>& t
     int t = cli::get_arg(tokens, 3, cmd);
     if (c1 == -1 || c2 == -1 || t == -1) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       state->ccx(c1, c2, t);
       std::cout << cmd << "(" << c1 << ", " << c2 << ", " << t << ") applied.\n";
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -213,8 +235,10 @@ bool QuantumShell::handle_multi_qubit_commands(const std::vector<std::string>& t
     int j = cli::get_arg(tokens, 1, "SWAP");
     int k = cli::get_arg(tokens, 2, "SWAP");
     if (j == -1 || k == -1) return true;
+    TutorSnapshot before = capture_tutor_snapshot();
     state->swap(j, k);
     std::cout << "SWAP(" << j << ", " << k << ") applied.\n";
+    tutor_state_delta(before);
     state->display();
     return true;
   }
@@ -225,9 +249,11 @@ bool QuantumShell::handle_multi_qubit_commands(const std::vector<std::string>& t
     int l = cli::get_arg(tokens, 3, cmd);
     if (j == -1 || k == -1 || l == -1) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       state->cswap(j, k, l);
       std::cout << cmd << "(" << j << ", " << k << ", " << l << ") applied.\n";
       tutor_note("CSWAP (Fredkin) swaps qubits k and l when control j is |1>.");
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -250,9 +276,11 @@ bool QuantumShell::handle_multi_qubit_commands(const std::vector<std::string>& t
     int target = cli::get_arg(tokens, tokens.size() - 1, "MCX");
     if (target == -1) return true;
     try {
+      TutorSnapshot before = capture_tutor_snapshot();
       state->mcx(controls, target);
       std::cout << "MCX applied (" << controls.size() << " controls -> target " << target << ").\n";
       tutor_note("MCX flips the target qubit only when all control qubits are |1>.");
+      tutor_state_delta(before);
       state->display();
     } catch (const std::exception& e) {
       std::cerr << "Operation failed: " << e.what() << "\n";
@@ -269,6 +297,7 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
     int j = cli::get_arg(tokens, 1, "MEASURE");
     int c = cli::get_arg(tokens, 2, "MEASURE");
     if (j == -1 || c == -1) return true;
+    TutorSnapshot before = capture_tutor_snapshot();
     state->measure(j, c);
     std::cout << "Qubit " << j << " measured.";
     if (!state->get_cbits().empty()) {
@@ -277,11 +306,30 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
       std::cout << " No Register to store in \n";
     }
     tutor_note("Measurement collapses superposition on qubit j and records a classical bit.");
+    tutor_state_delta(before);
     state->display();
     return true;
   }
   if (cmd == "DISPLAY") {
-    state->display();
+    if (tokens.size() <= 1) {
+      state->display();
+      return true;
+    }
+    if (cli::token_is(tokens[1], "ALL")) {
+      state->display(true);
+      return true;
+    }
+    if (cli::token_is(tokens[1], "TOP")) {
+      int k = cli::get_arg(tokens, 2, "DISPLAY TOP");
+      if (k == -1) return true;
+      if (k <= 0) {
+        std::cerr << "Error: DISPLAY TOP requires k > 0.\n";
+        return true;
+      }
+      state->display(false, k);
+      return true;
+    }
+    std::cerr << "Error: DISPLAY modes are DISPLAY, DISPLAY ALL, or DISPLAY TOP <k>.\n";
     return true;
   }
   if (cmd == "CHECK") {
@@ -472,9 +520,11 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
   if (cmd == "RESET") {
     int j = cli::get_arg(tokens, 1, "RESET");
     if (j == -1) return true;
+    TutorSnapshot before = capture_tutor_snapshot();
     state->reset(j);
     std::cout << "RESET qubit " << j << " to |0>.\n";
     tutor_note("RESET non-unitarily collapses qubit j to |0> — needed for ancilla reuse.");
+    tutor_state_delta(before);
     state->display();
     return true;
   }
@@ -516,6 +566,7 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
     int b_start = cli::get_arg(tokens, 3, "SWAP_TEST");
     int n       = cli::get_arg(tokens, 4, "SWAP_TEST");
     if (anc == -1 || a_start == -1 || b_start == -1 || n == -1 || n < 1) return true;
+    TutorSnapshot before = capture_tutor_snapshot();
     // H on ancilla
     state->h(anc);
     // CSWAP for each pair
@@ -530,6 +581,7 @@ bool QuantumShell::handle_measurement_and_display_commands(const std::vector<std
     std::cout << "SWAP_TEST: P(ancilla=0)=" << p0
               << "  => |<psi|phi>|^2 ~= " << std::max(0.0, overlap) << "\n";
     tutor_note("SWAP test: if |psi>=|phi> overlap=1 so P(0)=1; if orthogonal overlap=0 so P(0)=0.5.");
+    tutor_state_delta(before);
     state->display();
     return true;
   }

@@ -256,7 +256,7 @@ public:
   double compute_probability_of_0(int j) const;
   const QuantumState& get_state() const;
   
-  void display(bool show_all = false) const;
+  void display(bool show_all = false, int top_k = 0) const;
   void display_cbits() const;
   
   /**

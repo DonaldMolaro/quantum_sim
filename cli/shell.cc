@@ -11,9 +11,12 @@
 #include "cli/commands.hh"
 #include "cli/help_catalog.hh"
 #include "cli/shell_detail.hh"
+#include "internal/limits.hh"
 #include "logging.hh"
 #include <algorithm>
+#include <cmath>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -21,6 +24,108 @@ void QuantumShell::tutor_note(const std::string& msg) const
 {
   if (!tutor_mode) return;
   std::cout << "[TUTOR] " << msg << "\n";
+}
+
+QuantumShell::TutorSnapshot QuantumShell::capture_tutor_snapshot() const
+{
+  TutorSnapshot snapshot;
+  if (!tutor_mode || !state) {
+    return snapshot;
+  }
+
+  snapshot.num_qubits = state->get_num_qubits();
+  snapshot.cbits = state->get_cbits();
+  for (const auto& entry : state->get_state()) {
+    snapshot.amplitudes[entry.first] = entry.second;
+  }
+  return snapshot;
+}
+
+void QuantumShell::tutor_state_delta(const TutorSnapshot& before, int max_entries) const
+{
+  if (!tutor_mode || !state) return;
+
+  TutorSnapshot after = capture_tutor_snapshot();
+  struct Change {
+    Bitstring basis = 0;
+    ComplexNumber before_amp = 0.0;
+    ComplexNumber after_amp = 0.0;
+    double score = 0.0;
+  };
+
+  std::vector<Change> changes;
+  std::map<Bitstring, bool> seen;
+  for (const auto& entry : before.amplitudes) seen[entry.first] = true;
+  for (const auto& entry : after.amplitudes) seen[entry.first] = true;
+
+  for (const auto& entry : seen) {
+    const Bitstring basis = entry.first;
+    const std::map<Bitstring, ComplexNumber>::const_iterator before_it = before.amplitudes.find(basis);
+    const std::map<Bitstring, ComplexNumber>::const_iterator after_it = after.amplitudes.find(basis);
+    const ComplexNumber before_amp = (before_it != before.amplitudes.end()) ? before_it->second : ComplexNumber(0.0, 0.0);
+    const ComplexNumber after_amp = (after_it != after.amplitudes.end()) ? after_it->second : ComplexNumber(0.0, 0.0);
+    const double amp_delta = std::abs(after_amp - before_amp);
+    const double prob_delta = std::abs(std::norm(after_amp) - std::norm(before_amp));
+    const double score = std::max(amp_delta, prob_delta);
+    if (score > qsim::limits::AMPLITUDE_EPSILON) {
+      changes.push_back({basis, before_amp, after_amp, score});
+    }
+  }
+
+  std::sort(changes.begin(), changes.end(), [](const Change& lhs, const Change& rhs) {
+    if (std::abs(lhs.score - rhs.score) > qsim::limits::AMPLITUDE_EPSILON) {
+      return lhs.score > rhs.score;
+    }
+    return lhs.basis < rhs.basis;
+  });
+
+  int cbit_changes = 0;
+  const size_t max_cbits = std::max(before.cbits.size(), after.cbits.size());
+  for (size_t i = 0; i < max_cbits; ++i) {
+    const int before_bit = (i < before.cbits.size()) ? before.cbits[i] : -1;
+    const int after_bit = (i < after.cbits.size()) ? after.cbits[i] : -1;
+    if (before_bit != after_bit) {
+      ++cbit_changes;
+    }
+  }
+
+  if (changes.empty() && cbit_changes == 0) {
+    tutor_note("No visible amplitude or classical-bit change.");
+    return;
+  }
+
+  std::cout << "[TUTOR] What changed:\n";
+  const int limit = std::max(0, max_entries);
+  const int printed = std::min(limit, static_cast<int>(changes.size()));
+  for (int i = 0; i < printed; ++i) {
+    const Change& change = changes[static_cast<size_t>(i)];
+    std::ostringstream line;
+    line << "[TUTOR]   |" << bitstring_to_string(change.basis, after.num_qubits) << ">: amp "
+         << complex_to_string(change.before_amp, 4) << " -> " << complex_to_string(change.after_amp, 4)
+         << ", prob ";
+    line.setf(std::ios::fixed);
+    line.precision(3);
+    line << std::norm(change.before_amp) << " -> " << std::norm(change.after_amp);
+    std::cout << line.str() << "\n";
+  }
+  if (static_cast<int>(changes.size()) > printed) {
+    std::cout << "[TUTOR]   ... " << (changes.size() - static_cast<size_t>(printed))
+              << " more basis-state changes\n";
+  }
+
+  for (size_t i = 0; i < max_cbits; ++i) {
+    const int before_bit = (i < before.cbits.size()) ? before.cbits[i] : -1;
+    const int after_bit = (i < after.cbits.size()) ? after.cbits[i] : -1;
+    if (before_bit != after_bit) {
+      if (before_bit >= 0 && after_bit >= 0) {
+        std::cout << "[TUTOR]   c[" << i << "]: " << before_bit << " -> " << after_bit << "\n";
+      } else if (before_bit < 0) {
+        std::cout << "[TUTOR]   c[" << i << "] initialized to " << after_bit << "\n";
+      } else {
+        std::cout << "[TUTOR]   c[" << i << "] cleared\n";
+      }
+    }
+  }
 }
 
 void QuantumShell::handle_command(const std::vector<std::string>& tokens)

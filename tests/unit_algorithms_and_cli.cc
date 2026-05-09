@@ -17,6 +17,7 @@
 #include "algorithms/shor_classical.hh"
 #include "algorithms/shor_quantum.hh"
 #include "cli/commands.hh"
+#include "cli/help_catalog.hh"
 #define private public
 #include "cli/shell.hh"
 #undef private
@@ -81,6 +82,13 @@ void test_qrng_edges() {
     uint64_t val = qrng_u64(70, &zeros);
     if (val != 0ULL) {
         throw std::runtime_error("qrng_u64 expected all-zero output with zero RNG");
+    }
+
+    ScopedEnv malformed_cap("QSIM_QRNG_MAX_QUBITS", "not-a-number");
+    std::vector<double> ones = {1.0, 1.0, 1.0, 1.0};
+    uint64_t uncapped = qrng_u64(4, &ones);
+    if (uncapped != 15ULL) {
+        throw std::runtime_error("qrng_u64 should ignore malformed QSIM_QRNG_MAX_QUBITS");
     }
 
     if (qrng_u64(0, nullptr) != 0ULL) {
@@ -1204,6 +1212,7 @@ void test_shell_help_topics() {
     shell.print_help(cli::parse_command("help utility"));
     shell.print_help(cli::parse_command("help all"));
     shell.print_help(cli::parse_command("help nonsense"));
+    cli::help_catalog::print_section(out, static_cast<cli::help_catalog::Section>(999));
     std::cout.rdbuf(cout_orig);
 
     const std::string text = out.str();
@@ -1221,7 +1230,77 @@ void test_shell_help_topics() {
     if (text.find("--- Quantum Simulator Commands ---") == std::string::npos) {
         throw std::runtime_error("HELP ALL should print the full reference");
     }
+    if (text.find("DISPLAY TOP <k>") == std::string::npos) {
+        throw std::runtime_error("HELP should document DISPLAY TOP");
+    }
     if (text.find("Unknown help topic: NONSENSE") == std::string::npos) {
         throw std::runtime_error("HELP should guide the user on unknown topics");
+    }
+}
+
+void test_display_top_command() {
+    QuantumShell shell;
+    shell.state.reset(new State(3, 0));
+    shell.state->set_amplitude(0, ComplexNumber(0.1, 0.0));
+    shell.state->set_amplitude(1, ComplexNumber(0.6, 0.0));
+    shell.state->set_amplitude(2, ComplexNumber(0.6, 0.0));
+    shell.state->set_amplitude(7, ComplexNumber(0.7, 0.0));
+
+    std::ostringstream out;
+    std::ostringstream err;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    std::streambuf* cerr_orig = std::cerr.rdbuf(err.rdbuf());
+    shell.handle_command(cli::parse_command("display top 3"));
+    shell.handle_command(cli::parse_command("display top 0"));
+    std::cout.rdbuf(cout_orig);
+    std::cerr.rdbuf(cerr_orig);
+
+    const std::string text = out.str();
+    const std::string errors = err.str();
+    if (text.find("Showing top 3 basis state(s) by probability.") == std::string::npos) {
+        throw std::runtime_error("DISPLAY TOP should announce the filtered view");
+    }
+    if (text.find("|111>") == std::string::npos || text.find("|001>") == std::string::npos) {
+        throw std::runtime_error("DISPLAY TOP should include the largest-probability basis states");
+    }
+    if (text.find("|010>") == std::string::npos || text.find("|000>") != std::string::npos) {
+        throw std::runtime_error("DISPLAY TOP should show equal-probability states and omit lower-ranked ones");
+    }
+    if (text.find("|001>") > text.find("|010>")) {
+        throw std::runtime_error("DISPLAY TOP should break equal-probability ties by basis index");
+    }
+    if (text.find("########") == std::string::npos || text.find("....") == std::string::npos) {
+        throw std::runtime_error("DISPLAY should include simple probability bars");
+    }
+    if (errors.find("Error: DISPLAY TOP requires k > 0.") == std::string::npos) {
+        throw std::runtime_error("DISPLAY TOP should reject non-positive k");
+    }
+}
+
+void test_tutor_mode_state_deltas() {
+    QuantumShell shell;
+
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    std::streambuf* cerr_orig = std::cerr.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command("tutor on"));
+    shell.handle_command(cli::parse_command("init 1 1"));
+    shell.handle_command(cli::parse_command("x 0"));
+    shell.handle_command(cli::parse_command("measure 0 0"));
+    std::cout.rdbuf(cout_orig);
+    std::cerr.rdbuf(cerr_orig);
+
+    const std::string text = out.str();
+    if (text.find("[TUTOR] X flips computational basis states |0> <-> |1>.") == std::string::npos) {
+        throw std::runtime_error("TUTOR should still print the conceptual note for X");
+    }
+    if (text.find("[TUTOR] What changed:") == std::string::npos) {
+        throw std::runtime_error("TUTOR should summarize state transitions");
+    }
+    if (text.find("[TUTOR]   |0>:") == std::string::npos || text.find("[TUTOR]   |1>:") == std::string::npos) {
+        throw std::runtime_error("TUTOR should identify which basis states changed");
+    }
+    if (text.find("[TUTOR]   c[0]: 0 -> 1") == std::string::npos) {
+        throw std::runtime_error("TUTOR should report classical-bit updates after measurement");
     }
 }
