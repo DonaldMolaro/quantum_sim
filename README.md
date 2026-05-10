@@ -7,6 +7,10 @@ Aws has an implementation in Python, but this one is in C++.
 
 Much of the code was created by NotebookLM, with subsequent additions and refactors by Codex (OpenAI).
 
+## White Paper
+
+- [WHITE_PAPER.md](WHITE_PAPER.md): system overview, usage guide, and self-training path through the course and examples
+
 ## Build (CMake)
 
 ```bash
