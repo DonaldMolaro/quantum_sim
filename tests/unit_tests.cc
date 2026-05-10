@@ -782,6 +782,7 @@ int run_unit_tests()
     {"Tutor mode state deltas", test_tutor_mode_state_deltas},
     {"DISPLAY PROBS command", test_display_probs_command},
     {"Bloch visual summary", test_bloch_visual_summary},
+    {"Circuit history view", test_circuit_history_view},
     {"Display output paths", test_display_output_paths},
     {"QFT invalid ranges", test_qft_invalid_ranges},
     {"QFT tiny amplitude continue", test_qft_tiny_amplitude_continue},

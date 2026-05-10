@@ -1242,6 +1242,9 @@ void test_shell_help_topics() {
     if (text.find("Bloch vector plus a compact single-qubit visual summary.") == std::string::npos) {
         throw std::runtime_error("HELP should describe the richer BLOCH output");
     }
+    if (text.find("CIRCUIT") == std::string::npos) {
+        throw std::runtime_error("HELP should document CIRCUIT");
+    }
     if (text.find("Unknown help topic: NONSENSE") == std::string::npos) {
         throw std::runtime_error("HELP should guide the user on unknown topics");
     }
@@ -1392,5 +1395,31 @@ void test_bloch_visual_summary() {
     }
     if (text.find("purity: [################]") == std::string::npos) {
         throw std::runtime_error("BLOCH should include a purity bar");
+    }
+}
+
+void test_circuit_history_view() {
+    QuantumShell shell;
+    shell.handle_command(cli::parse_command("init 2 1"));
+    shell.handle_command(cli::parse_command("h 0"));
+    shell.handle_command(cli::parse_command("cx 0 1"));
+    shell.handle_command(cli::parse_command("measure 1 0"));
+
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command("circuit"));
+    std::cout.rdbuf(cout_orig);
+
+    const std::string text = out.str();
+    if (text.find("Circuit view (2 qubits, 1 classical bits):") == std::string::npos) {
+        throw std::runtime_error("CIRCUIT should print a circuit header");
+    }
+    if (text.find("q1:") == std::string::npos || text.find("q0:") == std::string::npos || text.find("c0:") == std::string::npos) {
+        throw std::runtime_error("CIRCUIT should render qubit and classical lanes");
+    }
+    if (text.find("[H]") == std::string::npos || text.find("-o-") == std::string::npos ||
+        text.find("[X]") == std::string::npos || text.find("[M]") == std::string::npos ||
+        text.find("[c0]") == std::string::npos) {
+        throw std::runtime_error("CIRCUIT should render common gates and measurement targets");
     }
 }

@@ -32,6 +32,7 @@ private:
   void tutor_note(const std::string& msg) const;
   TutorSnapshot capture_tutor_snapshot() const;
   void tutor_state_delta(const TutorSnapshot& before, int max_entries = 4) const;
+  void print_circuit_history() const;
   void handle_command(const std::vector<std::string>& tokens);
   void print_help_summary();
   void print_help_topics();

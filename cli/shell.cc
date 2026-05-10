@@ -15,7 +15,9 @@
 #include "logging.hh"
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -128,6 +130,184 @@ void QuantumShell::tutor_state_delta(const TutorSnapshot& before, int max_entrie
   }
 }
 
+void QuantumShell::print_circuit_history() const
+{
+  int num_qubits = state ? state->get_num_qubits() : 0;
+  int num_cbits = state ? static_cast<int>(state->get_cbits().size()) : 0;
+  for (const std::string& line : command_history_) {
+    const std::vector<std::string> tokens = cli::parse_command(line);
+    if (tokens.size() >= 3 && cli::token_is(tokens[0], "INIT")) {
+      try {
+        num_qubits = std::stoi(tokens[1]);
+      } catch (const std::exception&) {
+      }
+      try {
+        num_cbits = std::stoi(tokens[2]);
+      } catch (const std::exception&) {
+      }
+    }
+  }
+
+  if (num_qubits <= 0) {
+    std::cout << "No circuit to display. Initialize a state and run some commands first.\n";
+    return;
+  }
+
+  struct Column {
+    std::vector<std::string> qcells;
+    std::vector<std::string> ccells;
+  };
+
+  const int cell_width = 7;
+  const std::string wire = std::string(cell_width, '-');
+  const std::string blank = std::string(cell_width, ' ');
+
+  auto center_cell = [&](const std::string& text) {
+    if (static_cast<int>(text.size()) >= cell_width) {
+      return text.substr(0, static_cast<size_t>(cell_width));
+    }
+    const int left = (cell_width - static_cast<int>(text.size())) / 2;
+    const int right = cell_width - static_cast<int>(text.size()) - left;
+    return std::string(static_cast<size_t>(left), '-') + text + std::string(static_cast<size_t>(right), '-');
+  };
+
+  auto empty_column = [&]() {
+    Column col;
+    col.qcells.assign(static_cast<size_t>(num_qubits), wire);
+    col.ccells.assign(static_cast<size_t>(num_cbits), blank);
+    return col;
+  };
+
+  auto mark_vertical = [&](Column& col, int a, int b) {
+    if (a > b) std::swap(a, b);
+    for (int q = a + 1; q < b; ++q) {
+      col.qcells[static_cast<size_t>(q)] = std::string(cell_width / 2, '-') + "|" + std::string(cell_width - (cell_width / 2) - 1, '-');
+    }
+  };
+
+  auto set_qubit_label = [&](Column& col, int q, const std::string& label) {
+    if (q < 0 || q >= num_qubits) return;
+    col.qcells[static_cast<size_t>(q)] = center_cell(label);
+  };
+
+  auto set_cbit_label = [&](Column& col, int c, const std::string& label) {
+    if (c < 0 || c >= num_cbits) return;
+    col.ccells[static_cast<size_t>(c)] = center_cell(label);
+  };
+
+  std::vector<Column> columns;
+  for (const std::string& line : command_history_) {
+    const std::vector<std::string> tokens = cli::parse_command(line);
+    if (tokens.empty()) continue;
+    const std::string cmd = cli::upper_copy(tokens[0]);
+    if (cmd == "INIT") continue;
+
+    Column col = empty_column();
+    bool recognized = true;
+    if ((cmd == "H" || cmd == "X" || cmd == "Y" || cmd == "Z" || cmd == "S" || cmd == "T" ||
+         cmd == "SDG" || cmd == "TDG" || cmd == "P" || cmd == "RX" || cmd == "RY" || cmd == "RZ" ||
+         cmd == "RU" || cmd == "RESET") && tokens.size() >= 2) {
+      try {
+        set_qubit_label(col, std::stoi(tokens[1]), "[" + cmd.substr(0, std::min<size_t>(3, cmd.size())) + "]");
+      } catch (const std::exception&) {
+        recognized = false;
+      }
+    } else if ((cmd == "CX" || cmd == "CNOT" || cmd == "CZ" || cmd == "CY" || cmd == "CH" ||
+                cmd == "CRX" || cmd == "CRY" || cmd == "CRZ" || cmd == "CP" || cmd == "CU") && tokens.size() >= 3) {
+      try {
+        const int c = std::stoi(tokens[1]);
+        const int t = std::stoi(tokens[2]);
+        set_qubit_label(col, c, "-o-");
+        std::string target = "[X]";
+        if (cmd == "CZ") target = "[Z]";
+        else if (cmd == "CY") target = "[Y]";
+        else if (cmd == "CH") target = "[H]";
+        else if (cmd == "CRX") target = "[RX]";
+        else if (cmd == "CRY") target = "[RY]";
+        else if (cmd == "CRZ") target = "[RZ]";
+        else if (cmd == "CP") target = "[P]";
+        else if (cmd == "CU") target = "[U]";
+        set_qubit_label(col, t, target);
+        mark_vertical(col, c, t);
+      } catch (const std::exception&) {
+        recognized = false;
+      }
+    } else if ((cmd == "SWAP" || cmd == "ISWAP" || cmd == "XX" || cmd == "YY" || cmd == "ZZ") && tokens.size() >= 3) {
+      try {
+        const int a = std::stoi(tokens[1]);
+        const int b = std::stoi(tokens[2]);
+        const std::string label = (cmd == "SWAP") ? "[S]" : (cmd == "ISWAP" ? "[iS]" : "[" + cmd + "]");
+        set_qubit_label(col, a, label);
+        set_qubit_label(col, b, label);
+        mark_vertical(col, a, b);
+      } catch (const std::exception&) {
+        recognized = false;
+      }
+    } else if ((cmd == "CCX" || cmd == "TOFFOLI") && tokens.size() >= 4) {
+      try {
+        const int c1 = std::stoi(tokens[1]);
+        const int c2 = std::stoi(tokens[2]);
+        const int t = std::stoi(tokens[3]);
+        set_qubit_label(col, c1, "-o-");
+        set_qubit_label(col, c2, "-o-");
+        set_qubit_label(col, t, "[X]");
+        mark_vertical(col, std::min(c1, c2), std::max(c1, c2));
+        mark_vertical(col, std::min(c2, t), std::max(c2, t));
+      } catch (const std::exception&) {
+        recognized = false;
+      }
+    } else if (cmd == "MEASURE" && tokens.size() >= 3) {
+      try {
+        const int q = std::stoi(tokens[1]);
+        const int c = std::stoi(tokens[2]);
+        set_qubit_label(col, q, "[M]");
+        set_cbit_label(col, c, "[c" + std::to_string(c) + "]");
+      } catch (const std::exception&) {
+        recognized = false;
+      }
+    } else if (cmd == "IF" && tokens.size() >= 3) {
+      try {
+        const int c = std::stoi(tokens[1]);
+        set_cbit_label(col, c, "[?]");
+      } catch (const std::exception&) {
+        recognized = false;
+      }
+    } else {
+      recognized = false;
+    }
+
+    if (!recognized) {
+      set_qubit_label(col, 0, "[...]");
+    }
+    columns.push_back(col);
+  }
+
+  if (columns.empty()) {
+    std::cout << "Circuit history is empty.\n";
+    return;
+  }
+
+  std::cout << "Circuit view (" << num_qubits << " qubits";
+  if (num_cbits > 0) {
+    std::cout << ", " << num_cbits << " classical bits";
+  }
+  std::cout << "):\n";
+  for (int q = num_qubits - 1; q >= 0; --q) {
+    std::cout << "q" << q << ": ";
+    for (const Column& col : columns) {
+      std::cout << col.qcells[static_cast<size_t>(q)] << " ";
+    }
+    std::cout << "\n";
+  }
+  for (int c = num_cbits - 1; c >= 0; --c) {
+    std::cout << "c" << c << ": ";
+    for (const Column& col : columns) {
+      std::cout << col.ccells[static_cast<size_t>(c)] << " ";
+    }
+    std::cout << "\n";
+  }
+}
+
 void QuantumShell::handle_command(const std::vector<std::string>& tokens)
 {
   if (tokens.empty()) return;
@@ -164,7 +344,7 @@ void QuantumShell::print_help_summary()
   std::cout << "\nCommon tasks:\n";
   std::cout << "  Gates      : H X Y Z S T RX RY RZ CX CZ SWAP CCX\n";
   std::cout << "  Algorithms : GROVER BV DEUTSCH_JOZSA SIMON SHOR QPE QCOUNT VQA VQE ANNEAL\n";
-  std::cout << "  Utilities  : CHECK EXPECT BLOCH ENTROPY SHOTS LOAD SAVE SEED VERBOSE TUTOR\n";
+  std::cout << "  Utilities  : CHECK EXPECT BLOCH ENTROPY SHOTS CIRCUIT LOAD SAVE SEED VERBOSE TUTOR\n";
   std::cout << "\nHelp topics:\n";
   std::cout << "  HELP TOPICS      list help sections\n";
   std::cout << "  HELP GATES       gate reference\n";

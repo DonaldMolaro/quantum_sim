@@ -185,6 +185,12 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
     return true;
   }
 
+  if (cmd == "CIRCUIT") {
+    print_circuit_history();
+    tutor_note("CIRCUIT turns your command history into a lane-based sketch so you can connect shell commands to circuit structure.");
+    return true;
+  }
+
   if (cmd == "NOISE") {
     if (tokens.size() < 2) {
       double p = state ? state->get_noise_probability() : 0.0;
