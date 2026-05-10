@@ -7,6 +7,7 @@ protocols and algorithms supported by the simulator.
 
 **New to quantum computing?** Start with the course:
 
+- `../WHITE_PAPER.md`: project-level white paper covering the simulator, CLI, training workflow, and learning strategy
 - `course.md`: **Quantum Computing for the Classical Engineer** — a complete
   14-module self-study course, starting from scratch and covering every algorithm
   in the simulator. Includes classical-first intuition, simulator experiments,
