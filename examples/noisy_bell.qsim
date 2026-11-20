@@ -11,6 +11,8 @@ H 0
 CX 0 1
 DISPLAY
 CHECK BELL PHI+
+# Export the ideal circuit now: the next INIT starts a fresh recording.
+EXPORT viewer/exports/noisy_bell_ideal.json
 
 # --- Noisy Bell state (same circuit, p=0.10 noise) ---
 INIT 2 0
@@ -21,3 +23,5 @@ CX 0 1
 DISPLAY
 # Note: CHECK BELL may now fail depending on which error was injected.
 NOISE 0
+# Export the noisy run to compare against noisy_bell_ideal.json in the viewer.
+EXPORT viewer/exports/noisy_bell_noisy.json

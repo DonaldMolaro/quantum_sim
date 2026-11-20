@@ -6,3 +6,6 @@
 #
 # This file demonstrates the QPE CLI command.
 QPE 4 PI/4
+
+# Write the QPE gates and inverse QFT for the browser viewer (open viewer/viewer.html)
+EXPORT viewer/exports/qpe_t_gate.json
