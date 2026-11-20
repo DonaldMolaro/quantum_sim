@@ -29,11 +29,13 @@ private:
   bool tutor_mode = false;
   std::vector<std::string> command_history_;
   bool loading_from_file_ = false;
+  std::vector<std::string> viz_steps_;
   void tutor_note(const std::string& msg) const;
   TutorSnapshot capture_tutor_snapshot() const;
   void tutor_state_delta(const TutorSnapshot& before, int max_entries = 4) const;
   void print_circuit_history() const;
-  void handle_command(const std::vector<std::string>& tokens);
+  void dispatch_command(const std::vector<std::string>& tokens, const std::string& cmd);
+  void record_viz_step(const std::vector<std::string>& tokens);
   void print_help_summary();
   void print_help_topics();
   void print_help_gates();
@@ -47,6 +49,7 @@ private:
   bool handle_multi_qubit_commands(const std::vector<std::string>& tokens, const std::string& cmd);
   bool handle_measurement_and_display_commands(const std::vector<std::string>& tokens, const std::string& cmd);
 public:
+  void handle_command(const std::vector<std::string>& tokens);
   void print_help(const std::vector<std::string>& tokens);
   void run();
 };

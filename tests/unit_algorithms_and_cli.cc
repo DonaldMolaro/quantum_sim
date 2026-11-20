@@ -1423,3 +1423,40 @@ void test_circuit_history_view() {
         throw std::runtime_error("CIRCUIT should render common gates and measurement targets");
     }
 }
+
+void test_export_viz_json() {
+    const std::string path = "qsim_export_test.json";
+    QuantumShell shell;
+    std::ostringstream out;
+    std::ostringstream err;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    std::streambuf* cerr_orig = std::cerr.rdbuf(err.rdbuf());
+    shell.handle_command(cli::parse_command("init 2 1"));
+    shell.handle_command(cli::parse_command("h 0"));
+    shell.handle_command(cli::parse_command("h 9"));       // rejected: must not become a step
+    shell.handle_command(cli::parse_command("rx 0 3"));    // integer angle must not be mistaken for a qubit
+    shell.handle_command(cli::parse_command("cx 0 1"));
+    shell.handle_command(cli::parse_command("export " + path));
+    std::cout.rdbuf(cout_orig);
+    std::cerr.rdbuf(cerr_orig);
+
+    std::ifstream in(path);
+    std::stringstream buf;
+    buf << in.rdbuf();
+    in.close();
+    std::remove(path.c_str());
+    const std::string json = buf.str();
+    if (json.find("\"format\":\"qsim-viz\"") == std::string::npos ||
+        json.find("\"name\":\"CX\"") == std::string::npos ||
+        json.find("\"name\":\"RX\"") == std::string::npos) {
+        throw std::runtime_error("EXPORT should write ops for accepted gates");
+    }
+    if (json.find("\"raw\":\"h 9\"") != std::string::npos) {
+        throw std::runtime_error("EXPORT must skip gates rejected for bad qubit indices");
+    }
+    size_t steps = 0;
+    for (size_t p = json.find("\"op\":"); p != std::string::npos; p = json.find("\"op\":", p + 1)) ++steps;
+    if (steps != 4) {
+        throw std::runtime_error("EXPORT should record INIT + 3 gates, got " + std::to_string(steps));
+    }
+}

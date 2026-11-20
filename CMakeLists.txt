@@ -76,6 +76,7 @@ set(CLI_SOURCES
   cli/shell_setup.cc
   cli/shell_algorithms.cc
   cli/shell_gates.cc
+  cli/viz_export.cc
 )
 
 set(TEST_SOURCES

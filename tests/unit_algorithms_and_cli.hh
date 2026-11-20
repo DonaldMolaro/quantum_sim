@@ -42,6 +42,7 @@ void test_tutor_mode_state_deltas();
 void test_display_probs_command();
 void test_bloch_visual_summary();
 void test_circuit_history_view();
+void test_export_viz_json();
 void test_display_output_paths();
 void test_qft_invalid_ranges();
 void test_qft_tiny_amplitude_continue();

@@ -11,6 +11,7 @@
 #include "cli/commands.hh"
 #include "cli/help_catalog.hh"
 #include "cli/shell_detail.hh"
+#include "cli/viz_export.hh"
 #include "internal/limits.hh"
 #include "logging.hh"
 #include <algorithm>
@@ -313,7 +314,7 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
   if (tokens.empty()) return;
   const std::string cmd = cli::upper_copy(tokens[0]);
   // Record non-meta commands to history (skip SAVE/LOAD themselves).
-  if (!loading_from_file_ && cmd != "SAVE" && cmd != "LOAD" && cmd != "HELP" && cmd != "QUIT") {
+  if (!loading_from_file_ && cmd != "SAVE" && cmd != "LOAD" && cmd != "EXPORT" && cmd != "HELP" && cmd != "QUIT") {
     // Reconstruct the raw token string for history.
     std::string raw;
     for (size_t i = 0; i < tokens.size(); ++i) {
@@ -322,6 +323,29 @@ void QuantumShell::handle_command(const std::vector<std::string>& tokens)
     }
     command_history_.push_back(raw);
   }
+  dispatch_command(tokens, cmd);
+  record_viz_step(tokens);
+}
+
+void QuantumShell::record_viz_step(const std::vector<std::string>& tokens)
+{
+  std::string op;
+  std::vector<int> qubits;
+  if (!viz::op_to_json(tokens, op, &qubits)) return;
+  const bool is_init = cli::token_is(tokens[0], "INIT");
+  if (is_init) viz_steps_.clear();
+  if (!state || state->get_num_qubits() > viz::MAX_SNAPSHOT_QUBITS) return;
+  if (viz_steps_.size() >= viz::MAX_STEPS) return;
+  // A rejected command (bad qubit index, uninitialized state) must not become a step.
+  const int n = state->get_num_qubits();
+  for (int q : qubits) {
+    if (q < 0 || q >= n) return;
+  }
+  viz_steps_.push_back("{\"op\":" + op + ",\"state\":" + viz::snapshot_to_json(*state) + "}");
+}
+
+void QuantumShell::dispatch_command(const std::vector<std::string>& tokens, const std::string& cmd)
+{
   if (handle_setup_commands(tokens, cmd)) return;
   if (handle_algorithm_commands(tokens, cmd)) return;
   if (!shell_detail::require_initialized_state(state)) return;
@@ -344,7 +368,7 @@ void QuantumShell::print_help_summary()
   std::cout << "\nCommon tasks:\n";
   std::cout << "  Gates      : H X Y Z S T RX RY RZ CX CZ SWAP CCX\n";
   std::cout << "  Algorithms : GROVER BV DEUTSCH_JOZSA SIMON SHOR QPE QCOUNT VQA VQE ANNEAL\n";
-  std::cout << "  Utilities  : CHECK EXPECT BLOCH ENTROPY SHOTS CIRCUIT LOAD SAVE SEED VERBOSE TUTOR\n";
+  std::cout << "  Utilities  : CHECK EXPECT BLOCH ENTROPY SHOTS CIRCUIT EXPORT LOAD SAVE SEED VERBOSE TUTOR\n";
   std::cout << "\nHelp topics:\n";
   std::cout << "  HELP TOPICS      list help sections\n";
   std::cout << "  HELP GATES       gate reference\n";
