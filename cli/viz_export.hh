@@ -16,6 +16,9 @@ namespace viz {
 /** Largest register for which per-step snapshots are recorded. */
 constexpr int MAX_SNAPSHOT_QUBITS = 10;
 
+/** Larger limit for algorithm recording (Shor on N=15 needs 12 qubits). */
+constexpr int MAX_ALGORITHM_SNAPSHOT_QUBITS = 12;
+
 /** Cap on recorded steps so a long LOAD cannot grow memory without bound. */
 constexpr size_t MAX_STEPS = 1000;
 

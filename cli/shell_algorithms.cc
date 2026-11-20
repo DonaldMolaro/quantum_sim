@@ -18,6 +18,7 @@
 #include "demos/vqa_demo.hh"
 #include "demos/vqe_demo.hh"
 #include "cli/shell_detail.hh"
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -331,7 +332,11 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     int N = cli::get_arg(tokens, 1, "SHOR");
     if (N == -1) return true;
     tutor_note("Shor runs period finding plus number-theory post-processing; this implementation is educational scale.");
+    // Quantum part uses 3 * ceil(log2 N) qubits; only record when it is small enough to snapshot.
+    int shor_qubits = 3 * static_cast<int>(std::ceil(std::log2(static_cast<double>(std::max(N, 2)))));
+    const bool recording = begin_algorithm_recording(shor_qubits);
     run_shor_demo(static_cast<Bitstring>(N));
+    if (recording) end_algorithm_recording();
     return true;
   }
 

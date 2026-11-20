@@ -246,8 +246,7 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
       std::cerr << "Error: cannot open '" << filename << "' for writing.\n";
       return true;
     }
-    const int num_cbits = state ? static_cast<int>(state->get_cbits().size()) : 0;
-    out << viz::build_document(state ? state->get_num_qubits() : 0, num_cbits, viz_steps_);
+    out << viz::build_document(state ? state->get_num_qubits() : 0, static_cast<int>(viz_num_cbits_), viz_steps_);
     std::cout << "Exported " << viz_steps_.size() << " steps to '" << filename
               << "'. Open viewer/viewer.html in a browser and load this file.\n";
     tutor_note("EXPORT saves the circuit and the state after every gate, so the viewer can replay it step by step.");
