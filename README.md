@@ -54,7 +54,8 @@ You get the circuit diagram, a step scrubber (arrow keys, play), amplitude bars 
 and a draggable Bloch sphere per qubit. `EXPORT` records a snapshot after every gate for registers
 up to 10 qubits. `GROVER <targets>` is also exported: the initial state, `H⊗n`, then the oracle (`Uf`)
 and diffusion (`Us`) of every iteration as separate steps, so you can watch the target's phase flip and its
-amplitude grow. Other algorithm commands (`SHOR`, `QPE`, ...) are not recorded yet.
+amplitude grow. `QPE <m> <phase>` is exported gate by gate (`X`, `H`, controlled-phase) followed by the inverse QFT as one block.
+Other algorithm commands (`SHOR`, `QCOUNT`, ...) are not recorded yet.
 
 ## Benchmark CSV
 

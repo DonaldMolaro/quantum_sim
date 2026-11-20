@@ -165,8 +165,9 @@ function buildCircuit() {
     const nm = op.name;
     if (op.alg) {
       // Whole-register algorithm step: one block spanning every qubit lane.
-      el("rect", {x: x - 18, y: y(0) - 15, width: 36, height: (qs.length - 1) * LANE + 30, rx: 5, "stroke-width": 1.5}, g);
-      el("text", {x, y: (y(0) + y(qs.length - 1)) / 2}, g, op.short || nm);
+      const top = y(Math.min(...qs)), bottom = y(Math.max(...qs));
+      el("rect", {x: x - 18, y: top - 15, width: 36, height: bottom - top + 30, rx: 5, "stroke-width": 1.5}, g);
+      el("text", {x, y: (top + bottom) / 2}, g, op.short || nm);
     } else if (qs.length >= 2 && nm !== "SWAP" && nm !== "ISWAP" && !["XX","YY","ZZ"].includes(nm)) {
       const lo = Math.min(...qs), hi = Math.max(...qs);
       el("line", {class: "link", x1: x, x2: x, y1: y(lo), y2: y(hi)}, g);

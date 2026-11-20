@@ -119,12 +119,12 @@ bool op_to_json(const std::vector<std::string>& tokens, std::string& out, std::v
 }
 
 std::string algorithm_op_json(const std::string& name, const std::string& short_label,
-                              const std::string& detail, int num_qubits)
+                              const std::string& detail, int first_qubit, int last_qubit)
 {
   std::ostringstream ss;
   ss << "{\"name\":\"" << json_escape(name) << "\",\"alg\":true,\"short\":\"" << json_escape(short_label)
      << "\",\"qubits\":[";
-  for (int q = 0; q < num_qubits; ++q) ss << (q ? "," : "") << q;
+  for (int q = first_qubit; q <= last_qubit; ++q) ss << (q > first_qubit ? "," : "") << q;
   ss << "],\"params\":[],\"cbit\":null,\"raw\":\"" << json_escape(name + (detail.empty() ? "" : " - " + detail))
      << "\"}";
   return ss.str();

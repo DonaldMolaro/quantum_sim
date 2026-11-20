@@ -29,11 +29,11 @@ bool op_to_json(const std::vector<std::string>& tokens, std::string& out,
                 std::vector<int>* qubits_out = nullptr);
 
 /**
- * JSON op for a whole-register algorithm step (e.g. a Grover oracle), shown in the
- * viewer as one block across every qubit. `short_label` must fit a narrow box.
+ * JSON op for an algorithm step (e.g. a Grover oracle or an inverse QFT), shown in the
+ * viewer as one block across qubits first_qubit..last_qubit. `short_label` must fit a narrow box.
  */
 std::string algorithm_op_json(const std::string& name, const std::string& short_label,
-                              const std::string& detail, int num_qubits);
+                              const std::string& detail, int first_qubit, int last_qubit);
 
 /** JSON snapshot: {"n":..,"amps":[[idx,re,im],...],"bloch":[[x,y,z],...],"cbits":[...]}. */
 std::string snapshot_to_json(const State& state);

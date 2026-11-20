@@ -12,6 +12,7 @@
 #include "cli/help_catalog.hh"
 #include "cli/shell_detail.hh"
 #include "cli/viz_export.hh"
+#include "internal/step_observer.hh"
 #include "internal/limits.hh"
 #include "logging.hh"
 #include <algorithm>
@@ -342,6 +343,32 @@ void QuantumShell::record_viz_step(const std::vector<std::string>& tokens)
     if (q < 0 || q >= n) return;
   }
   viz_steps_.push_back("{\"op\":" + op + ",\"state\":" + viz::snapshot_to_json(*state) + "}");
+}
+
+bool QuantumShell::begin_algorithm_recording(int num_qubits)
+{
+  if (num_qubits > viz::MAX_SNAPSHOT_QUBITS) return false;
+  viz_steps_.clear();
+  qsim::set_step_observer([this](const qsim::StepInfo& info, const State& s) {
+    if (viz_steps_.size() >= viz::MAX_STEPS) return;
+    std::string op;
+    if (info.kind == "init") {
+      if (!viz::op_to_json({"INIT", std::to_string(s.get_num_qubits()), "0"}, op)) return;
+    } else if (info.kind == "gate") {
+      if (!viz::op_to_json(cli::parse_command(info.name), op)) return;
+    } else {
+      const int first = info.first_qubit >= 0 ? info.first_qubit : 0;
+      const int last = info.last_qubit >= 0 ? info.last_qubit : s.get_num_qubits() - 1;
+      op = viz::algorithm_op_json(info.name, info.short_label, info.detail, first, last);
+    }
+    viz_steps_.push_back("{\"op\":" + op + ",\"state\":" + viz::snapshot_to_json(s) + "}");
+  });
+  return true;
+}
+
+void QuantumShell::end_algorithm_recording()
+{
+  qsim::clear_step_observer();
 }
 
 void QuantumShell::dispatch_command(const std::vector<std::string>& tokens, const std::string& cmd)
