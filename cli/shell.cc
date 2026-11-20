@@ -334,7 +334,10 @@ void QuantumShell::record_viz_step(const std::vector<std::string>& tokens)
   std::vector<int> qubits;
   if (!viz::op_to_json(tokens, op, &qubits)) return;
   const bool is_init = cli::token_is(tokens[0], "INIT");
-  if (is_init) viz_steps_.clear();
+  if (is_init) {
+    viz_steps_.clear();
+    viz_num_cbits_ = 0;
+  }
   if (!state || state->get_num_qubits() > viz::MAX_SNAPSHOT_QUBITS) return;
   if (viz_steps_.size() >= viz::MAX_STEPS) return;
   // A rejected command (bad qubit index, uninitialized state) must not become a step.
@@ -342,18 +345,28 @@ void QuantumShell::record_viz_step(const std::vector<std::string>& tokens)
   for (int q : qubits) {
     if (q < 0 || q >= n) return;
   }
-  viz_steps_.push_back("{\"op\":" + op + ",\"state\":" + viz::snapshot_to_json(*state) + "}");
+  push_viz_step(op, *state);
+}
+
+void QuantumShell::push_viz_step(const std::string& op, const State& s)
+{
+  viz_num_cbits_ = std::max(viz_num_cbits_, s.get_cbits().size());
+  viz_steps_.push_back("{\"op\":" + op + ",\"state\":" + viz::snapshot_to_json(s) + "}");
 }
 
 bool QuantumShell::begin_algorithm_recording(int num_qubits)
 {
-  if (num_qubits > viz::MAX_SNAPSHOT_QUBITS) return false;
-  viz_steps_.clear();
+  if (num_qubits > viz::MAX_ALGORITHM_SNAPSHOT_QUBITS) return false;
+  // Earlier steps are kept until the algorithm actually starts (its "init" step),
+  // so a shortcut path (e.g. even N in SHOR) does not wipe a previous recording.
   qsim::set_step_observer([this](const qsim::StepInfo& info, const State& s) {
-    if (viz_steps_.size() >= viz::MAX_STEPS) return;
     std::string op;
     if (info.kind == "init") {
-      if (!viz::op_to_json({"INIT", std::to_string(s.get_num_qubits()), "0"}, op)) return;
+      viz_steps_.clear();
+      viz_num_cbits_ = 0;
+      if (!viz::op_to_json({"INIT", std::to_string(s.get_num_qubits()), std::to_string(s.get_cbits().size())}, op)) return;
+    } else if (viz_steps_.size() >= viz::MAX_STEPS) {
+      return;
     } else if (info.kind == "gate") {
       if (!viz::op_to_json(cli::parse_command(info.name), op)) return;
     } else {
@@ -361,7 +374,7 @@ bool QuantumShell::begin_algorithm_recording(int num_qubits)
       const int last = info.last_qubit >= 0 ? info.last_qubit : s.get_num_qubits() - 1;
       op = viz::algorithm_op_json(info.name, info.short_label, info.detail, first, last);
     }
-    viz_steps_.push_back("{\"op\":" + op + ",\"state\":" + viz::snapshot_to_json(s) + "}");
+    push_viz_step(op, s);
   });
   return true;
 }

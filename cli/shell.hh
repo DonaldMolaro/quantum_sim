@@ -30,6 +30,8 @@ private:
   std::vector<std::string> command_history_;
   bool loading_from_file_ = false;
   std::vector<std::string> viz_steps_;
+  size_t viz_num_cbits_ = 0;
+  void push_viz_step(const std::string& op, const State& s);
   void tutor_note(const std::string& msg) const;
   TutorSnapshot capture_tutor_snapshot() const;
   void tutor_state_delta(const TutorSnapshot& before, int max_entries = 4) const;

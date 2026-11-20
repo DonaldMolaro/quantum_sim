@@ -1,6 +1,7 @@
 #include "algorithms/shor_quantum.hh"
 #include "internal/limits.hh"
 #include "internal/register_layout.hh"
+#include "internal/step_observer.hh"
 #include <cmath>
 #include <string>
 
@@ -30,12 +31,15 @@ ShorQuantumResult run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)
   }
 
   State s(result.total_qubits, num_cbits);
+  qsim::notify_init(s);
 
   // Initialize target register to |1> (rightmost target qubit).
   s.x(result.total_qubits - 1);
+  qsim::notify_gate("X " + std::to_string(result.total_qubits - 1), s);
 
   // QFT on control register (creates uniform superposition).
   s.qft(0, result.n_c - 1);
+  qsim::notify_block("Shor QFT", "QFT", "control register: uniform superposition", s, 0, result.n_c - 1);
 
   // Controlled modular exponentiation for each control qubit.
   for (int j = 0; j < result.n_c; ++j) {
@@ -46,14 +50,20 @@ ShorQuantumResult run_shor_algorithm_quantum_part(Bitstring N, Bitstring a)
         result.n_c, result.total_qubits - 1,
         a, N,
         power_of_a);
+    qsim::notify_block("Shor controlled-U^(2^" + std::to_string(j) + ")", "U" + std::to_string(j),
+                       "control q" + std::to_string(j) + ": target <- " + std::to_string(a) + "^(2^" +
+                           std::to_string(j) + ") * target mod " + std::to_string(N),
+                       s, j, result.total_qubits - 1);
   }
 
   // Inverse QFT on control register.
   s.iqft(0, result.n_c - 1);
+  qsim::notify_block("Shor inverse QFT", "iQFT", "control register: period appears as peaks", s, 0, result.n_c - 1);
 
   // Measure control register into classical bits.
   for (int j = 0; j < result.n_c; ++j) {
     s.measure(j, j);
+    qsim::notify_gate("MEASURE " + std::to_string(j) + " " + std::to_string(j), s);
   }
 
   Bitstring measured_x = 0;

@@ -1530,3 +1530,37 @@ void test_export_qpe_steps() {
         throw std::runtime_error("QPE final snapshot should peak at the expected readout state");
     }
 }
+
+void test_export_shor_steps() {
+    const std::string path = "qsim_export_shor_test.json";
+    setenv("QSIM_SHOR_FORCE_A", "7", 1);
+    QuantumShell shell;
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command("shor 15"));   // n_t=4, n_c=8: 12 qubits
+    shell.handle_command(cli::parse_command("export " + path));
+    std::cout.rdbuf(cout_orig);
+    unsetenv("QSIM_SHOR_FORCE_A");
+
+    std::ifstream in(path);
+    std::stringstream buf;
+    buf << in.rdbuf();
+    in.close();
+    std::remove(path.c_str());
+    const std::string json = buf.str();
+    auto count = [&](const std::string& needle) {
+        size_t n = 0;
+        for (size_t p = json.find(needle); p != std::string::npos; p = json.find(needle, p + 1)) ++n;
+        return n;
+    };
+    // Last attempt only: init + X + QFT + 8 controlled-U + iQFT + 8 MEASURE.
+    if (count("\"op\":") != 20) {
+        throw std::runtime_error("SHOR should export 20 steps, got " + std::to_string(count("\"op\":")));
+    }
+    if (count("\"alg\":true") != 10 || count("Shor controlled-U") < 8 || count("\"name\":\"MEASURE\"") != 8) {
+        throw std::runtime_error("SHOR export should contain QFT, 8 controlled-U blocks, iQFT and 8 measurements");
+    }
+    if (json.find("\"num_cbits\":8") == std::string::npos) {
+        throw std::runtime_error("SHOR export should report 8 classical bits");
+    }
+}
