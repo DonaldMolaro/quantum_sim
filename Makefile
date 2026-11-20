@@ -20,7 +20,7 @@ DEMO_SOURCES = demos/latin_demo.cc demos/shor_demo.cc \
 	demos/qubo_demo.cc demos/vqa_demo.cc demos/qaoa_demo.cc demos/vqe_demo.cc demos/anneal_demo.cc \
 	demos/tsp_demo.cc demos/quantum_counting_demo.cc demos/simon_demo.cc demos/qpe_demo.cc
 DEMO_OBJECTS = $(DEMO_SOURCES:.cc=.o)
-CLI_SOURCES = cli/commands.cc cli/help_catalog.cc cli/shell.cc cli/shell_setup.cc cli/shell_algorithms.cc cli/shell_gates.cc cli/main.cc
+CLI_SOURCES = cli/commands.cc cli/help_catalog.cc cli/shell.cc cli/shell_setup.cc cli/shell_algorithms.cc cli/shell_gates.cc cli/viz_export.cc cli/main.cc
 DRIVER_SOURCES = $(CLI_SOURCES)
 DRIVER_OBJECTS = $(DRIVER_SOURCES:.cc=.o)
 TEST_SOURCES = tests/unit_tests.cc tests/unit_qft_modexp.cc tests/unit_algorithms_and_cli.cc tests/unit_cli_and_shor.cc tests/grover_test.cc tests/grover_bench.cc tests/unit_new_features.cc tests/unit_edge_cases.cc

@@ -406,7 +406,9 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     if (state && state->is_initialized()) {
       n_qubits = state->get_num_qubits();
     }
+    const bool recording = begin_algorithm_recording(n_qubits);
     GroverResult result = run_grover(n_qubits, targets);
+    if (recording) end_algorithm_recording();
     if (!result.ok) {
       std::cerr << "Grover error: " << result.error << "\n";
       return true;
@@ -503,12 +505,14 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: QPE precision m must be in [1, 20].\n";
       return true;
     }
+    const bool recording = begin_algorithm_recording(m + 1);
     try {
       tutor_note("QPE applies controlled phase gates then iQFT to read out the phase fraction.");
       run_qpe_demo(m, phase);
     } catch (const std::exception& e) {
       std::cerr << "QPE error: " << e.what() << "\n";
     }
+    if (recording) end_algorithm_recording();
     return true;
   }
 

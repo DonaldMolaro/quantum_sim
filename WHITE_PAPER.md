@@ -84,6 +84,7 @@ The CLI lives in [cli/](cli/) and provides:
 - file-based workflows with `LOAD` and `SAVE`
 - multi-shot measurement workflows
 - terminal-native visual tools such as `DISPLAY TOP <k>`, `DISPLAY PROBS`, `BLOCH`, and `CIRCUIT`
+- a browser viewer (`EXPORT <file.json>` then open `viewer/viewer.html`) with circuit, amplitude/phase, and Bloch sphere views
 
 This layer is intentionally central to the learning experience. The project is designed to be explored interactively.
 

@@ -81,6 +81,7 @@ const CommandHelp kUtilityCommands[] = {
   {"ENTROPY <j> [k]", "Von Neumann entropy for a subsystem."},
   {"SWAP_TEST <anc> <a_start> <b_start> <n>", "Estimate overlap with the SWAP test."},
   {"CIRCUIT", "Render a simple ASCII circuit from command history."},
+  {"EXPORT <file.json>", "Write circuit + per-step state to JSON for viewer/viewer.html."},
   {"LOAD <file>", "Load and execute commands from a file."},
   {"SAVE <file>", "Save command history to a file."},
   {"SHOTS <n> <file>", "Run a circuit file n times and print a histogram with bars."},

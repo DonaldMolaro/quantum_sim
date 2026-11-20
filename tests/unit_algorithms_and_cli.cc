@@ -1423,3 +1423,110 @@ void test_circuit_history_view() {
         throw std::runtime_error("CIRCUIT should render common gates and measurement targets");
     }
 }
+
+void test_export_viz_json() {
+    const std::string path = "qsim_export_test.json";
+    QuantumShell shell;
+    std::ostringstream out;
+    std::ostringstream err;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    std::streambuf* cerr_orig = std::cerr.rdbuf(err.rdbuf());
+    shell.handle_command(cli::parse_command("init 2 1"));
+    shell.handle_command(cli::parse_command("h 0"));
+    shell.handle_command(cli::parse_command("h 9"));       // rejected: must not become a step
+    shell.handle_command(cli::parse_command("rx 0 3"));    // integer angle must not be mistaken for a qubit
+    shell.handle_command(cli::parse_command("cx 0 1"));
+    shell.handle_command(cli::parse_command("export " + path));
+    std::cout.rdbuf(cout_orig);
+    std::cerr.rdbuf(cerr_orig);
+
+    std::ifstream in(path);
+    std::stringstream buf;
+    buf << in.rdbuf();
+    in.close();
+    std::remove(path.c_str());
+    const std::string json = buf.str();
+    if (json.find("\"format\":\"qsim-viz\"") == std::string::npos ||
+        json.find("\"name\":\"CX\"") == std::string::npos ||
+        json.find("\"name\":\"RX\"") == std::string::npos) {
+        throw std::runtime_error("EXPORT should write ops for accepted gates");
+    }
+    if (json.find("\"raw\":\"h 9\"") != std::string::npos) {
+        throw std::runtime_error("EXPORT must skip gates rejected for bad qubit indices");
+    }
+    size_t steps = 0;
+    for (size_t p = json.find("\"op\":"); p != std::string::npos; p = json.find("\"op\":", p + 1)) ++steps;
+    if (steps != 4) {
+        throw std::runtime_error("EXPORT should record INIT + 3 gates, got " + std::to_string(steps));
+    }
+}
+
+void test_export_grover_steps() {
+    const std::string path = "qsim_export_grover_test.json";
+    QuantumShell shell;
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command("grover 5"));   // 3 qubits, 2 iterations
+    shell.handle_command(cli::parse_command("export " + path));
+    std::cout.rdbuf(cout_orig);
+
+    std::ifstream in(path);
+    std::stringstream buf;
+    buf << in.rdbuf();
+    in.close();
+    std::remove(path.c_str());
+    const std::string json = buf.str();
+    auto count = [&](const std::string& needle) {
+        size_t n = 0;
+        for (size_t p = json.find(needle); p != std::string::npos; p = json.find(needle, p + 1)) ++n;
+        return n;
+    };
+    // init + H^n + 2 iterations * (oracle + diffusion)
+    if (count("\"op\":") != 6) {
+        throw std::runtime_error("GROVER should export 6 steps, got " + std::to_string(count("\"op\":")));
+    }
+    if (count("\"name\":\"GROVER oracle\"") != 2 || count("\"name\":\"GROVER diffusion\"") != 2 || count("\"alg\":true") != 5) {
+        throw std::runtime_error("GROVER export should contain oracle/diffusion algorithm steps");
+    }
+    // After the final diffusion, the target |101> (index 5) should dominate.
+    const size_t last = json.rfind("\"amps\":");
+    const size_t at = json.find("[5,", last);
+    if (at == std::string::npos || at > json.find("\"bloch\"", last)) {
+        throw std::runtime_error("target amplitude should be present in final Grover snapshot");
+    }
+}
+
+void test_export_qpe_steps() {
+    const std::string path = "qsim_export_qpe_test.json";
+    QuantumShell shell;
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command("qpe 3 pi/2"));   // 4 qubits, phase 1/4
+    shell.handle_command(cli::parse_command("export " + path));
+    std::cout.rdbuf(cout_orig);
+
+    std::ifstream in(path);
+    std::stringstream buf;
+    buf << in.rdbuf();
+    in.close();
+    std::remove(path.c_str());
+    const std::string json = buf.str();
+    auto count = [&](const std::string& needle) {
+        size_t n = 0;
+        for (size_t p = json.find(needle); p != std::string::npos; p = json.find(needle, p + 1)) ++n;
+        return n;
+    };
+    // init + X + 3 H + 3 CP + inverse QFT block
+    if (count("\"op\":") != 9) {
+        throw std::runtime_error("QPE should export 9 steps, got " + std::to_string(count("\"op\":")));
+    }
+    if (count("\"name\":\"CP\"") != 3 || count("\"name\":\"QPE inverse QFT\"") != 1) {
+        throw std::runtime_error("QPE export should contain 3 CP gates and one inverse QFT block");
+    }
+    // phase 1/4 with m=3 reads out as 010 on qubits 1..3 => basis state 0b0100 | target 1 = index 5.
+    const size_t last = json.rfind("\"amps\":");
+    const size_t at = json.find("[5,", last);
+    if (at == std::string::npos || at > json.find("\"bloch\"", last)) {
+        throw std::runtime_error("QPE final snapshot should peak at the expected readout state");
+    }
+}

@@ -1,6 +1,8 @@
 #include "algorithms/qpe.hh"
 #include "state.hh"
 #include "internal/limits.hh"
+#include "internal/step_observer.hh"
+#include <sstream>
 #include <cmath>
 #include <stdexcept>
 
@@ -15,23 +17,33 @@ QpeResult run_qpe(int m, double phase_radians)
   const int target = 0;
 
   State s(n_qubits);
+  qsim::notify_init(s);
 
   // 1. Prepare eigenstate |1> on target qubit.
   s.x(target);
+  qsim::notify_gate("X 0", s);
 
   // 2. Superpose precision register.
   for (int k = 1; k <= m; k++) {
     s.h(k);
+    qsim::notify_gate("H " + std::to_string(k), s);
   }
 
   // 3. Controlled-U^{2^{k-1}}: CP(k, target, phase * 2^{k-1}).
   for (int k = 1; k <= m; k++) {
     double angle = phase_radians * static_cast<double>(1LL << (k - 1));
     s.cp(k, target, angle);
+    if (qsim::step_observer_storage()) {
+      std::ostringstream cmd;
+      cmd.precision(9);
+      cmd << "CP " << k << " 0 " << angle;
+      qsim::notify_gate(cmd.str(), s);
+    }
   }
 
   // 4. Inverse QFT on precision register (qubits 1..m).
   s.iqft(1, m);
+  qsim::notify_block("QPE inverse QFT", "iQFT", "on precision qubits 1.." + std::to_string(m), s, 1, m);
 
   // 5. Find most-probable bitstring in precision register.
   const QuantumState& qs = s.get_state();

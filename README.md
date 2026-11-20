@@ -38,6 +38,25 @@ cmake --build build-cov -j
 cmake --build build-cov --target coverage-check
 ```
 
+## Visual Viewer
+
+Export a session and explore it in the browser (no server, no dependencies):
+
+```
+QSIM> INIT 2 0
+QSIM> H 0
+QSIM> CX 0 1
+QSIM> EXPORT bell.json
+```
+
+Open [viewer/viewer.html](viewer/viewer.html) in a browser, then load `bell.json` (button or drag-and-drop).
+You get the circuit diagram, a step scrubber (arrow keys, play), amplitude bars colored by phase,
+and a draggable Bloch sphere per qubit. `EXPORT` records a snapshot after every gate for registers
+up to 10 qubits. `GROVER <targets>` is also exported: the initial state, `H⊗n`, then the oracle (`Uf`)
+and diffusion (`Us`) of every iteration as separate steps, so you can watch the target's phase flip and its
+amplitude grow. `QPE <m> <phase>` is exported gate by gate (`X`, `H`, controlled-phase) followed by the inverse QFT as one block.
+Other algorithm commands (`SHOR`, `QCOUNT`, ...) are not recorded yet.
+
 ## Benchmark CSV
 
 Generate Grover benchmark output in CSV format:
@@ -52,6 +71,7 @@ Default output: `benchmarks/grover_bench.csv`.
 
 - `state.hh`, `state.cc`: core quantum state and gates
 - `display.cc`: state visualization
+- `viewer/`: browser viewer for `EXPORT` files; `cli/viz_export.*` writes the JSON
 - `math/`: bit operations and modular arithmetic helpers
 - `algorithms/`: core Grover/Shor routines (no demo output)
 - `algorithms/shor_classical.*`: continued fractions + order extraction helpers

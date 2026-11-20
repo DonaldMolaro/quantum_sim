@@ -2,6 +2,7 @@
 #include "cli/commands.hh"
 #include "algorithms/qrng.hh"
 #include "cli/shell_detail.hh"
+#include "cli/viz_export.hh"
 #include "logging.hh"
 #include <algorithm>
 #include <memory>
@@ -227,6 +228,29 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
       out << line << "\n";
     }
     std::cout << "Circuit saved to '" << filename << "' (" << command_history_.size() << " commands).\n";
+    return true;
+  }
+
+  if (cmd == "EXPORT") {
+    if (tokens.size() < 2) {
+      std::cerr << "Error: EXPORT requires a filename (e.g. EXPORT circuit.json).\n";
+      return true;
+    }
+    if (viz_steps_.empty()) {
+      std::cerr << "Error: nothing to export. INIT a state and run some gates first.\n";
+      return true;
+    }
+    const std::string& filename = tokens[1];
+    std::ofstream out(filename);
+    if (!out) {
+      std::cerr << "Error: cannot open '" << filename << "' for writing.\n";
+      return true;
+    }
+    const int num_cbits = state ? static_cast<int>(state->get_cbits().size()) : 0;
+    out << viz::build_document(state ? state->get_num_qubits() : 0, num_cbits, viz_steps_);
+    std::cout << "Exported " << viz_steps_.size() << " steps to '" << filename
+              << "'. Open viewer/viewer.html in a browser and load this file.\n";
+    tutor_note("EXPORT saves the circuit and the state after every gate, so the viewer can replay it step by step.");
     return true;
   }
 
