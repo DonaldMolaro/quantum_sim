@@ -23,7 +23,8 @@ CTestTestfile.cmake
 Testing/
 compile_commands.json
 examples/diagrams/
-viewer/exports/*.json
+viewer/exports/*
+!viewer/exports/.gitkeep
 benchmarks/*.csv
 
 # Editor backups

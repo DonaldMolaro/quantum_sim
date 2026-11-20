@@ -354,12 +354,12 @@ void QuantumShell::push_viz_step(const std::string& op, const State& s)
   viz_steps_.push_back("{\"op\":" + op + ",\"state\":" + viz::snapshot_to_json(s) + "}");
 }
 
-bool QuantumShell::begin_algorithm_recording(int num_qubits)
+void QuantumShell::begin_algorithm_recording()
 {
-  if (num_qubits > viz::MAX_ALGORITHM_SNAPSHOT_QUBITS) return false;
   // Earlier steps are kept until the algorithm actually starts (its "init" step),
   // so a shortcut path (e.g. even N in SHOR) does not wipe a previous recording.
   qsim::set_step_observer([this](const qsim::StepInfo& info, const State& s) {
+    if (s.get_num_qubits() > viz::MAX_ALGORITHM_SNAPSHOT_QUBITS) return;
     std::string op;
     if (info.kind == "init") {
       viz_steps_.clear();
@@ -376,7 +376,6 @@ bool QuantumShell::begin_algorithm_recording(int num_qubits)
     }
     push_viz_step(op, s);
   });
-  return true;
 }
 
 void QuantumShell::end_algorithm_recording()

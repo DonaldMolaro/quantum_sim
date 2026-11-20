@@ -1,5 +1,6 @@
 #include "algorithms/bernstein_vazirani.hh"
 #include "logging.hh"
+#include "internal/step_observer.hh"
 
 #include <sstream>
 
@@ -27,29 +28,38 @@ BernsteinVaziraniResult run_bernstein_vazirani(int n_inputs, Bitstring secret, i
   }
 
   State state(n_inputs + 1, n_inputs + 1);
+  qsim::notify_init(state);
   const int ancilla = n_inputs;
 
   state.x(ancilla);
+  qsim::notify_gate1("X", ancilla, state);
   for (int j = 0; j <= n_inputs; ++j) {
     state.h(j);
+    qsim::notify_gate1("H", j, state);
   }
 
   // Oracle for f(x)=s.x xor bias
   if (bias == 1) {
     state.x(ancilla);
+    qsim::notify_gate1("X", ancilla, state);
   }
   for (int j = 0; j < n_inputs; ++j) {
     if ((secret >> j) & 1ULL) {
       state.cx(j, ancilla);
+      qsim::notify_gate2("CX", j, ancilla, state);
     }
   }
 
   for (int j = 0; j < n_inputs; ++j) {
     state.h(j);
+    qsim::notify_gate1("H", j, state);
   }
 
   std::vector<int> bits;
   state.measure_all(bits);
+  for (int j = 0; j < n_inputs; ++j) {
+    qsim::notify_measure(j, j, state);
+  }
   result.measured_bits.assign(bits.begin(), bits.begin() + n_inputs);
 
   Bitstring measured = 0ULL;

@@ -2,6 +2,7 @@
 
 #include "internal/limits.hh"
 #include "logging.hh"
+#include "internal/step_observer.hh"
 
 #include <algorithm>
 #include <cmath>
@@ -20,13 +21,17 @@ bool is_supported_pauli(char op)
 State build_ansatz_state(int n_qubits, int layers, const std::vector<double>& params)
 {
   State s(n_qubits, 0);
+  qsim::notify_init(s);
   size_t idx = 0;
   for (int l = 0; l < layers; ++l) {
     for (int q = 0; q < n_qubits; ++q) {
-      s.ry(q, params[idx++]);
+      s.ry(q, params[idx]);
+      qsim::notify_gate_angle("RY", q, params[idx], s);
+      ++idx;
     }
     for (int q = 0; q + 1 < n_qubits; ++q) {
       s.cx(q, q + 1);
+      qsim::notify_gate2("CX", q, q + 1, s);
     }
   }
   return s;
@@ -60,6 +65,8 @@ void apply_pauli_to_basis(Bitstring in_basis,
 
 double evaluate_energy_exact(const VqeHamiltonian& h, const std::vector<double>& params, int layers)
 {
+  // The optimizer evaluates the ansatz hundreds of times; only the final one is reported.
+  qsim::StepObserverPause pause;
   State s = build_ansatz_state(h.n_qubits, layers, params);
   return vqe_expectation_exact(s, h);
 }
@@ -176,6 +183,11 @@ VqeResult run_vqe(const VqeHamiltonian& h, const VqeOptions& options)
       }
     }
     out.energy_history.push_back(best);
+  }
+
+  if (qsim::step_observer_storage()) {
+    // Replay the optimized ansatz once so the viewer shows what the search settled on.
+    build_ansatz_state(h.n_qubits, options.layers, params);
   }
 
   out.ok = true;

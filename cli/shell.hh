@@ -38,8 +38,8 @@ private:
   void print_circuit_history() const;
   void dispatch_command(const std::vector<std::string>& tokens, const std::string& cmd);
   void record_viz_step(const std::vector<std::string>& tokens);
-  /** Installs the algorithm step observer; returns false if the register is too big to record. */
-  bool begin_algorithm_recording(int num_qubits);
+  /** Installs the algorithm step observer; steps from registers over the snapshot limit are skipped. */
+  void begin_algorithm_recording();
   void end_algorithm_recording();
   void print_help_summary();
   void print_help_topics();

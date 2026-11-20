@@ -2,6 +2,7 @@
 
 #include "algorithms/qubo.hh"
 #include "logging.hh"
+#include "internal/step_observer.hh"
 
 #include <cmath>
 #include <complex>
@@ -77,13 +78,21 @@ State build_qaoa_state(int n,
                        const PreparedQubo& prepared)
 {
   State state(n, 0);
+  qsim::notify_init(state);
   for (int j = 0; j < n; ++j) {
     state.h(j);
+    qsim::notify_gate1("H", j, state);
   }
   for (size_t layer = 0; layer < gamma.size(); ++layer) {
     apply_cost_layer(state, n, gamma[layer], prepared);
+    if (qsim::step_observer_storage()) {
+      std::ostringstream detail;
+      detail << "layer " << (layer + 1) << ": phase e^(-i*gamma*E(x)), gamma=" << gamma[layer];
+      qsim::notify_block("QAOA cost layer", "UC", detail.str(), state);
+    }
     for (int j = 0; j < n; ++j) {
       state.rx(j, 2.0 * beta[layer]);
+      qsim::notify_gate_angle("RX", j, 2.0 * beta[layer], state);
     }
   }
   return state;
@@ -162,6 +171,8 @@ double evaluate_energy(int n,
                        std::mt19937& rng,
                        Bitstring* likely_state)
 {
+  // The search evaluates the circuit hundreds of times; only the final one is reported.
+  qsim::StepObserverPause pause;
   State state = build_qaoa_state(n, gamma, beta, prepared);
   if (likely_state != nullptr) {
     *likely_state = most_likely_basis(state);
@@ -253,6 +264,11 @@ VqaQaoaResult run_vqa_qaoa_qubo(int n,
     }
 
     out.energy_history.push_back(best);
+  }
+
+  if (qsim::step_observer_storage()) {
+    // Replay the optimized circuit once so the viewer shows what the search settled on.
+    build_qaoa_state(n, gamma, beta, prepared);
   }
 
   out.ok = true;

@@ -71,6 +71,14 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     return false;
   }
 
+  // Every algorithm command can feed the viewer's EXPORT recording; algorithms that
+  // are purely classical here (SIMON, ANNEAL, TSP, QUBO EXACT) simply report nothing.
+  begin_algorithm_recording();
+  struct RecordingScope {
+    QuantumShell* shell;
+    ~RecordingScope() { shell->end_algorithm_recording(); }
+  } recording_scope{this};
+
   switch (it->second) {
   case AlgorithmCommand::DeutschJozsa: {
     int n_inputs = cli::get_arg(tokens, 1, cmd);
@@ -332,11 +340,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     int N = cli::get_arg(tokens, 1, "SHOR");
     if (N == -1) return true;
     tutor_note("Shor runs period finding plus number-theory post-processing; this implementation is educational scale.");
-    // Quantum part uses 3 * ceil(log2 N) qubits; only record when it is small enough to snapshot.
-    int shor_qubits = 3 * static_cast<int>(std::ceil(std::log2(static_cast<double>(std::max(N, 2)))));
-    const bool recording = begin_algorithm_recording(shor_qubits);
     run_shor_demo(static_cast<Bitstring>(N));
-    if (recording) end_algorithm_recording();
     return true;
   }
 
@@ -411,9 +415,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     if (state && state->is_initialized()) {
       n_qubits = state->get_num_qubits();
     }
-    const bool recording = begin_algorithm_recording(n_qubits);
     GroverResult result = run_grover(n_qubits, targets);
-    if (recording) end_algorithm_recording();
     if (!result.ok) {
       std::cerr << "Grover error: " << result.error << "\n";
       return true;
@@ -449,9 +451,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   case AlgorithmCommand::QuantumCounting: {
     if (tokens.size() >= 2 && cli::token_is(tokens[1], "DEMO")) {
       tutor_note("Quantum counting estimates how many marked states exist without full enumeration.");
-      const bool recording = begin_algorithm_recording(3);
       run_quantum_counting_demo();
-      if (recording) end_algorithm_recording();
       return true;
     }
     if (tokens.size() >= 2 && cli::token_is(tokens[1], "RUN")) {
@@ -473,9 +473,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
         }
         targets.push_back(static_cast<Bitstring>(t));
       }
-      const bool recording = begin_algorithm_recording(n_qubits);
       run_quantum_counting_cli(n_qubits, targets, max_iterations);
-      if (recording) end_algorithm_recording();
       tutor_note("RUN mode fixes the fitting window so you can compare estimator stability.");
       return true;
     }
@@ -496,9 +494,7 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       }
       targets.push_back(static_cast<Bitstring>(t));
     }
-    const bool recording = begin_algorithm_recording(n_qubits);
     run_quantum_counting_cli(n_qubits, targets, -1);
-    if (recording) end_algorithm_recording();
     tutor_note("Counting output estimates M (number of marked states) from Grover dynamics.");
     return true;
   }
@@ -516,14 +512,12 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       std::cerr << "Error: QPE precision m must be in [1, 20].\n";
       return true;
     }
-    const bool recording = begin_algorithm_recording(m + 1);
     try {
       tutor_note("QPE applies controlled phase gates then iQFT to read out the phase fraction.");
       run_qpe_demo(m, phase);
     } catch (const std::exception& e) {
       std::cerr << "QPE error: " << e.what() << "\n";
     }
-    if (recording) end_algorithm_recording();
     return true;
   }
 

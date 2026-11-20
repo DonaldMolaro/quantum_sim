@@ -1,5 +1,6 @@
 #include "algorithms/deutsch_jozsa.hh"
 #include "logging.hh"
+#include "internal/step_observer.hh"
 
 #include <algorithm>
 #include <cctype>
@@ -39,11 +40,14 @@ DeutschJozsaResult run_deutsch_jozsa(int n_inputs, DeutschJozsaOracle oracle)
   }
 
   State state(n_inputs + 1, n_inputs + 1);
+  qsim::notify_init(state);
 
   const int ancilla = n_inputs;
   state.x(ancilla);
+  qsim::notify_gate1("X", ancilla, state);
   for (int j = 0; j <= n_inputs; ++j) {
     state.h(j);
+    qsim::notify_gate1("H", j, state);
   }
   if (qsim_log::enabled(qsim_log::Level::Verbose)) {
     std::ostringstream msg;
@@ -52,6 +56,7 @@ DeutschJozsaResult run_deutsch_jozsa(int n_inputs, DeutschJozsaOracle oracle)
   }
 
   apply_oracle(state, n_inputs, oracle);
+  qsim::notify_block("DJ oracle", "Uf", deutsch_jozsa_oracle_name(oracle), state);
   if (qsim_log::enabled(qsim_log::Level::Verbose)) {
     std::ostringstream msg;
     msg << "Deutsch-Jozsa: oracle applied (" << deutsch_jozsa_oracle_name(oracle) << ")\n";
@@ -60,10 +65,14 @@ DeutschJozsaResult run_deutsch_jozsa(int n_inputs, DeutschJozsaOracle oracle)
 
   for (int j = 0; j < n_inputs; ++j) {
     state.h(j);
+    qsim::notify_gate1("H", j, state);
   }
 
   std::vector<int> bits;
   state.measure_all(bits);
+  for (int j = 0; j < n_inputs; ++j) {
+    qsim::notify_measure(j, j, state);
+  }
   result.input_measurement.assign(bits.begin(), bits.begin() + n_inputs);
 
   result.is_constant = std::all_of(result.input_measurement.begin(),

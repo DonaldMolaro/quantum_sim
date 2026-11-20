@@ -51,13 +51,37 @@ QSIM> EXPORT bell.json
 
 Open [viewer/viewer.html](viewer/viewer.html) in a browser, then load `bell.json` (button or drag-and-drop).
 You get the circuit diagram, a step scrubber (arrow keys, play), amplitude bars colored by phase,
-and a draggable Bloch sphere per qubit. `EXPORT` records a snapshot after every gate for registers
-up to 10 qubits. `GROVER <targets>` is also exported: the initial state, `H⊗n`, then the oracle (`Uf`)
-and diffusion (`Us`) of every iteration as separate steps, so you can watch the target's phase flip and its
-amplitude grow. `QPE <m> <phase>` is exported gate by gate (`X`, `H`, controlled-phase) followed by the inverse QFT as one block.
-`SHOR <N>` is exported for the last quantum attempt: `X` on the target, `QFT`, one controlled-`U` block per control
-qubit, `iQFT`, then the control-register measurements (up to 12 qubits, so N up to 15). `QCOUNT` is exported as one step per probe: the state after k Grover iterations (`G0`, `G1`, ...), with the
-target's success probability in the step's tooltip. Other algorithm commands are not recorded yet.
+and a draggable Bloch sphere per qubit.
+
+`EXPORT` records a snapshot after every gate for registers up to 10 qubits. Algorithm commands are
+recorded too (up to 12 qubits), and each export holds the most recent circuit:
+
+| Command | Steps shown |
+|---|---|
+| `GROVER`, `GROVER AUTO`, `QUBO GROVER`, `QUBO DEMO` | `H⊗n`, then oracle (`Uf`) and diffusion (`Us`) per iteration |
+| `LATIN` | the same Grover steps on 12 qubits, then the measurements |
+| `QPE` | `X`, `H`, controlled-phase gates, then the inverse QFT block |
+| `SHOR` (N up to 15) | `X`, `QFT`, one controlled-`U` per control qubit, `iQFT`, measurements (last attempt) |
+| `QCOUNT` | one step per probe: the state after k Grover iterations, with its success probability |
+| `DEUTSCH_JOZSA`, `BV`, `QEC`, `QRNG` | every gate and measurement; the oracle is one block for Deutsch-Jozsa |
+| `VQA QAOA`, `QAOA`, `VQE` | the final optimized circuit only (the search runs hundreds of circuits) |
+| `SIMON`, `ANNEAL`, `TSP`, `QUBO EXACT` | nothing: these are classical in this simulator, so there is no quantum state |
+
+Each snapshot keeps the 256 most probable amplitudes (the omitted probability is recorded) so exports
+stay small; Bloch vectors always come from the full state.
+
+### Render every example
+
+```bash
+scripts/render_examples.sh              # run all examples, write viewer/exports/
+scripts/render_examples.sh --only qpe   # only examples whose name contains "qpe"
+```
+
+This builds `quantum_sim`, runs the `examples/*.qsim` files, one representative run of each algorithm,
+and the commands in the code blocks of `examples/*.md`, then writes a self-contained HTML page for each
+plus `viewer/exports/index.html` linking them all (needs `python3`; the output folder is git-ignored).
+The tutorial pages are a best-effort replay titled by the section heading each code block sits under.
+A fixed `--seed` (default 7) keeps measurement outcomes reproducible.
 
 ## Benchmark CSV
 

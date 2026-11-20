@@ -141,15 +141,29 @@ std::string algorithm_op_json(const std::string& name, const std::string& short_
 std::string snapshot_to_json(const State& state)
 {
   const int n = state.get_num_qubits();
-  std::vector<QubitAmplitudePair> entries(state.get_state().begin(), state.get_state().end());
+  std::vector<QubitAmplitudePair> entries;
+  for (const auto& e : state.get_state()) {
+    if (std::norm(e.second) < qsim::limits::AMPLITUDE_EPSILON * qsim::limits::AMPLITUDE_EPSILON) continue;
+    entries.push_back(e);
+  }
+  const size_t total = entries.size();
+  double p_rest = 0.0;
+  if (total > MAX_SNAPSHOT_AMPS) {
+    // Keep the most probable amplitudes; ties broken by index so output is deterministic.
+    std::sort(entries.begin(), entries.end(), [](const QubitAmplitudePair& a, const QubitAmplitudePair& b) {
+      const double pa = std::norm(a.second), pb = std::norm(b.second);
+      return pa != pb ? pa > pb : a.first < b.first;
+    });
+    for (size_t i = MAX_SNAPSHOT_AMPS; i < entries.size(); ++i) p_rest += std::norm(entries[i].second);
+    entries.resize(MAX_SNAPSHOT_AMPS);
+  }
   std::sort(entries.begin(), entries.end(),
             [](const QubitAmplitudePair& a, const QubitAmplitudePair& b) { return a.first < b.first; });
 
   std::ostringstream ss;
-  ss << "{\"n\":" << n << ",\"amps\":[";
+  ss << "{\"n\":" << n << ",\"total\":" << total << ",\"p_rest\":" << number(p_rest) << ",\"amps\":[";
   bool first = true;
   for (const auto& e : entries) {
-    if (std::norm(e.second) < qsim::limits::AMPLITUDE_EPSILON * qsim::limits::AMPLITUDE_EPSILON) continue;
     ss << (first ? "" : ",") << "[" << e.first << "," << number(e.second.real()) << "," << number(e.second.imag()) << "]";
     first = false;
   }
