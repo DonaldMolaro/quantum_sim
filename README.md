@@ -56,8 +56,8 @@ up to 10 qubits. `GROVER <targets>` is also exported: the initial state, `H⊗n`
 and diffusion (`Us`) of every iteration as separate steps, so you can watch the target's phase flip and its
 amplitude grow. `QPE <m> <phase>` is exported gate by gate (`X`, `H`, controlled-phase) followed by the inverse QFT as one block.
 `SHOR <N>` is exported for the last quantum attempt: `X` on the target, `QFT`, one controlled-`U` block per control
-qubit, `iQFT`, then the control-register measurements (up to 12 qubits, so N up to 15). Other algorithm commands
-(`QCOUNT`, ...) are not recorded yet.
+qubit, `iQFT`, then the control-register measurements (up to 12 qubits, so N up to 15). `QCOUNT` is exported as one step per probe: the state after k Grover iterations (`G0`, `G1`, ...), with the
+target's success probability in the step's tooltip. Other algorithm commands are not recorded yet.
 
 ## Benchmark CSV
 

@@ -1,8 +1,10 @@
 #include "algorithms/quantum_counting.hh"
 
 #include "internal/limits.hh"
+#include "internal/step_observer.hh"
 #include <algorithm>
 #include <cmath>
+#include <sstream>
 #include <unordered_set>
 
 namespace {
@@ -26,6 +28,12 @@ double success_probability_for_iterations(int n_qubits,
     if (targets.find(qs[i].first) != targets.end()) {
       p += std::norm(qs[i].second);
     }
+  }
+  if (qsim::step_observer_storage()) {
+    std::ostringstream detail;
+    detail.precision(4);
+    detail << iterations << " Grover iteration(s) from uniform superposition: P(marked) = " << p;
+    qsim::notify_block("QCOUNT G^" + std::to_string(iterations), "G" + std::to_string(iterations), detail.str(), s);
   }
   return p;
 }
@@ -91,6 +99,11 @@ QuantumCountingResult run_quantum_counting(int n_qubits,
     return result;
   }
 
+  if (qsim::step_observer_storage()) {
+    // Each probe below restarts from |0..0>; show that once, then one step per probe.
+    State fresh(n_qubits, 0);
+    qsim::notify_init(fresh);
+  }
   result.success_probabilities.reserve(static_cast<size_t>(iters));
   for (int k = 0; k < iters; ++k) {
     result.success_probabilities.push_back(success_probability_for_iterations(n_qubits, target_set, k));

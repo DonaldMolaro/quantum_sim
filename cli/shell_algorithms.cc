@@ -449,7 +449,9 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
   case AlgorithmCommand::QuantumCounting: {
     if (tokens.size() >= 2 && cli::token_is(tokens[1], "DEMO")) {
       tutor_note("Quantum counting estimates how many marked states exist without full enumeration.");
+      const bool recording = begin_algorithm_recording(3);
       run_quantum_counting_demo();
+      if (recording) end_algorithm_recording();
       return true;
     }
     if (tokens.size() >= 2 && cli::token_is(tokens[1], "RUN")) {
@@ -471,7 +473,9 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
         }
         targets.push_back(static_cast<Bitstring>(t));
       }
+      const bool recording = begin_algorithm_recording(n_qubits);
       run_quantum_counting_cli(n_qubits, targets, max_iterations);
+      if (recording) end_algorithm_recording();
       tutor_note("RUN mode fixes the fitting window so you can compare estimator stability.");
       return true;
     }
@@ -492,7 +496,9 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
       }
       targets.push_back(static_cast<Bitstring>(t));
     }
+    const bool recording = begin_algorithm_recording(n_qubits);
     run_quantum_counting_cli(n_qubits, targets, -1);
+    if (recording) end_algorithm_recording();
     tutor_note("Counting output estimates M (number of marked states) from Grover dynamics.");
     return true;
   }
