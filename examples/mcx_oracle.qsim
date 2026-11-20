@@ -24,3 +24,6 @@ DISPLAY
 
 # Check: amplitude at |11110> (=30) should be 1
 CHECK BASIS 30
+
+# Write circuit + per-step states for the browser viewer (open viewer/viewer.html)
+EXPORT viewer/exports/mcx_oracle.json

@@ -5,3 +5,5 @@ H 0
 CX 0 1
 DISPLAY
 CHECK BELL PHI+
+# Write circuit + per-step states for the browser viewer (open viewer/viewer.html)
+EXPORT viewer/exports/bell_state.json

@@ -81,7 +81,15 @@ bool op_to_json(const std::vector<std::string>& tokens, std::string& out, std::v
     return true;
   }
 
-  if (cmd == "MEASURE") {
+  if (cmd == "MCX") {
+    // MCX c1 ... cn t: every token is a qubit; the last one is the target.
+    if (tokens.size() < 3) return false;
+    for (size_t i = 1; i < tokens.size(); ++i) {
+      int q = 0;
+      if (!parse_int(tokens[i], q)) return false;
+      qubits.push_back(q);
+    }
+  } else if (cmd == "MEASURE") {
     int q = 0;
     if (tokens.size() < 2 || !parse_int(tokens[1], q)) return false;
     qubits.push_back(q);

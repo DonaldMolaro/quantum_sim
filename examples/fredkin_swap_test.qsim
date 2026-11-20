@@ -19,3 +19,5 @@ H 0
 # Measure ancilla
 MEASURE 0 0
 DISPLAY
+# Write circuit + per-step states for the browser viewer (open viewer/viewer.html)
+EXPORT viewer/exports/fredkin_swap_test.json

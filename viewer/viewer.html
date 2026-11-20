@@ -168,12 +168,21 @@ function buildCircuit() {
       const top = y(Math.min(...qs)), bottom = y(Math.max(...qs));
       el("rect", {x: x - 18, y: top - 15, width: 36, height: bottom - top + 30, rx: 5, "stroke-width": 1.5}, g);
       el("text", {x, y: (top + bottom) / 2}, g, op.short || nm);
+    } else if (nm === "CSWAP" || nm === "FREDKIN") {
+      // First qubit controls a swap of the other two.
+      const lo = Math.min(...qs), hi = Math.max(...qs);
+      el("line", {class: "link", x1: x, x2: x, y1: y(lo), y2: y(hi)}, g);
+      el("circle", {class: "ctrl", cx: x, cy: y(qs[0]), r: 5}, g);
+      for (const q of qs.slice(1)) {
+        el("line", {class: "link", x1: x - 8, x2: x + 8, y1: y(q) - 8, y2: y(q) + 8}, g);
+        el("line", {class: "link", x1: x - 8, x2: x + 8, y1: y(q) + 8, y2: y(q) - 8}, g);
+      }
     } else if (qs.length >= 2 && nm !== "SWAP" && nm !== "ISWAP" && !["XX","YY","ZZ"].includes(nm)) {
       const lo = Math.min(...qs), hi = Math.max(...qs);
       el("line", {class: "link", x1: x, x2: x, y1: y(lo), y2: y(hi)}, g);
       const target = qs[qs.length - 1];
       for (const q of qs.slice(0, -1)) el("circle", {class: "ctrl", cx: x, cy: y(q), r: 5}, g);
-      if (nm === "CX" || nm === "CNOT" || nm === "CCX" || nm === "TOFFOLI") {
+      if (["CX", "CNOT", "CCX", "TOFFOLI", "MCX"].includes(nm)) {
         el("circle", {cx: x, cy: y(target), r: 13, fill: "var(--panel)", stroke: "var(--ctrl)", "stroke-width": 1.5}, g);
         el("line", {class: "link", x1: x - 13, x2: x + 13, y1: y(target), y2: y(target)}, g);
         el("line", {class: "link", x1: x, x2: x, y1: y(target) - 13, y2: y(target) + 13}, g);
