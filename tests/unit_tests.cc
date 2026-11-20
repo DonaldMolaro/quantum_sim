@@ -788,6 +788,7 @@ int run_unit_tests()
     {"EXPORT QPE steps", test_export_qpe_steps},
     {"EXPORT Shor steps", test_export_shor_steps},
     {"EXPORT QCOUNT steps", test_export_qcount_steps},
+    {"EXPORT remaining algorithm steps", test_export_remaining_algorithm_steps},
     {"Display output paths", test_display_output_paths},
     {"QFT invalid ranges", test_qft_invalid_ranges},
     {"QFT tiny amplitude continue", test_qft_tiny_amplitude_continue},

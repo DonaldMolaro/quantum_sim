@@ -1593,3 +1593,67 @@ void test_export_qcount_steps() {
         throw std::runtime_error("QCOUNT export should contain one block per probe with its success probability");
     }
 }
+
+void test_export_remaining_algorithm_steps() {
+    struct Case {
+        const char* command;
+        size_t steps;            // exact number of exported steps
+        const char* must_contain;
+    };
+    // Counts are deterministic: init + gates/blocks + measurements.
+    const Case cases[] = {
+        {"deutsch_jozsa 3 balanced_xor0", 13, "\"name\":\"DJ oracle\""},
+        {"bv 4 11", 18, "\"name\":\"CX\""},
+        {"qec run 1 2", 15, "\"name\":\"MEASURE\""},
+        {"qrng 4", 9, "\"name\":\"H\""},
+        {"vqa qaoa 3 1 0 10 0.25 -2 0 2 0 1 0 2 0 -3", 8, "QAOA cost layer"},
+        {"vqe run 1 1 10 0.3 0 1 1.0 1 Z 0", 2, "\"name\":\"RY\""},
+        {"latin demo 1", 16, "Latin oracle"},
+        {"qubo grover 3 0 1 1 0 0 0 1 0 0 0 1", 4, "GROVER oracle"},
+    };
+    const std::string path = "qsim_export_remaining_test.json";
+    for (const Case& c : cases) {
+        QuantumShell shell;
+        std::ostringstream out;
+        std::ostringstream err;
+        std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+        std::streambuf* cerr_orig = std::cerr.rdbuf(err.rdbuf());
+        shell.handle_command(cli::parse_command(c.command));
+        shell.handle_command(cli::parse_command(std::string("export ") + path));
+        std::cout.rdbuf(cout_orig);
+        std::cerr.rdbuf(cerr_orig);
+
+        std::ifstream in(path);
+        std::stringstream buf;
+        buf << in.rdbuf();
+        in.close();
+        std::remove(path.c_str());
+        const std::string json = buf.str();
+        size_t steps = 0;
+        for (size_t p = json.find("\"op\":"); p != std::string::npos; p = json.find("\"op\":", p + 1)) ++steps;
+        if (steps != c.steps) {
+            throw std::runtime_error(std::string(c.command) + ": expected " + std::to_string(c.steps) +
+                                     " steps, got " + std::to_string(steps));
+        }
+        if (json.find(c.must_contain) == std::string::npos) {
+            throw std::runtime_error(std::string(c.command) + ": export should contain " + c.must_contain);
+        }
+    }
+
+    // Classical-only algorithms have no circuit, so there is nothing to export.
+    for (const char* command : {"simon 4 10 8", "anneal demo", "tsp demo"}) {
+        QuantumShell shell;
+        std::ostringstream out;
+        std::ostringstream err;
+        std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+        std::streambuf* cerr_orig = std::cerr.rdbuf(err.rdbuf());
+        shell.handle_command(cli::parse_command(command));
+        shell.handle_command(cli::parse_command(std::string("export ") + path));
+        std::cout.rdbuf(cout_orig);
+        std::cerr.rdbuf(cerr_orig);
+        std::remove(path.c_str());
+        if (err.str().find("nothing to export") == std::string::npos) {
+            throw std::runtime_error(std::string(command) + ": classical algorithm should not export steps");
+        }
+    }
+}

@@ -19,6 +19,13 @@ constexpr int MAX_SNAPSHOT_QUBITS = 10;
 /** Larger limit for algorithm recording (Shor on N=15 needs 12 qubits). */
 constexpr int MAX_ALGORITHM_SNAPSHOT_QUBITS = 12;
 
+/**
+ * Amplitudes kept per snapshot (largest probabilities first). The viewer only lists the
+ * top few dozen, and keeping every amplitude of a 12-qubit state makes exports multi-MB.
+ * The omitted count and probability are recorded so totals stay exact.
+ */
+constexpr size_t MAX_SNAPSHOT_AMPS = 256;
+
 /** Cap on recorded steps so a long LOAD cannot grow memory without bound. */
 constexpr size_t MAX_STEPS = 1000;
 
@@ -38,7 +45,10 @@ bool op_to_json(const std::vector<std::string>& tokens, std::string& out,
 std::string algorithm_op_json(const std::string& name, const std::string& short_label,
                               const std::string& detail, int first_qubit, int last_qubit);
 
-/** JSON snapshot: {"n":..,"amps":[[idx,re,im],...],"bloch":[[x,y,z],...],"cbits":[...]}. */
+/**
+ * JSON snapshot: {"n":..,"total":nonzero count,"p_rest":omitted probability,
+ * "amps":[[idx,re,im],...],"bloch":[[x,y,z],...],"cbits":[...]}.
+ */
 std::string snapshot_to_json(const State& state);
 
 /** Assembles the full export document from recorded step objects. */

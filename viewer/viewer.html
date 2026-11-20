@@ -218,8 +218,9 @@ function drawAmps(st) {
   const n = st.n, box = $("bars"); box.textContent = "";
   const rows = st.amps.map(([i, re, im]) => ({i, re, im, p: re * re + im * im})).sort((a, b) => b.p - a.p || a.i - b.i);
   const shown = rows.slice(0, 64);
-  let sum = 0;
+  let sum = st.p_rest || 0;
   for (const r of rows) sum += r.p;
+  const total = st.total || rows.length;
   for (const r of shown) {
     const row = document.createElement("div"); row.className = "row";
     const lab = document.createElement("span"); lab.textContent = "|" + bits(r.i, n) + "⟩";
@@ -231,7 +232,7 @@ function drawAmps(st) {
     const pc = document.createElement("span"); pc.className = "pct"; pc.textContent = (r.p * 100).toFixed(1) + "%";
     row.append(lab, tr, pc); box.appendChild(row);
   }
-  $("sumP").textContent = (rows.length > shown.length ? `top ${shown.length} of ${rows.length} · ` : "") + "Σp = " + sum.toFixed(4);
+  $("sumP").textContent = (total > shown.length ? `top ${shown.length} of ${total} · ` : "") + "Σp = " + sum.toFixed(4);
 }
 
 // ---------- bloch ----------

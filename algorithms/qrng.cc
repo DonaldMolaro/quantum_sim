@@ -1,6 +1,7 @@
 #include "algorithms/qrng.hh"
 #include "logging.hh"
 #include "state.hh"
+#include "internal/step_observer.hh"
 #include <cstdlib>
 #include <sstream>
 #include <string>
@@ -13,9 +14,11 @@ std::vector<int> qrng_bits(int n, const std::vector<double>* random_vals)
 
   State s(n, n);
   s.set_basis_state(0, 1.0);
+  qsim::notify_init(s);
 
   for (int j = 0; j < n; ++j) {
     s.h(j);
+    qsim::notify_gate1("H", j, s);
   }
 
   std::vector<int> out;
@@ -23,6 +26,9 @@ std::vector<int> qrng_bits(int n, const std::vector<double>* random_vals)
     s.measure_all_with_rng(*random_vals, out);
   } else {
     s.measure_all(out);
+  }
+  for (int j = 0; j < n; ++j) {
+    qsim::notify_measure(j, j, s);
   }
 
   if (qsim_log::enabled(qsim_log::Level::Verbose)) {

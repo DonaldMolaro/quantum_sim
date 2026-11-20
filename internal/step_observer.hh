@@ -7,6 +7,8 @@
 
 #include "state.hh"
 #include <functional>
+#include <iomanip>
+#include <sstream>
 #include <string>
 
 namespace qsim {
@@ -57,6 +59,46 @@ inline void notify_gate(const std::string& command, const State& state)
   info.name = command;
   step_observer_storage()(info, state);
 }
+
+/** "NAME q" (e.g. "H 2"). */
+inline void notify_gate1(const char* name, int q, const State& state)
+{
+  if (!step_observer_storage()) return;
+  notify_gate(std::string(name) + " " + std::to_string(q), state);
+}
+
+/** "NAME a b" (e.g. "CX 0 1"). */
+inline void notify_gate2(const char* name, int a, int b, const State& state)
+{
+  if (!step_observer_storage()) return;
+  notify_gate(std::string(name) + " " + std::to_string(a) + " " + std::to_string(b), state);
+}
+
+/** Parametric single-qubit gate: "NAME q angle". */
+inline void notify_gate_angle(const char* name, int q, double angle, const State& state)
+{
+  if (!step_observer_storage()) return;
+  std::ostringstream cmd;
+  cmd << std::setprecision(9) << name << " " << q << " " << angle;
+  notify_gate(cmd.str(), state);
+}
+
+/** "MEASURE q c". */
+inline void notify_measure(int q, int c, const State& state) { notify_gate2("MEASURE", q, c, state); }
+
+/**
+ * Mutes the observer for the lifetime of the object. Used around the inner loops of
+ * variational algorithms so only the final, optimized circuit is reported.
+ */
+class StepObserverPause {
+ public:
+  StepObserverPause() : saved_(step_observer_storage()) { step_observer_storage() = nullptr; }
+  ~StepObserverPause() { step_observer_storage() = saved_; }
+  StepObserverPause(const StepObserverPause&) = delete;
+  StepObserverPause& operator=(const StepObserverPause&) = delete;
+ private:
+  StepObserver saved_;
+};
 
 inline void notify_block(const std::string& name, const std::string& short_label, const std::string& detail,
                          const State& state, int first_qubit = -1, int last_qubit = -1)

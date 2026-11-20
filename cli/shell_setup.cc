@@ -97,11 +97,13 @@ bool QuantumShell::handle_setup_commands(const std::vector<std::string>& tokens,
     if (n > 63) {
       std::cout << "Note: QRNG displays integer values using only the lowest 63 bits.\n";
     }
+    begin_algorithm_recording();
     for (int i = 0; i < count; ++i) {
       std::vector<int> bits = qrng_bits(n);
       std::cout << "QRNG[" << i << "] bits=" << shell_detail::bits_to_string(bits)
                 << " value=" << shell_detail::bits_to_u64(bits) << "\n";
     }
+    end_algorithm_recording();
     tutor_note("QRNG uses Hadamard + measurement; each output bit is sampled from a superposition.");
     return true;
   }

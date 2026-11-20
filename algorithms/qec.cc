@@ -1,5 +1,6 @@
 #include "algorithms/qec.hh"
 #include "state.hh"
+#include "internal/step_observer.hh"
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -16,27 +17,36 @@ QecResult run_qec(int logical_bit, int error_qubit)
 
   // 5 physical qubits, 2 classical bits.
   State s(5, 2);
+  qsim::notify_init(s);
 
   // --- Encoding ---
   // Prepare logical qubit in q0.
-  if (logical_bit == 1) s.x(0);
+  if (logical_bit == 1) { s.x(0); qsim::notify_gate1("X", 0, s); }
   // Spread to q1 and q2 via CX.
   s.cx(0, 1);
+  qsim::notify_gate2("CX", 0, 1, s);
   s.cx(0, 2);
+  qsim::notify_gate2("CX", 0, 2, s);
   // Now: |000> if logical_bit=0, |111> if logical_bit=1.
 
   // --- Inject error ---
-  if (error_qubit >= 0) s.x(error_qubit);
+  if (error_qubit >= 0) { s.x(error_qubit); qsim::notify_gate1("X", error_qubit, s); }
 
   // --- Syndrome measurement ---
   // s1 = parity(q0, q1): ancilla q3
   s.cx(0, 3);
+  qsim::notify_gate2("CX", 0, 3, s);
   s.cx(1, 3);
+  qsim::notify_gate2("CX", 1, 3, s);
   s.measure(3, 0); // s1 into cbit 0
+  qsim::notify_measure(3, 0, s);
   // s2 = parity(q1, q2): ancilla q4
   s.cx(1, 4);
+  qsim::notify_gate2("CX", 1, 4, s);
   s.cx(2, 4);
+  qsim::notify_gate2("CX", 2, 4, s);
   s.measure(4, 1); // s2 into cbit 1
+  qsim::notify_measure(4, 1, s);
 
   const int s1 = s.get_cbit(0);
   const int s2 = s.get_cbit(1);
@@ -44,17 +54,20 @@ QecResult run_qec(int logical_bit, int error_qubit)
 
   // --- Correction ---
   int corrected_qubit = -1;
-  if      (syndrome == 0b01) { s.x(0); corrected_qubit = 0; } // s1=1,s2=0 → error on q0
-  else if (syndrome == 0b11) { s.x(1); corrected_qubit = 1; } // s1=1,s2=1 → error on q1
-  else if (syndrome == 0b10) { s.x(2); corrected_qubit = 2; } // s1=0,s2=1 → error on q2
+  if      (syndrome == 0b01) { s.x(0); qsim::notify_gate1("X", 0, s); corrected_qubit = 0; } // s1=1,s2=0 → error on q0
+  else if (syndrome == 0b11) { s.x(1); qsim::notify_gate1("X", 1, s); corrected_qubit = 1; } // s1=1,s2=1 → error on q1
+  else if (syndrome == 0b10) { s.x(2); qsim::notify_gate1("X", 2, s); corrected_qubit = 2; } // s1=0,s2=1 → error on q2
 
   // --- Decode ---
   s.cx(0, 2);
+  qsim::notify_gate2("CX", 0, 2, s);
   s.cx(0, 1);
+  qsim::notify_gate2("CX", 0, 1, s);
 
   // --- Verify ---
   // Measure qubit 0: should match logical_bit.
   s.measure(0, 0);
+  qsim::notify_measure(0, 0, s);
   const bool success = (s.get_cbit(0) == logical_bit);
 
   return {logical_bit, error_qubit, syndrome, corrected_qubit, success};

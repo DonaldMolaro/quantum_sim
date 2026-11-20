@@ -1,5 +1,6 @@
 #include "demos/latin_demo.hh"
 #include "algorithms/latin_square.hh"
+#include "internal/step_observer.hh"
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -95,13 +96,17 @@ void run_latin3_grover_demo_row0(const int row0[3], int iterations)
   std::cout << "Iterations: " << R << "\n";
 
   State s(n_qubits, n_qubits);
+  qsim::notify_init(s);
   for (int j = 0; j < n_qubits; ++j) {
     s.h(j);
   }
+  qsim::notify_block("Latin H^n", "H\xE2\x8A\x97n", "uniform superposition over all grids", s);
 
   for (int k = 0; k < R; ++k) {
     s.phase_flip_if([&row0](Bitstring b) { return is_valid_latin3(b, row0); });
+    qsim::notify_block("Latin oracle", "Uf", "iteration " + std::to_string(k + 1) + "/" + std::to_string(R) + ": flip valid Latin squares", s);
     s.grover_diffusion_Us();
+    qsim::notify_block("Latin diffusion", "Us", "iteration " + std::to_string(k + 1) + "/" + std::to_string(R), s);
   }
 
   // Find the best candidate among valid assignments.
@@ -127,6 +132,7 @@ void run_latin3_grover_demo_row0(const int row0[3], int iterations)
   } else {
     for (int q = 0; q < n_qubits; ++q) {
       s.measure(q, q);
+      qsim::notify_measure(q, q, s);
     }
     for (int q = 0; q < n_qubits; ++q) {
       measured |= (static_cast<Bitstring>(s.get_cbit(q)) << q);
