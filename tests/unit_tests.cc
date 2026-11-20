@@ -784,6 +784,7 @@ int run_unit_tests()
     {"Bloch visual summary", test_bloch_visual_summary},
     {"Circuit history view", test_circuit_history_view},
     {"EXPORT viewer JSON", test_export_viz_json},
+    {"EXPORT Grover steps", test_export_grover_steps},
     {"Display output paths", test_display_output_paths},
     {"QFT invalid ranges", test_qft_invalid_ranges},
     {"QFT tiny amplitude continue", test_qft_tiny_amplitude_continue},

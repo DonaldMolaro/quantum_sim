@@ -52,7 +52,9 @@ QSIM> EXPORT bell.json
 Open [viewer/viewer.html](viewer/viewer.html) in a browser, then load `bell.json` (button or drag-and-drop).
 You get the circuit diagram, a step scrubber (arrow keys, play), amplitude bars colored by phase,
 and a draggable Bloch sphere per qubit. `EXPORT` records a snapshot after every gate for registers
-up to 10 qubits; algorithm commands such as `GROVER` are not recorded as steps.
+up to 10 qubits. `GROVER <targets>` is also exported: the initial state, `H⊗n`, then the oracle (`Uf`)
+and diffusion (`Us`) of every iteration as separate steps, so you can watch the target's phase flip and its
+amplitude grow. Other algorithm commands (`SHOR`, `QPE`, ...) are not recorded yet.
 
 ## Benchmark CSV
 

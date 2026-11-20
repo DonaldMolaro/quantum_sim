@@ -18,6 +18,8 @@
 #include "demos/vqa_demo.hh"
 #include "demos/vqe_demo.hh"
 #include "cli/shell_detail.hh"
+#include "cli/viz_export.hh"
+#include "internal/step_observer.hh"
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -406,7 +408,28 @@ bool QuantumShell::handle_algorithm_commands(const std::vector<std::string>& tok
     if (state && state->is_initialized()) {
       n_qubits = state->get_num_qubits();
     }
-    GroverResult result = run_grover(n_qubits, targets);
+    GroverResult result;
+    {
+      // Record Grover's intermediate states as viewer steps.
+      const bool record = n_qubits <= viz::MAX_SNAPSHOT_QUBITS;
+      if (record) {
+        viz_steps_.clear();
+        qsim::set_step_observer([this](const std::string& kind, const std::string& detail, const State& s) {
+          if (viz_steps_.size() >= viz::MAX_STEPS) return;
+          std::string op;
+          if (kind == "init") {
+            viz::op_to_json({"INIT", std::to_string(s.get_num_qubits()), "0"}, op);
+          } else {
+            const std::string shortl = kind == "h_all" ? "H\xE2\x8A\x97n" : (kind == "oracle" ? "Uf" : "Us");
+            const std::string name = kind == "h_all" ? "GROVER H^n" : (kind == "oracle" ? "GROVER oracle" : "GROVER diffusion");
+            op = viz::algorithm_op_json(name, shortl, detail, s.get_num_qubits());
+          }
+          viz_steps_.push_back("{\"op\":" + op + ",\"state\":" + viz::snapshot_to_json(s) + "}");
+        });
+      }
+      result = run_grover(n_qubits, targets);
+      if (record) qsim::clear_step_observer();
+    }
     if (!result.ok) {
       std::cerr << "Grover error: " << result.error << "\n";
       return true;

@@ -1,6 +1,7 @@
 #include "algorithms/api/grover_api.hh"
 #include "algorithms/quantum_counting.hh"
 #include "internal/limits.hh"
+#include "internal/step_observer.hh"
 #include "logging.hh"
 #include <cmath>
 #include <cstdlib>
@@ -58,9 +59,11 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
     qsim_log::log(qsim_log::Level::Normal, msg.str());
   }
 
+  qsim::notify_step("init", "", s);
   for (int j = 0; j < n_qubits; ++j) {
     s.h(j);
   }
+  qsim::notify_step("h_all", "uniform superposition", s);
 
   if (R > 0) {
     bool force_set = false;
@@ -81,7 +84,9 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
           qsim_log::log(qsim_log::Level::Verbose, step.str());
         }
         s.grover_oracle_Uf_mask(mask);
+        qsim::notify_step("oracle", "iteration " + std::to_string(k + 1) + "/" + std::to_string(R), s);
         s.grover_diffusion_Us();
+        qsim::notify_step("diffusion", "iteration " + std::to_string(k + 1) + "/" + std::to_string(R), s);
       }
     } else {
       for (int k = 0; k < R; ++k) {
@@ -91,7 +96,9 @@ GroverResult run_grover(State& s, const std::vector<Bitstring>& targets, int ite
           qsim_log::log(qsim_log::Level::Verbose, step.str());
         }
         s.grover_oracle_Uf_multi(target_set);
+        qsim::notify_step("oracle", "iteration " + std::to_string(k + 1) + "/" + std::to_string(R), s);
         s.grover_diffusion_Us();
+        qsim::notify_step("diffusion", "iteration " + std::to_string(k + 1) + "/" + std::to_string(R), s);
       }
     }
   }

@@ -1460,3 +1460,38 @@ void test_export_viz_json() {
         throw std::runtime_error("EXPORT should record INIT + 3 gates, got " + std::to_string(steps));
     }
 }
+
+void test_export_grover_steps() {
+    const std::string path = "qsim_export_grover_test.json";
+    QuantumShell shell;
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command("grover 5"));   // 3 qubits, 2 iterations
+    shell.handle_command(cli::parse_command("export " + path));
+    std::cout.rdbuf(cout_orig);
+
+    std::ifstream in(path);
+    std::stringstream buf;
+    buf << in.rdbuf();
+    in.close();
+    std::remove(path.c_str());
+    const std::string json = buf.str();
+    auto count = [&](const std::string& needle) {
+        size_t n = 0;
+        for (size_t p = json.find(needle); p != std::string::npos; p = json.find(needle, p + 1)) ++n;
+        return n;
+    };
+    // init + H^n + 2 iterations * (oracle + diffusion)
+    if (count("\"op\":") != 6) {
+        throw std::runtime_error("GROVER should export 6 steps, got " + std::to_string(count("\"op\":")));
+    }
+    if (count("\"name\":\"GROVER oracle\"") != 2 || count("\"name\":\"GROVER diffusion\"") != 2 || count("\"alg\":true") != 5) {
+        throw std::runtime_error("GROVER export should contain oracle/diffusion algorithm steps");
+    }
+    // After the final diffusion, the target |101> (index 5) should dominate.
+    const size_t last = json.rfind("\"amps\":");
+    const size_t at = json.find("[5,", last);
+    if (at == std::string::npos || at > json.find("\"bloch\"", last)) {
+        throw std::runtime_error("target amplitude should be present in final Grover snapshot");
+    }
+}

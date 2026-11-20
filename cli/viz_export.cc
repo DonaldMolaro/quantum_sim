@@ -118,6 +118,18 @@ bool op_to_json(const std::vector<std::string>& tokens, std::string& out, std::v
   return true;
 }
 
+std::string algorithm_op_json(const std::string& name, const std::string& short_label,
+                              const std::string& detail, int num_qubits)
+{
+  std::ostringstream ss;
+  ss << "{\"name\":\"" << json_escape(name) << "\",\"alg\":true,\"short\":\"" << json_escape(short_label)
+     << "\",\"qubits\":[";
+  for (int q = 0; q < num_qubits; ++q) ss << (q ? "," : "") << q;
+  ss << "],\"params\":[],\"cbit\":null,\"raw\":\"" << json_escape(name + (detail.empty() ? "" : " - " + detail))
+     << "\"}";
+  return ss.str();
+}
+
 std::string snapshot_to_json(const State& state)
 {
   const int n = state.get_num_qubits();
