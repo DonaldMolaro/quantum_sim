@@ -1564,3 +1564,32 @@ void test_export_shor_steps() {
         throw std::runtime_error("SHOR export should report 8 classical bits");
     }
 }
+
+void test_export_qcount_steps() {
+    const std::string path = "qsim_export_qcount_test.json";
+    QuantumShell shell;
+    std::ostringstream out;
+    std::streambuf* cout_orig = std::cout.rdbuf(out.rdbuf());
+    shell.handle_command(cli::parse_command("qcount 3 1 6"));   // n=3 => 4 probes (k=0..3)
+    shell.handle_command(cli::parse_command("export " + path));
+    std::cout.rdbuf(cout_orig);
+
+    std::ifstream in(path);
+    std::stringstream buf;
+    buf << in.rdbuf();
+    in.close();
+    std::remove(path.c_str());
+    const std::string json = buf.str();
+    auto count = [&](const std::string& needle) {
+        size_t n = 0;
+        for (size_t p = json.find(needle); p != std::string::npos; p = json.find(needle, p + 1)) ++n;
+        return n;
+    };
+    // init + one step per probe k = 0..3
+    if (count("\"op\":") != 5) {
+        throw std::runtime_error("QCOUNT should export 5 steps, got " + std::to_string(count("\"op\":")));
+    }
+    if (count("\"name\":\"QCOUNT G^") != 4 || count("P(marked)") != 4) {
+        throw std::runtime_error("QCOUNT export should contain one block per probe with its success probability");
+    }
+}

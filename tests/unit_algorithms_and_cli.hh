@@ -46,6 +46,7 @@ void test_export_viz_json();
 void test_export_grover_steps();
 void test_export_qpe_steps();
 void test_export_shor_steps();
+void test_export_qcount_steps();
 void test_display_output_paths();
 void test_qft_invalid_ranges();
 void test_qft_tiny_amplitude_continue();
